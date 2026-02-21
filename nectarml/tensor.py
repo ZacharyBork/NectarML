@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Callable
+from typing import Any, Literal
+from collections.abc import Sequence, Callable
 
 import numpy as np
 from numpy.typing import DTypeLike, ArrayLike
@@ -251,6 +252,25 @@ class Tensor():
     
     def sigmoid(self) -> Tensor:
         return ((-self).exp() + 1) ** -1
+    
+    # TRANSPOSITION
+    
+    def transpose(self, axes: Sequence[int] | None) -> Tensor:
+        out = self._build_output_tensor(self.data.transpose(axes), (self,))
+        def _backward():
+            if self.requires_grad:
+                self.grad += out.grad.transpose(axes)
+        out._backward = _backward
+        return out
+        
+    def swapaxes(self, axis1: int, axis2: int) -> Tensor:
+        out = self._build_output_tensor(
+            self.data.swapaxes(axis1, axis2), (self,))
+        def _backward():
+            if self.requires_grad:
+                self.grad += out.grad.swapaxes(axis1, axis2)
+        out._backward = _backward
+        return out
         
     # GETTERS / SETTERS
         
