@@ -22,10 +22,32 @@ class Tensor():
         self.requires_grad = requires_grad
         
         self._backward = lambda : None
-        self._prev = set(_children)
+        self._prev: set[Tensor] = set(_children)
+
+    # GRADIENTS
 
     def backward(self) -> None:
-        pass
+        assert self.data.ndim == 0 or self.data.size == 1, \
+            'backward() can only be called on scalar tensors.'
+        
+        visited: set[int] = set()
+        graph: list[Tensor] = []
+        
+        def build_graph(node: Tensor):
+            if id(node) not in visited:
+                visited.add(id(node))
+                for child in node._prev:
+                    build_graph(child)
+                graph.append(node)
+        
+        build_graph(self)
+        graph.reverse()
+        self.grad = np.ones_like(self.data)
+        for node in graph: node._backward()
+    
+    def zero_grad(self) -> None:
+        if self.requires_grad:
+            self.grad = np.zeros_like(self.data)
     
     # PROPERTIES
     
@@ -250,6 +272,8 @@ class Tensor():
     
     def __len__(self) -> int: return self.data.__len__()
     
+    def __hash__(self) -> int: return id(self)
+    
     # COMPARISON
     
     def __eq__(self, other: Tensor) -> np.ndarray:
@@ -292,11 +316,9 @@ class Tensor():
         return (-self) + other
     
     def __neg__(self) -> Tensor:
-        out = Tensor(data=-self.data, _children=(self,))
-        
+        out = self._build_output_tensor(-self.data, (self,))
         def _backward():
             if self.requires_grad: self.grad += -out.grad
-            
         out._backward = _backward
         return out
 
