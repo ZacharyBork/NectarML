@@ -1,5 +1,8 @@
 import numpy as np
 
+ArrayLike = np.typing.ArrayLike
+DTypeLike = np.typing.DTypeLike
+
 float = np.float32
 float16 = np.float16
 float32 = np.float32

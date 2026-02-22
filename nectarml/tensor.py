@@ -4,13 +4,14 @@ from typing import Any, Literal
 from collections.abc import Sequence, Callable
 
 import numpy as np
-from numpy.typing import DTypeLike, ArrayLike
+
+from nectarml.typing import ArrayLike, DTypeLike, float32
 
 class Tensor():
     def __init__(
         self,
         data: ArrayLike,
-        dtype: DTypeLike = np.float32,
+        dtype: DTypeLike = float32,
         device: Literal['cpu', 'cuda'] = 'cpu',
         requires_grad: bool = False,
         _children = ()

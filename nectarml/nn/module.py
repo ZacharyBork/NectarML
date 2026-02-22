@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import Any, Literal
 
 import numpy as np
-from numpy.typing import DTypeLike
 
-from nectarml import Tensor
+from nectarml import Tensor, DTypeLike, float32
 
 class Module():
     _parameters: dict[str, Tensor]
@@ -14,7 +13,7 @@ class Module():
     def __init__(
         self,
         device: Literal['cpu', 'cuda'] = 'cpu',
-        dtype: DTypeLike = np.float32
+        dtype: DTypeLike = float32
     ) -> None:
         super().__setattr__('_parameters', {})
         super().__setattr__('_submodules', {})

@@ -2,9 +2,8 @@ from collections.abc import Sequence, Callable
 from typing import Literal
 
 import numpy as np
-from numpy.typing import DTypeLike, ArrayLike
 
-from nectarml import Tensor, zeros_like, ones_like, zeros
+from nectarml import Tensor, DTypeLike, ArrayLike, zeros_like, ones_like, zeros
 
 # ABSTRACTS
 
@@ -386,9 +385,25 @@ def pad(
     out._backward = _backward
     return out
 
+# LOSS
+
+def _reduce_loss(
+    loss_value: Tensor, 
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
+    match reduction:
+        case 'none': return loss_value
+        case 'mean': return mean(loss_value)
+        case 'sum':  return sum(loss_value)
+        case _: raise ValueError(f'Invalid reduction mode: {reduction}')
+
 # LOSS - REGRESSION
 
-def L1Loss(input: Tensor, target: Tensor) -> Tensor:
+def L1Loss(
+    input: Tensor, 
+    target: Tensor, 
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
     '''L1 (Mean Absolute Error) loss.
     
     Pixel-wise loss. Computes error from the absoulte distance between the
@@ -401,9 +416,13 @@ def L1Loss(input: Tensor, target: Tensor) -> Tensor:
     Returns:
         Tensor : The computed loss.
     '''
-    return mean(abs((input - target)))
+    return _reduce_loss(abs((input - target)), reduction)
 
-def MAELoss(input: Tensor, target: Tensor) -> Tensor: 
+def MAELoss(
+    input: Tensor, 
+    target: Tensor, 
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
     '''L1 (Mean Absolute Error) loss.
     
     Pixel-wise loss. Computes error from the absoulte distance between the
@@ -416,9 +435,13 @@ def MAELoss(input: Tensor, target: Tensor) -> Tensor:
     Returns:
         Tensor : The computed loss.
     '''
-    return L1Loss(input, target)
+    return L1Loss(input, target, reduction)
 
-def L2Loss(input: Tensor, target: Tensor) -> Tensor:
+def L2Loss(
+    input: Tensor, 
+    target: Tensor, 
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
     '''L2 (Mean Squared Error) loss.
     
     Computes loss from the squared distance between the prediction and the
@@ -432,9 +455,13 @@ def L2Loss(input: Tensor, target: Tensor) -> Tensor:
     Returns:
         Tensor : The computed loss.
     '''
-    return mean((input - target) ** 2)
+    return _reduce_loss((input - target) ** 2, reduction)
 
-def MSELoss(input: Tensor, target: Tensor) -> Tensor:
+def MSELoss(
+    input: Tensor, 
+    target: Tensor, 
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
     '''L2 (Mean Squared Error) loss.
     
     Computes loss from the squared distance between the prediction and the
@@ -448,29 +475,52 @@ def MSELoss(input: Tensor, target: Tensor) -> Tensor:
     Returns:
         Tensor : The computed loss.
     ''' 
-    return L2Loss(input, target)
+    return L2Loss(input, target, reduction)
 
 def RMSELoss(input: Tensor, target: Tensor) -> Tensor: 
     return sqrt(MSELoss(input, target))
 
-def HuberLoss(input: Tensor, target: Tensor, delta: float = 1.0) -> Tensor: 
+def HuberLoss(
+    input: Tensor, 
+    target: Tensor, 
+    delta: float = 1.0,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
     distance = input - target
     quadratic = 0.5 * (distance ** 2)
     linear = delta * (abs(distance) - 0.5 * delta)
-    return mean(where((abs(distance)).data < delta, quadratic, linear))
+    loss_value = where((abs(distance)).data < delta, quadratic, linear)
+    return _reduce_loss(loss_value, reduction)
 
-def LogCoshLoss(input: Tensor, target: Tensor) -> Tensor: 
-    return mean(log(cosh(input - target)))
+def LogCoshLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
+    return _reduce_loss(log(cosh(input - target)), reduction)
 
 # LOSS - CLASSIFICATION
 
-def BCELoss(input: Tensor, target: Tensor) -> Tensor: 
-    return mean(-(target * log(input) + (1 - target) * log(1 - input)))
+def BCELoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
+    loss_value = -(target * log(input) + (1 - target) * log(1 - input))
+    return _reduce_loss(loss_value, reduction)
 
-def CrossEntropyLoss(input: Tensor, target: Tensor) -> Tensor: 
-    return mean(-sum(target * log(input)))
+def CrossEntropyLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
+    return _reduce_loss(-sum(target * log(input)), reduction)
 
-def NLLLoss(input: Tensor, target: Tensor) -> Tensor: 
+def NLLLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
     '''Negative Log Likelihood loss.
     
     This loss effectively computes how "surprised" the model was when presented
@@ -483,24 +533,42 @@ def NLLLoss(input: Tensor, target: Tensor) -> Tensor:
     Returns:
         Tensor : The computed loss.
     '''
-    return mean(-log(gather(input, dim=1, index=target)))
+    return _reduce_loss(-log(gather(input, dim=1, index=target)), reduction)
 
-def HingeLoss(input: Tensor, target: Tensor) -> Tensor: 
-    return mean(max(zeros_like(input), 1 - target * input))
+def HingeLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
+    return _reduce_loss(max(zeros_like(input), 1 - target * input), reduction)
 
-def Hinge2Loss(input: Tensor, target: Tensor) -> Tensor: 
-    return mean(max(zeros_like(input), 1 - target * input) ** 2)
+def Hinge2Loss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
+    loss_value = max(zeros_like(input), 1 - target * input) ** 2
+    return _reduce_loss(loss_value, reduction)
 
 # LOSS - PROBABILISTIC
 
-def KLDivergenceLoss(input: Tensor, target: Tensor) -> Tensor: 
-    return sum(target * log(target / input))
+def KLDivergenceLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'sum'
+) -> Tensor:
+    return _reduce_loss(target * log(target / input), reduction)
 
-def BCEWithLogitsLoss(input: Tensor, target: Tensor) -> Tensor: 
+def BCEWithLogitsLoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor:
     x = input
     _zeros = zeros_like(x)
     _ones = ones_like(x)
-    return mean(max(x, _zeros) - x * target + log(_ones + exp(-abs(x))))
+    loss_value = max(x, _zeros) - x * target + log(_ones + exp(-abs(x)))
+    return _reduce_loss(loss_value, reduction)
 
 # LOSS - RANKING
 
@@ -509,13 +577,15 @@ def TripletMarginLoss(
     positive: Tensor, 
     negative: Tensor,
     margin: float = 1.0,
-    eps: float = 1e-6
+    eps: float = 1e-6,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     assert margin > 0.0
     a, p, n = anchor, positive, negative
     zero = zeros((), dtype=anchor.dtype, device=anchor.device)
     dist = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
-    return mean(max(dist(a, p) - dist(a, n) + margin, zero))
+    loss_value = max(dist(a, p) - dist(a, n) + margin, zero)
+    return mean(loss_value, reduction)
 
 
 
