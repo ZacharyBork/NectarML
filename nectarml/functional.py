@@ -477,8 +477,13 @@ def MSELoss(
     ''' 
     return L2Loss(input, target, reduction)
 
-def RMSELoss(input: Tensor, target: Tensor) -> Tensor: 
-    return sqrt(MSELoss(input, target))
+def RMSELoss(
+    input: Tensor, 
+    target: Tensor,
+    reduction: Literal['none', 'mean', 'sum'] = 'mean'
+) -> Tensor: 
+    loss_value = sqrt(MSELoss(input, target, reduction='none'))
+    return _reduce_loss(loss_value, reduction)
 
 def HuberLoss(
     input: Tensor, 
