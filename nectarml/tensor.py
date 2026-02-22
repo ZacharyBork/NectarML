@@ -232,6 +232,9 @@ class Tensor():
         
     # WRAPPERS
     
+    def abs(self) -> Tensor: 
+        return self._wrapper_base(np.abs, np.sign)
+    
     def exp(self) -> Tensor: 
         return self._wrapper_base(np.exp, np.exp)
     

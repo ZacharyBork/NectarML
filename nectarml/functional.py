@@ -1,9 +1,10 @@
 from collections.abc import Sequence, Callable
+from typing import Literal
 
 import numpy as np
 from numpy.typing import DTypeLike, ArrayLike
 
-from nectarml import Tensor
+from nectarml import Tensor, zeros_like, ones_like, zeros
 
 # ABSTRACTS
 
@@ -187,6 +188,9 @@ def prod(
     return out
 
 # MATH OPS
+
+def abs(input: Tensor) -> Tensor: 
+    return _wrapper_base(input, np.abs, np.sign)
     
 def exp(input: Tensor) -> Tensor: 
     return _wrapper_base(input, np.exp, np.exp)
@@ -202,6 +206,9 @@ def sin(input: Tensor) -> Tensor:
 
 def cos(input: Tensor) -> Tensor: 
     return _wrapper_base(input, np.cos, lambda x: -np.sin(x))
+
+def cosh(input: Tensor) -> Tensor: 
+    return _wrapper_base(input, np.cosh, np.sinh)
 
 def tanh(input: Tensor) -> Tensor: 
     return _wrapper_base(input, np.tanh, lambda x: 1 - np.tanh(x) ** 2)
@@ -227,7 +234,34 @@ def concatenate(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
 def cat(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
     return concatenate(inputs, dim)
 
-def stack() -> Tensor: pass
+def stack(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
+    out = inputs[0]._build_output_tensor(
+        np.stack([t.data for t in inputs], axis=dim), tuple(inputs))
+    def _backward():
+        grads = np.split(out.grad, len(inputs), axis=dim)
+        for tensor, grad in zip(inputs, grads):
+            if tensor.requires_grad:
+                tensor.grad += np.squeeze(grad, axis=dim)
+    out._backward = _backward
+    return out
+
+def unstack(input: Tensor, dim: int = 0) -> list[Tensor]:
+    _split = np.split(input.data, input.data.shape[dim], axis=dim)
+    splits = [np.squeeze(s, axis=dim) for s in _split]
+    outputs = [input._build_output_tensor(s, (input,)) for s in splits]
+    _backward_called = False
+    def _backward():
+        nonlocal _backward_called
+        if _backward_called: return
+        _backward_called = True
+        if input.requires_grad:
+            input.grad += np.stack([o.grad for o in outputs], axis=dim)
+    for out in outputs:
+        out._backward = _backward
+    return outputs
+
+def unbind(input: Tensor, dim: int = 0) -> list[Tensor]:
+    return unstack(input, dim)
 
 def split(
     input: Tensor, 
@@ -236,31 +270,253 @@ def split(
 ) -> list[Tensor]:
     splits = np.split(input.data, sizes, axis=dim)
     outputs = [input._build_output_tensor(s, (input,)) for s in splits]
+    _backward_called = False
     def _backward():
+        nonlocal _backward_called
+        if _backward_called: return
+        _backward_called = True
         if input.requires_grad:
             input.grad += np.concatenate([o.grad for o in outputs], axis=dim)
     for out in outputs:
         out._backward = _backward
     return outputs
 
-def chunk() -> Tensor: pass
-
-def unbind() -> Tensor: pass
+def chunk(input: Tensor, size: int, dim: int = 0) -> list[Tensor]:
+    assert size >= 1
+    chunk_size = int(np.ceil(input.shape[dim] / size))
+    return split(input, chunk_size, dim)
 
 # INDEXING / SELECTION
 
-def gather() -> Tensor: pass
+def gather(input: Tensor, dim: int, index: Tensor) -> Tensor:
+    out = input._build_output_tensor(
+        np.take_along_axis(input.data, index.data.astype(int), axis=dim),
+        (input,))
+    def _backward():
+        if input.requires_grad:
+            grad = np.zeros_like(input.data)
+            np.add.at(grad, 
+                tuple(np.arange(s) if i != dim else index.data.astype(int) 
+                for i, s in enumerate(input.data.shape)), out.grad)
+            input.grad += grad
+    out._backward = _backward
+    return out
 
-def scatter() -> Tensor: pass
+def scatter(input: Tensor, dim: int, index: Tensor, src: Tensor) -> Tensor:
+    out_data = input.data.copy()
+    np.put_along_axis(out_data, index.data.astype(int), src.data, axis=dim)
+    out = input._build_output_tensor(out_data, (input, src))
+    def _backward():
+        if src.requires_grad:
+            src.grad += np.take_along_axis(
+                out.grad, index.data.astype(int), axis=dim)
+        if input.requires_grad:
+            grad = out.grad.copy()
+            np.put_along_axis(grad, index.data.astype(int), 0, axis=dim)
+            input.grad += grad
+    out._backward = _backward
+    return out
 
-def where() -> Tensor: pass
+def where(condition: np.ndarray, x: Tensor, y: Tensor) -> Tensor:
+    # NOTE: Needs Boolean Tensor support!!
+    out = x._build_output_tensor(np.where(condition, x.data, y.data), (x, y))
+    def _backward():
+        if x.requires_grad:
+            x.grad += np.where(condition, out.grad, 0)
+        if y.requires_grad:
+            y.grad += np.where(condition, 0, out.grad)
+    out._backward = _backward
+    return out
 
-def mask_fill() -> Tensor: pass
+def masked_fill(input: Tensor, mask: np.ndarray, value: float) -> Tensor:
+    # NOTE: Needs Boolean Tensor support!!
+    out = input._build_output_tensor(
+        np.where(mask, value, input.data), (input,))
+    def _backward():
+        if input.requires_grad:
+            input.grad += np.where(mask, 0, out.grad)
+    out._backward = _backward
+    return out
 
-def index_select() -> Tensor: pass
+def index_select(input: Tensor, dim: int, index: Tensor) -> Tensor:
+    out = input._build_output_tensor(
+        np.take(input.data, index.data.astype(int), axis=dim), (input,))
+    def _backward():
+        if input.requires_grad:
+            grad = np.zeros_like(input.data)
+            np.add.at(grad, 
+                tuple(index.data.astype(int) if i == dim else slice(None) 
+                for i in range(input.data.ndim)), out.grad)
+            input.grad += grad
+    out._backward = _backward
+    return out
 
 # PADDING
 
-def pad() -> Tensor: pass
+def pad(
+    input: Tensor, 
+    pad: tuple, 
+    mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
+    value: float = 0.0
+) -> Tensor:
+    match mode:
+        case 'constant':  _mode = 'constant'
+        case 'reflect':   _mode = 'reflect'
+        case 'replicate': _mode = 'edge'
+        case 'circular':  _mode = 'wrap'
+        case _: raise ValueError(f'Invalid padding mode: {mode}')
+    
+    pairs = [(pad[i+1], pad[i]) for i in range(0, len(pad), 2)]
+    pairs.reverse()
+
+    num_unpadded = input.data.ndim - len(pairs)
+    np_pad = [(0, 0)] * num_unpadded + pairs
+    
+    out = input._build_output_tensor(
+        np.pad(
+            input.data, np_pad, mode=_mode, 
+            **({'constant_values': value} if _mode == 'constant' else {})),
+        (input,))
+    def _backward():
+        if input.requires_grad:
+            slices = tuple(
+                slice(p[0], s + p[0]) 
+                for s, p in zip(input.data.shape, np_pad))
+            input.grad += out.grad[slices]
+    out._backward = _backward
+    return out
+
+# LOSS - REGRESSION
+
+def L1Loss(input: Tensor, target: Tensor) -> Tensor:
+    '''L1 (Mean Absolute Error) loss.
+    
+    Pixel-wise loss. Computes error from the absoulte distance between the
+    prediction and the ground truth.
+    
+    Args:
+        input : The model prediction output.
+        target : The ground truth. Target for model's prediction.
+        
+    Returns:
+        Tensor : The computed loss.
+    '''
+    return mean(abs((input - target)))
+
+def MAELoss(input: Tensor, target: Tensor) -> Tensor: 
+    '''L1 (Mean Absolute Error) loss.
+    
+    Pixel-wise loss. Computes error from the absoulte distance between the
+    prediction and the ground truth.
+    
+    Args:
+        input : The model prediction output.
+        target : The ground truth. Target for model's prediction.
+        
+    Returns:
+        Tensor : The computed loss.
+    '''
+    return L1Loss(input, target)
+
+def L2Loss(input: Tensor, target: Tensor) -> Tensor:
+    '''L2 (Mean Squared Error) loss.
+    
+    Computes loss from the squared distance between the prediction and the
+    ground truth. Punishing large prediction errors more harshly than smaller
+    errors.
+    
+    Args:
+        input : The model prediction output.
+        target : The ground truth. Target for model's prediction.
+        
+    Returns:
+        Tensor : The computed loss.
+    '''
+    return mean((input - target) ** 2)
+
+def MSELoss(input: Tensor, target: Tensor) -> Tensor:
+    '''L2 (Mean Squared Error) loss.
+    
+    Computes loss from the squared distance between the prediction and the
+    ground truth. Punishing large prediction errors more harshly than smaller
+    errors.
+    
+    Args:
+        input : The model prediction output.
+        target : The ground truth. Target for model's prediction.
+        
+    Returns:
+        Tensor : The computed loss.
+    ''' 
+    return L2Loss(input, target)
+
+def RMSELoss(input: Tensor, target: Tensor) -> Tensor: 
+    return sqrt(MSELoss(input, target))
+
+def HuberLoss(input: Tensor, target: Tensor, delta: float = 1.0) -> Tensor: 
+    distance = input - target
+    quadratic = 0.5 * (distance ** 2)
+    linear = delta * (abs(distance) - 0.5 * delta)
+    return mean(where((abs(distance)).data < delta, quadratic, linear))
+
+def LogCoshLoss(input: Tensor, target: Tensor) -> Tensor: 
+    return mean(log(cosh(input - target)))
+
+# LOSS - CLASSIFICATION
+
+def BCELoss(input: Tensor, target: Tensor) -> Tensor: 
+    return mean(-(target * log(input) + (1 - target) * log(1 - input)))
+
+def CrossEntropyLoss(input: Tensor, target: Tensor) -> Tensor: 
+    return mean(-sum(target * log(input)))
+
+def NLLLoss(input: Tensor, target: Tensor) -> Tensor: 
+    '''Negative Log Likelihood loss.
+    
+    This loss effectively computes how "surprised" the model was when presented
+    with the correct answer.
+    
+    Args:
+        input : The model prediction output.
+        target : The ground truth. Target for model's prediction.
+        
+    Returns:
+        Tensor : The computed loss.
+    '''
+    return mean(-log(gather(input, dim=1, index=target)))
+
+def HingeLoss(input: Tensor, target: Tensor) -> Tensor: 
+    return mean(max(zeros_like(input), 1 - target * input))
+
+def Hinge2Loss(input: Tensor, target: Tensor) -> Tensor: 
+    return mean(max(zeros_like(input), 1 - target * input) ** 2)
+
+# LOSS - PROBABILISTIC
+
+def KLDivergenceLoss(input: Tensor, target: Tensor) -> Tensor: 
+    return sum(target * log(target / input))
+
+def BCEWithLogitsLoss(input: Tensor, target: Tensor) -> Tensor: 
+    x = input
+    _zeros = zeros_like(x)
+    _ones = ones_like(x)
+    return mean(max(x, _zeros) - x * target + log(_ones + exp(-abs(x))))
+
+# LOSS - RANKING
+
+def TripletMarginLoss(
+    anchor: Tensor, 
+    positive: Tensor, 
+    negative: Tensor,
+    margin: float = 1.0,
+    eps: float = 1e-6
+) -> Tensor: 
+    assert margin > 0.0
+    a, p, n = anchor, positive, negative
+    zero = zeros((), dtype=anchor.dtype, device=anchor.device)
+    dist = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
+    return mean(max(dist(a, p) - dist(a, n) + margin, zero))
+
+
 
 
