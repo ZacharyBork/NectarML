@@ -4,7 +4,7 @@ from nectarml._core import reductions
 
 def min(
     input: Tensor, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
 ) -> Tensor:
     return _eval_core_function(
@@ -12,7 +12,7 @@ def min(
 
 def max(
     input: Tensor, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
 ) -> Tensor:
     return _eval_core_function(
@@ -34,7 +34,7 @@ def argmax(
 
 def mean(
     input: Tensor, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
 ) -> Tensor:
     return _eval_core_function(
@@ -42,7 +42,7 @@ def mean(
 
 def sum(
     input: Tensor, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
     initial: int | float = 0
 ) -> Tensor:
@@ -51,7 +51,7 @@ def sum(
 
 def prod(
     input: Tensor, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
     initial: int | float = 0
 ) -> Tensor:

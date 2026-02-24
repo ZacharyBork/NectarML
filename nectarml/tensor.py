@@ -141,7 +141,7 @@ class Tensor():
     
     def min(
         self, 
-        dim: int | None = None, 
+        dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False
     ) -> Tensor:
         return self._eval_core_function(
@@ -149,7 +149,7 @@ class Tensor():
     
     def max(
         self, 
-        dim: int | None = None, 
+        dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False
     ) -> Tensor:
         return self._eval_core_function(
@@ -171,7 +171,7 @@ class Tensor():
     
     def mean(
         self, 
-        dim: int | None = None, 
+        dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Tensor:
         return self._eval_core_function(
@@ -179,7 +179,7 @@ class Tensor():
         
     def sum(
         self, 
-        dim: int | None = None, 
+        dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
         initial: int | float = 0
     ) -> Tensor:
@@ -188,7 +188,7 @@ class Tensor():
     
     def prod(
         self, 
-        dim: int | None = None, 
+        dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
         initial: int | float = 1
     ) -> Tensor:

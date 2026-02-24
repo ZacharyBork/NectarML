@@ -5,7 +5,7 @@ from numpy.typing import ArrayLike
 
 def min(
     input: np.ndarray, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None, 
     keepdims: bool = False
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
     out = input.min(axis=dim, keepdims=keepdims)
@@ -19,7 +19,7 @@ def min(
 
 def max(
     input: np.ndarray, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
     out = input.max(axis=dim, keepdims=keepdims)
@@ -47,7 +47,7 @@ def argmax(
 
 def mean(
     input: np.ndarray, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
     out = input.mean(axis=dim, keepdims=keepdims)
@@ -61,7 +61,7 @@ def mean(
 
 def sum(
     input: np.ndarray, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
     initial: int | float = 0
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
@@ -75,7 +75,7 @@ def sum(
 
 def prod(
     input: np.ndarray, 
-    dim: int | None = None, 
+    dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False,
     initial: int | float = 0
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
