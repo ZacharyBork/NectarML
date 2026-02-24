@@ -6,6 +6,7 @@ from collections.abc import Sequence, Callable
 import numpy as np
 
 from nectarml.typing import ArrayLike, DTypeLike, float32
+import nectarml._core as _core
 
 class Tensor():
     def __init__(
@@ -121,24 +122,19 @@ class Tensor():
         return Tensor(
             data=data, device=self.device, dtype=self.dtype, 
             requires_grad=_requires_grad, _children=children)
-        
-    def _wrapper_base(
-        self, 
-        func: Callable[[np.ndarray], np.ndarray], 
-        grad_func: Callable[[np.ndarray], np.ndarray], 
-        children: tuple[Tensor, ...] | None = None,
-        reduce_dim: int | None = None
+    
+    def _eval_core_function(
+        self,
+        func: Callable[
+            [np.ndarray], 
+            tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]]
     ) -> Tensor:
-        if children is None: children = (self,)
-        out = self._build_output_tensor(func(self.data), children)
-        def _backward():
+        out_data, _backward = func(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+        def _backward_hook():
             if self.requires_grad:
-                out_grad = out.grad
-                if reduce_dim is not None and out_grad.ndim < self.data.ndim:
-                    out_grad = np.expand_dims(out_grad, axis=reduce_dim)
-                out_grad = np.broadcast_to(out_grad, self.data.shape)
-                self.grad += grad_func(self.data) * out_grad
-        out._backward = _backward
+                self.grad += _backward(out.grad)
+        out._backward = _backward_hook
         return out
     
     # REDUCTIONS
@@ -148,133 +144,110 @@ class Tensor():
         dim: int | None = None, 
         keepdims: bool = False
     ) -> Tensor:
-        def _grad(x: np.ndarray):
-            max_vals = x.min(axis=dim, keepdims=True)
-            return (x == max_vals).astype(x.dtype)
-        return self._wrapper_base(
-            lambda x: x.min(axis=dim, keepdims=keepdims), _grad,
-            reduce_dim=dim if not keepdims else None)
+        return self._eval_core_function(
+            lambda x : _core.reductions.min(x, dim=dim, keepdims=keepdims))
     
     def max(
         self, 
         dim: int | None = None, 
         keepdims: bool = False
     ) -> Tensor:
-        def _grad(x: np.ndarray):
-            max_vals = x.max(axis=dim, keepdims=True)
-            return (x == max_vals).astype(x.dtype)
-        return self._wrapper_base(
-            lambda x: x.max(axis=dim, keepdims=keepdims), _grad,
-            reduce_dim=dim if not keepdims else None)
+        return self._eval_core_function(
+            lambda x : _core.reductions.max(x, dim=dim, keepdims=keepdims))
     
     def argmin(
         self, 
         dim: int | None = None, 
         keepdims: bool = False
     ) -> ArrayLike:
-        return self.data.argmin(axis=dim, keepdims=keepdims)
+        return _core.reductions.argmin(self.data, dim=dim, keepdims=keepdims)
         
     def argmax(
         self, 
         dim: int | None = None, 
         keepdims: bool = False
     ) -> ArrayLike:
-        return self.data.argmax(axis=dim, keepdims=keepdims)
+        return _core.reductions.argmax(self.data, dim=dim, keepdims=keepdims)
     
     def mean(
         self, 
         dim: int | None = None, 
-        dtype: DTypeLike | None = None,
         keepdims: bool = False,
     ) -> Tensor:
-        def _grad(x: np.ndarray):
-            n = x.size if dim is None else x.shape[dim]
-            return (np.ones_like(x) / n)
-        return self._wrapper_base(
-            lambda x: x.mean(axis=dim, dtype=dtype, keepdims=keepdims), _grad,
-            reduce_dim=dim if not keepdims else None)
+        return self._eval_core_function(
+            lambda x : _core.reductions.mean(x, dim=dim, keepdims=keepdims))
         
     def sum(
         self, 
         dim: int | None = None, 
-        dtype: DTypeLike | None = None,
         keepdims: bool = False,
         initial: int | float = 0
     ) -> Tensor:
-        return self._wrapper_base(
-            lambda x: x.sum(
-                axis=dim, dtype=dtype, keepdims=keepdims, initial=initial),
-            np.ones_like, reduce_dim=dim if not keepdims else None)
+        return self._eval_core_function(
+            lambda x : _core.reductions.sum(x, dim, keepdims, initial))
     
     def prod(
         self, 
         dim: int | None = None, 
-        dtype: DTypeLike | None = None,
         keepdims: bool = False,
         initial: int | float = 1
     ) -> Tensor:
-        out = self._build_output_tensor(
-            self.data.prod(
-                axis=dim, dtype=dtype, keepdims=keepdims, initial=initial),
-            (self,))
-        def _backward():
-            if self.requires_grad:
-                out_grad = out.grad
-                if dim is not None and not keepdims:
-                    out_grad = np.expand_dims(out_grad, axis=dim)
-                out_data = out.data
-                if not keepdims:
-                    out_data = np.expand_dims(out_data, axis=dim) \
-                        if dim is not None else out_data
-                self.grad += np.broadcast_to(
-                    out_data / self.data * out_grad, self.data.shape)
-        out._backward = _backward
-        return out
+        return self._eval_core_function(
+            lambda x : _core.reductions.prod(x, dim, keepdims, initial))
         
-    # WRAPPERS
+    # MATH OPS
     
-    def abs(self) -> Tensor: 
-        return self._wrapper_base(np.abs, np.sign)
+    def abs(self) -> Tensor: return self._eval_core_function(_core.math.abs)
     
-    def exp(self) -> Tensor: 
-        return self._wrapper_base(np.exp, np.exp)
+    def exp(self) -> Tensor: return self._eval_core_function(_core.math.exp)
     
-    def log(self) -> Tensor: 
-        return self._wrapper_base(np.log, lambda x: 1 / x)
+    def log(self) -> Tensor: return self._eval_core_function(_core.math.log)
     
-    def sqrt(self) -> Tensor: 
-        return self._wrapper_base(np.sqrt, lambda x: 1 / (2 * np.sqrt(x)))
+    def sqrt(self) -> Tensor: return self._eval_core_function(_core.math.sqrt)
     
-    def sin(self) -> Tensor: 
-        return self._wrapper_base(np.sin, np.cos)
+    def sin(self) -> Tensor: return self._eval_core_function(_core.math.sin)
     
-    def cos(self) -> Tensor: 
-        return self._wrapper_base(np.cos, lambda x: -np.sin(x))
+    def cos(self) -> Tensor: return self._eval_core_function(_core.math.cos)
     
-    def tanh(self) -> Tensor: 
-        return self._wrapper_base(np.tanh, lambda x: 1 - np.tanh(x) ** 2)
+    def tanh(self) -> Tensor: return self._eval_core_function(_core.math.tanh)
     
-    def sigmoid(self) -> Tensor:
-        return ((-self).exp() + 1) ** -1
+    def sigmoid(self) -> Tensor: return ((-self).exp() + 1) ** -1
     
-    # TRANSPOSITION
+    # RESHAPING
     
-    def transpose(self, axes: Sequence[int] | None) -> Tensor:
-        out = self._build_output_tensor(self.data.transpose(axes), (self,))
-        def _backward():
-            if self.requires_grad:
-                self.grad += out.grad.transpose(axes)
-        out._backward = _backward
-        return out
+    def reshape(self, shape: tuple[int, ...]) -> Tensor:
+        return self._eval_core_function(
+            lambda x : _core.shapes.reshape(x, shape))
         
-    def swapaxes(self, axis1: int, axis2: int) -> Tensor:
-        out = self._build_output_tensor(
-            self.data.swapaxes(axis1, axis2), (self,))
-        def _backward():
-            if self.requires_grad:
-                self.grad += out.grad.swapaxes(axis1, axis2)
-        out._backward = _backward
-        return out
+    def flatten(self) -> Tensor:
+        return self._eval_core_function(_core.shapes.flatten)
+    
+    def squeeze(self, dim: int | tuple[int, ...] | None) -> Tensor: 
+        return self._eval_core_function(
+            lambda x : _core.shapes.squeeze(x, dim))
+    
+    def unsqueeze(self, dim: int | tuple[int, ...]) -> Tensor:
+        return self._eval_core_function(
+            lambda x : _core.shapes.unsqueeze(x, dim))
+        
+    def transpose(self, dims: Sequence[int] | None) -> Tensor:
+        return self._eval_core_function(
+            lambda x : _core.shapes.transpose(x, dims))
+
+    def swapdims(self, dim1: int, dim2: int) -> Tensor: 
+        return self._eval_core_function(
+            lambda x : _core.shapes.swapdims(x, dim1, dim2))
+        
+    def permute(self, dims: Sequence[int] | None) -> Tensor:
+        return self._eval_core_function(
+            lambda x : _core.shapes.permute(x, dims))
+
+    def expand(self, shape: tuple[int, ...]) -> Tensor:
+        return self._eval_core_function(
+            lambda x : _core.shapes.expand(x, shape))
+
+    def broadcast_to(self, shape: tuple[int, ...]) -> Tensor:
+        return self.expand(shape)
         
     # GETTERS / SETTERS
         
@@ -401,14 +374,7 @@ class Tensor():
         return (self ** -1) * other
     
     def __abs__(self) -> Tensor:
-        out = self._build_output_tensor(np.abs(self.data), (self,))
-        
-        def _backward():
-            if self.requires_grad:
-                self.grad += np.sign(self.data) * out.grad
-            
-        out._backward = _backward
-        return out
+        return self._eval_core_function(_core.math.abs)
     
     
     
