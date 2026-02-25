@@ -45,13 +45,13 @@ def constant_(weights: Tensor, value: float) -> None:
     weights.data = np.full(weights.shape, value, dtype=weights.dtype)
 
 def eye_(weights: Tensor) -> None: 
-    assert weights.data.ndim == 2, \
+    assert weights.ndim == 2, \
         'eye_ init only valid for 2 dimensional tensor.'
     weights.data = np.eye(
         N=weights.shape[0], M=weights.shape[1], k=0, dtype=weights.dtype)
     
 def dirac_(weights: Tensor, groups: int = 1) -> None: 
-    assert weights.data.ndim >= 3, \
+    assert weights.ndim >= 3, \
         'dirac_ init expects {3, 4, 5} dimensional tensors.'
     out_channels, in_channels = weights.shape[0], weights.shape[1]
     spatial_dims = weights.shape[2:]

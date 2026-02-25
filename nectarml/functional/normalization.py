@@ -24,7 +24,7 @@ def BatchNorm1d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 3, 'BatchNorm1d expects 3D input (B, C, L)'
+    assert x.ndim == 3, 'BatchNorm1d expects 3D input (B, C, L)'
     return _BatchNorm((0,), x, gamma, beta, eps)
 
 def BatchNorm2d(
@@ -33,7 +33,7 @@ def BatchNorm2d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 4, 'BatchNorm2d expects 4D input (B, C, H, W)'
+    assert x.ndim == 4, 'BatchNorm2d expects 4D input (B, C, H, W)'
     return _BatchNorm((0, 2, 3), x, gamma, beta, eps)
 
 def BatchNorm3d(
@@ -42,7 +42,7 @@ def BatchNorm3d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 5, 'BatchNorm3d expects 5D input (B, C, D, H, W)'
+    assert x.ndim == 5, 'BatchNorm3d expects 5D input (B, C, D, H, W)'
     return _BatchNorm((0, 2, 3, 4), x, gamma, beta, eps)
 
 ### INSTANCE ###
@@ -53,7 +53,7 @@ def InstanceNorm1d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 3, 'InstanceNorm1d expects 3D input (B, C, L)'
+    assert x.ndim == 3, 'InstanceNorm1d expects 3D input (B, C, L)'
     return _BatchNorm((2,), x, gamma, beta, eps)
 
 def InstanceNorm2d(
@@ -62,7 +62,7 @@ def InstanceNorm2d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 4, 'InstanceNorm2d expects 4D input (B, C, H, W)'
+    assert x.ndim == 4, 'InstanceNorm2d expects 4D input (B, C, H, W)'
     return _BatchNorm((2, 3), x, gamma, beta, eps)
 
 def InstanceNorm3d(
@@ -71,7 +71,7 @@ def InstanceNorm3d(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 5, 'InstanceNorm3d expects 5D input (B, C, D, H, W)'
+    assert x.ndim == 5, 'InstanceNorm3d expects 5D input (B, C, D, H, W)'
     return _BatchNorm((2, 3, 4), x, gamma, beta, eps)
 
 ### GROUP ###
@@ -83,7 +83,7 @@ def GroupNorm(
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    assert x.data.ndim == 4, 'GroupNorm expects 4D input (B, C, H, W)'
+    assert x.ndim == 4, 'GroupNorm expects 4D input (B, C, H, W)'
     B, C, H, W = x.shape
     G = num_groups
     assert C % G == 0, 'Input channels must be evenly divisible by num_groups.'

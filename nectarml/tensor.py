@@ -30,7 +30,7 @@ class Tensor():
     # GRADIENTS
 
     def backward(self) -> None:
-        assert self.data.ndim == 0 or self.data.size == 1, \
+        assert self.ndim == 0 or self.data.size == 1, \
             'backward() can only be called on scalar tensors.'
         
         visited: set[int] = set()
@@ -61,6 +61,10 @@ class Tensor():
     @shape.setter
     def shape(self, value: tuple[int, ...]) -> None:
         self.data = self.data.reshape(value)
+        
+    @property
+    def ndim(self) -> int:
+        return self.data.ndim
         
     @property
     def device(self) -> str:
@@ -335,7 +339,7 @@ class Tensor():
     
     def __matmul__(self, other: Tensor) -> Tensor:
         assert isinstance(other, Tensor)
-        if self.data.ndim == 1 or other.data.ndim == 1:
+        if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
         
         out = self._build_output_tensor(
