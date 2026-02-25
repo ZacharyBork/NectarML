@@ -19,6 +19,7 @@ short = np.short
 long = np.long
 
 uint = np.uint
+uint8 = np.uint8
 uint16 = np.uint16
 uint32 = np.uint32
 uint64 = np.uint64

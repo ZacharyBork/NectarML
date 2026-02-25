@@ -27,6 +27,6 @@ from nectarml.functional.reductions import (
     min, max, argmin, argmax, mean, sum, prod)
 
 from nectarml.functional.shapes import (
-    reshape, flatten, squeeze, unsqueeze, transpose, swapaxes, permute, expand,
+    reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute, expand,
     broadcast_to)
 
