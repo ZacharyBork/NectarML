@@ -2,6 +2,28 @@ from collections.abc import Callable
 
 import numpy as np
 
+def minimum(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.minimum(a, b)
+    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        a_grad = (a <= b).astype(a.dtype) * out_grad
+        b_grad = (b < a).astype(b.dtype) * out_grad
+        return a_grad, b_grad
+    return out, _backward
+
+def maximum(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.maximum(a, b)
+    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        a_grad = (a >= b).astype(a.dtype) * out_grad
+        b_grad = (b > a).astype(b.dtype) * out_grad
+        return a_grad, b_grad
+    return out, _backward
+    
 def abs(
     input: np.ndarray
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
