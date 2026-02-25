@@ -1,3 +1,8 @@
+from nectarml.functional.activation import (
+    ReLU, LeakyReLU, ELU, SELU, Sigmoid, Tanh, Softmax, LogSoftmax, GeLU,
+    SiLU, Swish, Softplus, Mish, Hardtanh, Hardsigmoid, Hardswish, Softsign,
+    Softmin)
+
 from nectarml.functional.combination import (
     concatenate, cat, stack, unstack, unbind, split, chunk)
 
@@ -10,7 +15,7 @@ from nectarml.functional.loss import (
     KLDivergenceLoss, BCEWithLogitsLoss, TripletMarginLoss)
 
 from nectarml.functional.math import (
-    abs, exp, log, sqrt, sin, cos, cosh, tanh, sigmoid)
+    minimum, maximum, abs, exp, log, sqrt, sin, cos, cosh, tanh, sigmoid)
 
 from nectarml.functional.normalization import (
     BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,

@@ -21,12 +21,12 @@ def Tanh(input: Tensor) -> Tensor:
     inv_exp = F.exp(-input)
     return (exp - inv_exp) / (exp + inv_exp)
 
-def Softmax(input: Tensor) -> Tensor:
-    exp_x = F.exp(input - input.max(dim=-1, keepdims=True))
-    return exp_x / exp_x.sum(dim=-1, keepdims=True)
+def Softmax(input: Tensor, dim: int=-1) -> Tensor:
+    exp_x = F.exp(input - input.max(dim=dim, keepdims=True))
+    return exp_x / exp_x.sum(dim=dim, keepdims=True)
 
-def LogSoftmax(input: Tensor) -> Tensor:
-    return F.log(Softmax(input))
+def LogSoftmax(input: Tensor, dim: int=-1) -> Tensor:
+    return F.log(Softmax(input, dim=dim))
 
 def GeLU(input: Tensor) -> Tensor:
     inner = 0.7978845608 * (input + 0.044715 * input ** 3)
