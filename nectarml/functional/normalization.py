@@ -7,20 +7,21 @@ from nectarml import Tensor
 def _BatchNorm(
     dim: int | tuple[int, ...],
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None,
+    beta: Tensor | None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     mean = x.mean(dim=dim, keepdims=True)
     variance = ((x - mean) ** 2).mean(dim=dim, keepdims=True)
     x_norm = (x - mean) / (variance + eps).sqrt()
-    y = gamma * x_norm + beta
-    return y, (mean, variance)
+    if gamma is not None: x_norm = gamma * x_norm
+    if not beta is None: x_norm = beta + x_norm
+    return x_norm, (mean, variance)
 
 def BatchNorm1d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 3, 'BatchNorm1d expects 3D input (B, C, L)'
@@ -28,8 +29,8 @@ def BatchNorm1d(
 
 def BatchNorm2d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 4, 'BatchNorm2d expects 4D input (B, C, H, W)'
@@ -37,8 +38,8 @@ def BatchNorm2d(
 
 def BatchNorm3d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 5, 'BatchNorm3d expects 5D input (B, C, D, H, W)'
@@ -48,8 +49,8 @@ def BatchNorm3d(
 
 def InstanceNorm1d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 3, 'InstanceNorm1d expects 3D input (B, C, L)'
@@ -57,8 +58,8 @@ def InstanceNorm1d(
 
 def InstanceNorm2d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 4, 'InstanceNorm2d expects 4D input (B, C, H, W)'
@@ -66,8 +67,8 @@ def InstanceNorm2d(
 
 def InstanceNorm3d(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 5, 'InstanceNorm3d expects 5D input (B, C, D, H, W)'
@@ -77,9 +78,9 @@ def InstanceNorm3d(
 
 def GroupNorm(
     x: Tensor,
-    gamma: Tensor,
-    beta: Tensor,
     num_groups: int,
+    gamma: Tensor | None = None,
+    beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.data.ndim == 4, 'GroupNorm expects 4D input (B, C, H, W)'
@@ -92,9 +93,10 @@ def GroupNorm(
     variance = ((x_reshaped - mean) ** 2).mean(dim=(2, 3, 4), keepdims=True)
     x_norm = (x_reshaped - mean) / (variance + eps).sqrt()
     x_norm = x_norm.reshape(x.shape)
-    y = (gamma * x_norm + beta)
+    if gamma is not None: x_norm = gamma * x_norm
+    if beta is not None: x_norm = beta + x_norm
     
-    return y, (mean.reshape(1, C, 1, 1), variance.reshape(1, C, 1, 1))
+    return x_norm, (mean.reshape(1, C, 1, 1), variance.reshape(1, C, 1, 1))
     
 ### LAYER ###
 

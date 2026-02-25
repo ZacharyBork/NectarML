@@ -9,6 +9,7 @@ from nectarml import Tensor, DTypeLike, float32
 class Module():
     _parameters: dict[str, Tensor]
     _submodules: dict[str, Module]
+    _buffers: dict[str, Tensor]
     
     def __init__(
         self,
@@ -17,6 +18,7 @@ class Module():
     ) -> None:
         super().__setattr__('_parameters', {})
         super().__setattr__('_submodules', {})
+        super().__setattr__('_buffers', {})
         
         self.device = device
         self.dtype = dtype
@@ -50,13 +52,31 @@ class Module():
     
     def register_submodule(self, name: str, module: Module) -> None:
         self._submodules[name] = module
+        
+    def register_buffer(self, name: str, tensor: Tensor) -> None:
+        self._buffers[name] = tensor
+    
+    # GETTERS / SETTERS
     
     def __setattr__(self, name: str, value: Any) -> None:
+        if '_buffers' in self.__dict__ and name in self._buffers:
+            self._buffers[name] = value
         if isinstance(value, Module):
             self.register_submodule(name, value)
         elif isinstance(value, Tensor):
             self.register_parameter(name, value)
         else: super().__setattr__(name, value)
+        
+    def __getattr__(self, name: str) -> Any:
+        if '_buffers' in self.__dict__ and name in self._buffers:
+            return self._buffers[name]
+        if '_parameters' in self.__dict__ and name in self._parameters:
+            return self._parameters[name]
+        if '_submodules' in self.__dict__ and name in self._submodules:
+            return self._submodules[name]
+        else: 
+            raise AttributeError(
+                f'{type(self).__name__} has no attribute "{name}"')
     
     # SUBMODULES
     
@@ -93,6 +113,12 @@ class Module():
             module.device = device
             if dtype is not None:
                 module.dtype = dtype
+                
+            for buffer in module._buffers.values():
+                buffer.device = device
+                if dtype is not None:
+                    buffer.dtype = dtype
+        
         return self
     
     # STATES
