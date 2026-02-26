@@ -39,9 +39,9 @@ def transpose(
     input: np.ndarray, 
     dims: Sequence[int] | None
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = input.transpose(axes=dims)
+    out = np.transpose(input, axes=dims)
     def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out_grad.transpose(axes=dims)
+        return np.transpose(out_grad, axes=dims)
     return out, _backward
 
 def swapdims(

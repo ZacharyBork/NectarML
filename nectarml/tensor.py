@@ -98,7 +98,6 @@ class Tensor():
     
     def _validate_other(self, other: Tensor) -> None:
         assert isinstance(other, Tensor)
-        assert other.data.shape == self.data.shape
         
     def _numerical_to_tensor(self, other: int | float) -> Tensor:
         return Tensor(np.full_like(self.data, other))
@@ -339,6 +338,7 @@ class Tensor():
     
     def __matmul__(self, other: Tensor) -> Tensor:
         assert isinstance(other, Tensor)
+        assert other.data.shape == self.data.shape
         if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
         
