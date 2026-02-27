@@ -79,14 +79,14 @@
 
     ❌ 1.  StepLR
     ❌ 2.  MultiStepLR
-    ❌ 3.  ExponentialLR
-    ❌ 4.  CosineAnnealingLR
-    ❌ 5.  CosineAnnealingWarmRestarts
-    ❌ 6.  ReduceLROnPlateau
-    ❌ 7.  WarmupLR
+    ❌ 3.  ConstantLR
+    ❌ 4.  ExponentialLR
+    ❌ 5.  CosineAnnealingLR
+    ❌ 6.  CosineAnnealingWarmRestarts
+    ❌ 7.  ReduceLROnPlateau
     ❌ 8.  LinearLR
     ❌ 9.  PolynomialLR
-    ❌ 10. CyclicLR
+    ❌ 10. CyclicLR 
     ❌ 11. OneCycleLR
 
 ### ❌  Dataset
