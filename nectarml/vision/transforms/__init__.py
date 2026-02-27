@@ -2,8 +2,8 @@ from .transform import Transform
 from .spatial import (
     RandomCrop, CenterCrop, RandomResizedCrop, Resize, RandomHorizontalFlip,
     RandomVerticalFlip, RandomRotation, RandomAffine, RandomPerspective,
-    ElasticTransform, GridDistortion, OpticalDistortion, Pad, RandomPad,
-    FiveCrop, TenCrop, RandomCropNearBBox)
+    ElasticTransform, GridDistortion, OpticalDistortion, Pad, FiveCrop, 
+    TenCrop, RandomCropNearBBox)
 from .color import (
     ColorJitter, RandomBrightness, RandomContrast, RandomSaturation, RandomHue,
     RandomGamma, Grayscale, RandomGrayscale, ToSepia, Equalize, AutoContrast,

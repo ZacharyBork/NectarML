@@ -4,30 +4,50 @@
 
 # TO-DO
 
-### ✅  Normalizations 
+### ✅  Tensor Class
 
-    ✅ 1. Functional
-    ✅ 2. Modules
+### ✅  Tensor Creation Library
 
-### ✅  Activations 
+### ✅  Typing Abstraction Layer
 
-    ✅ 1. Functional
-    ✅ 2. Modules
+### ✅  Core Library (nectarml._core)
+
+    ✅ 1. Combinations
+    ✅ 2. Indexing
+    ✅ 3. Math
+    ✅ 4. Padding
+    ✅ 5. Reductions
+    ✅ 6. Shapes
+
+### 🟡  Functional Library
+
+    ✅ 1.  Activation
+    🟡 2.  Attention
+    ✅ 3.  Combination
+    ✅ 4.  Indexing
+    ✅ 5.  Loss
+    ✅ 6.  Math
+    ✅ 7.  Normalization
+    ✅ 8.  Padding
+    ✅ 9.  Reductions
+    ✅ 10. Shapes
+
+### ✅  Normalization Modules (nectarml.nn.norm) 
+
+### ✅  Activation Modules (nectarml.nn.activation)
+
+### ✅  Loss Modules (nectarml.nn.loss)
 
 ### 🟡  Layers:
 
     ✅ 1. Linear
     🟡 2. Upsample
     ✅ 3. Identity
+    ❌ 4. Attention
 
 ### ✅  Weight Initialization (nectarml.nn.init)
 
 ### ❌  Convolutions
-
-    ❌ 1. Functional
-    ❌ 2. Modules
-
-### ❌  Attention 
 
     ❌ 1. Functional
     ❌ 2. Modules
