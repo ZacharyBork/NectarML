@@ -1,0 +1,2 @@
+# SGD, SGD w/ Nesterov
+
