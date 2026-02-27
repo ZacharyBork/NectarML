@@ -81,4 +81,39 @@ def multihead_attention(
     out_weight = reductions.sum(combination.stack(weights, dim=0), dim=0)
     return out_value, out_weight
 
+def multi_query_attention() -> tuple[Tensor]: 
+    '''https://arxiv.org/pdf/1911.02150'''
+    raise NotImplementedError
+
+def grouped_query_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2305.13245'''
+    raise NotImplementedError
+
+def cross_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2512.19535'''
+    raise NotImplementedError
+
+def flash_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2205.14135'''
+    raise NotImplementedError
+
+def linear_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2006.16236'''
+    raise NotImplementedError
+
+def sliding_window_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2502.18845'''
+    raise NotImplementedError
+
+def longformer_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2004.05150'''
+    raise NotImplementedError
+
+def self_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/1706.03762'''
+    raise NotImplementedError
+
+def causal_attention() -> tuple[Tensor]:
+    '''https://arxiv.org/pdf/2103.03493'''
+    raise NotImplementedError
 
