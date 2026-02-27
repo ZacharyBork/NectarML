@@ -12,25 +12,29 @@
 
 ### ✅  Core Library (nectarml._core)
 
-    ✅ 1. Combinations
-    ✅ 2. Indexing
-    ✅ 3. Math
-    ✅ 4. Padding
-    ✅ 5. Reductions
-    ✅ 6. Shapes
+    ❌ 1. Activation
+    ✅ 2. Combinations
+    ❌ 3. Conv
+    ✅ 4. Indexing
+    ✅ 5. Math
+    ❌ 6. Normalization
+    ✅ 7. Padding
+    ✅ 8. Reductions
+    ✅ 9. Shapes
 
 ### ✅  Functional Library
 
     ✅ 1.  Activation
     ✅ 2.  Attention
     ✅ 3.  Combination
-    ✅ 4.  Indexing
-    ✅ 5.  Loss
-    ✅ 6.  Math
-    ✅ 7.  Normalization
-    ✅ 8.  Padding
-    ✅ 9.  Reductions
-    ✅ 10. Shapes
+    ❌ 4.  Conv
+    ✅ 5.  Indexing
+    ✅ 6.  Loss
+    ✅ 7.  Math
+    ✅ 8.  Normalization
+    ✅ 9.  Padding
+    ✅ 10. Reductions
+    ✅ 11. Shapes
 
 ### ✅  Normalization Modules (nectarml.nn.norm) 
 
@@ -38,21 +42,19 @@
 
 ### ✅  Loss Modules (nectarml.nn.loss)
 
+### ✅  Weight Initialization (nectarml.nn.init)
+
 ### 🟡  Layers:
 
     ✅ 1. Linear
     🟡 2. Upsample
     ✅ 3. Identity
     ❌ 4. Attention
-
-### ✅  Weight Initialization (nectarml.nn.init)
-
-### ❌  Convolutions
-
-    ❌ 1. Functional
-    ❌ 2. Modules
+    ❌ 5. Convolutions
 
 ### ❌  Optimizers
+
+    ❌ Base Optimizer
 
     First-order:
         ❌ 1. SGD
@@ -77,19 +79,22 @@
 
 ### ❌  LR Schedulers
 
-    ❌ 1.  StepLR
-    ❌ 2.  MultiStepLR
-    ❌ 3.  ConstantLR
-    ❌ 4.  ExponentialLR
-    ❌ 5.  CosineAnnealingLR
-    ❌ 6.  CosineAnnealingWarmRestarts
-    ❌ 7.  ReduceLROnPlateau
-    ❌ 8.  LinearLR
-    ❌ 9.  PolynomialLR
-    ❌ 10. CyclicLR 
-    ❌ 11. OneCycleLR
+    ❌ 1.  Base Scheduler
+    ❌ 2.  StepLR
+    ❌ 3.  MultiStepLR
+    ❌ 4.  ConstantLR
+    ❌ 5.  ExponentialLR
+    ❌ 6.  CosineAnnealingLR
+    ❌ 7.  CosineAnnealingWarmRestarts
+    ❌ 8.  ReduceLROnPlateau
+    ❌ 9.  LinearLR
+    ❌ 10. PolynomialLR
+    ❌ 11. CyclicLR
+    ❌ 12. OneCycleLR
 
 ### ❌  Dataset
+
+### ❌  Dataloader
 
 ### ✅  Image I/O Utilities
 
