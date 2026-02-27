@@ -106,8 +106,29 @@
 ### ❌  CUDA:
 
     ❌ 1. Host
-    ❌ 2. Bindings
-    ❌ 3. Kernels
+        ❌ 1.  Activation
+        ❌ 2.  Conv
+        ❌ 3.  Dispatch
+        ❌ 4.  Elementwise
+        ❌ 5.  Indexing
+        ❌ 6.  Interpolation
+        ❌ 7.  Matmul
+        ❌ 8.  Memory
+        ❌ 9.  Normalization
+        ❌ 10. Padding
+        ❌ 11. Reductions
+    ❌ 2. Kernels
+        ❌ 1. Activation
+        ❌ 2. Conv
+        ❌ 3. Elementwise
+        ❌ 4. Indexing
+        ❌ 5. Interpolation
+        ❌ 6. Matmul
+        ❌ 7. Normalization
+        ❌ 8. Padding
+        ❌ 9. Reductions
+    ❌ 3. Bindings
+    ❌ 4. CMakeLists
 
 ### ❌  Documentation:
 
