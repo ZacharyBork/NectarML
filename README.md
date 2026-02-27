@@ -19,10 +19,10 @@
     ✅ 5. Reductions
     ✅ 6. Shapes
 
-### 🟡  Functional Library
+### ✅  Functional Library
 
     ✅ 1.  Activation
-    🟡 2.  Attention
+    ✅ 2.  Attention
     ✅ 3.  Combination
     ✅ 4.  Indexing
     ✅ 5.  Loss
