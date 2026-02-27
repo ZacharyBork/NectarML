@@ -1,6 +1,9 @@
 from . import init
 from .module import Module
-from .layers import Linear, Upsample, Identity, Conv1d, Conv2d, Conv3d
+from .linear import Linear
+from .upsample import Upsample
+from .identity import Identity
+from .conv import Conv1d, Conv2d, Conv3d
 from .norm import (
     BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,
     InstanceNorm3d, GroupNorm, LayerNorm)
