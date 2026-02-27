@@ -116,6 +116,7 @@ class RandomCrop(Transform):
                 raise RuntimeError(
                     f'Input image size {input.size} is greater than '
                     f'desired crop size: {self.size}')
+        else: return input
     
     def run(self, input: Image.Image) -> Image.Image:
         if self.pad is None: out = self._validate_input_size(input)
