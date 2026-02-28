@@ -12,7 +12,7 @@
 
 ### ✅  Core Library (nectarml._core)
 
-    ❌ 1. Activation
+    ✅ 1. Activation
     ✅ 2. Combinations
     ❌ 3. Conv
     ✅ 4. Indexing

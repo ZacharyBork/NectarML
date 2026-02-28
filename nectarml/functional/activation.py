@@ -1,5 +1,6 @@
-from nectarml import Tensor, zeros_like, full, zeros, ones
-import nectarml.functional as F
+from nectarml import Tensor
+from nectarml.functional.common import _eval_core_function
+from nectarml._core import activation 
 
 def ReLU(input: Tensor) -> Tensor:
     '''Rectified linear unit activation function.
@@ -14,7 +15,7 @@ def ReLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return F.maximum(zeros_like(input), input)
+    return _eval_core_function(input, activation.ReLU)
 
 def LeakyReLU(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     '''Leaky rectified linear unit activation function.
@@ -32,7 +33,8 @@ def LeakyReLU(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return F.where(input > 0, input, negative_slope * input)
+    return _eval_core_function(
+        input, activation.LeakyReLU, negative_slope=negative_slope)
 
 def ELU(input: Tensor, alpha: float = 1.0) -> Tensor:
     '''Exponential linear unit activation function.
@@ -50,7 +52,7 @@ def ELU(input: Tensor, alpha: float = 1.0) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return F.where(input > 0, input, alpha * (F.exp(input) - 1.0))
+    return _eval_core_function(input, activation.ELU, alpha=alpha)
 
 def SELU(input: Tensor) -> Tensor:
     '''Scaled exponential linear unit activation function.
@@ -66,7 +68,7 @@ def SELU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return 1.0507 * ELU(input, alpha=1.6733)
+    return _eval_core_function(input, activation.SELU)
 
 def Sigmoid(input: Tensor) -> Tensor:
     '''Sigmoid activation function.
@@ -82,7 +84,7 @@ def Sigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return 1 / (1 + F.exp(-input))
+    return _eval_core_function(input, activation.Sigmoid)
 
 def Tanh(input: Tensor) -> Tensor:
     '''Tanh activation function.
@@ -97,9 +99,7 @@ def Tanh(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp = F.exp(input)
-    inv_exp = F.exp(-input)
-    return (exp - inv_exp) / (exp + inv_exp)
+    return _eval_core_function(input, activation.Tanh)
 
 def Softmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Softmax activation function.
@@ -116,8 +116,7 @@ def Softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp_x = F.exp(input - input.max(dim=dim, keepdims=True))
-    return exp_x / exp_x.sum(dim=dim, keepdims=True)
+    return _eval_core_function(input, activation.Softmax, dim=dim)
 
 def LogSoftmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Log softmax activation function.
@@ -134,7 +133,7 @@ def LogSoftmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return F.log(Softmax(input, dim=dim))
+    return _eval_core_function(input, activation.LogSoftmax, dim=dim)
 
 def GeLU(input: Tensor) -> Tensor:
     '''Gaussian error linear unit activation function.
@@ -154,8 +153,7 @@ def GeLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    inner = 0.7978845608 * (input + 0.044715 * input ** 3)
-    return input * 0.5 * (1 + Tanh(inner))
+    return _eval_core_function(input, activation.GeLU)
 
 def SiLU(input: Tensor) -> Tensor:
     '''Sigmoid-weighted linear unit activation function.
@@ -175,7 +173,7 @@ def SiLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return input * Sigmoid(input)
+    return _eval_core_function(input, activation.SiLU)
 
 def Swish(input: Tensor) -> Tensor: 
     '''Sigmoid-weighted linear unit activation function.
@@ -195,7 +193,7 @@ def Swish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return SiLU(input)
+    return _eval_core_function(input, activation.SiLU)
 
 def Softplus(input: Tensor) -> Tensor: 
     '''Softplus activation function.
@@ -208,7 +206,7 @@ def Softplus(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return F.log(1 + F.exp(input))
+    return _eval_core_function(input, activation.Softplus)
 
 def Mish(input: Tensor) -> Tensor:
     '''Softplus activation function.
@@ -221,7 +219,7 @@ def Mish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return input * Tanh(Softplus(input))
+    return _eval_core_function(input, activation.Mish)
 
 def Hardtanh(
     input: Tensor, 
@@ -242,9 +240,8 @@ def Hardtanh(
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    _full = lambda x : full(
-        (), fill_value=x, dtype=input.dtype, device=input.device)
-    return F.maximum(_full(min_value), F.minimum(_full(max_value), input))
+    return _eval_core_function(
+        input, activation.Hardtanh, min_value=min_value, max_value=max_value)
 
 def Hardsigmoid(input: Tensor) -> Tensor:
     '''Hardsigmoid activation function.
@@ -257,9 +254,7 @@ def Hardsigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    _zeros = zeros((), dtype=input.dtype, device=input.device)
-    _ones = ones((), dtype=input.dtype, device=input.device)
-    return F.maximum(_zeros, F.minimum(_ones, (input + 1) / 2))
+    return _eval_core_function(input, activation.Hardsigmoid)
 
 def Hardswish(input: Tensor) -> Tensor:
     '''Hardswish activation function.
@@ -272,7 +267,7 @@ def Hardswish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return input * Hardsigmoid(input)
+    return _eval_core_function(input, activation.Hardswish)
 
 def Softsign(input: Tensor) -> Tensor:
     '''Softsign activation function.
@@ -285,7 +280,7 @@ def Softsign(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return input / (1 + input.abs())
+    return _eval_core_function(input, activation.Softsign)
 
 def Softmin(input: Tensor) -> Tensor:
     '''Softmin activation function.
@@ -298,5 +293,5 @@ def Softmin(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return Softmax(-input)
+    return _eval_core_function(input, activation.Softmin)
 
