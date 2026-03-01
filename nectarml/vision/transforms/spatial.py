@@ -16,6 +16,7 @@ class Pad(Transform):
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant'
     ) -> None:
+        super().__init__()
         self.padding: tuple[int, ...] = None
         self.is_grayscale = False
         self._init_padding(padding)
@@ -78,9 +79,9 @@ class Pad(Transform):
     def _symmetric(self, input: Image.Image) -> Image.Image:
         return self._pad_numpy(input, mode='symmetric')
     
-    ### RUN ###
+    ### forward ###
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         return self.op(input)
 
 class RandomCrop(Transform):
@@ -94,6 +95,7 @@ class RandomCrop(Transform):
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant'
     ) -> None:
+        super().__init__()
         if isinstance(size, int): self.size = (size, size)
         else: self.size = size
         
@@ -118,7 +120,7 @@ class RandomCrop(Transform):
                     f'desired crop size: {self.size}')
         else: return input
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         if self.pad is None: out = self._validate_input_size(input)
         else: out = self.pad(input)
 
@@ -133,99 +135,99 @@ class RandomCrop(Transform):
         
 class CenterCrop(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
     
 class RandomResizedCrop(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
     
 class Resize(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomHorizontalFlip(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomVerticalFlip(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomRotation(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomAffine(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomPerspective(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class ElasticTransform(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class GridDistortion(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class OpticalDistortion(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class FiveCrop(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class TenCrop(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 
 class RandomCropNearBBox(Transform):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
-    def run(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Image.Image) -> Image.Image:
         pass
 

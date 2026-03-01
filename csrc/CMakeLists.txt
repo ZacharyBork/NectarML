@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.18)
+find_program(CMAKE_CUDA_COMPILER nvcc
+    HINTS
+        $ENV{CUDA_HOME}
+        $ENV{CUDA_PATH}
+        /usr/local/cuda/bin
+)
 project(nectarml LANGUAGES CXX CUDA)
 
 # C++ and CUDA standards
@@ -28,7 +34,9 @@ target_link_libraries(_nectarml PRIVATE CUDA::cudart)
 # Include csrc/ as root for includes
 target_include_directories(_nectarml PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+# CLI override for CUDA architecture:
+# pip install . --config-settings=cmake.args="-DCUDA_ARCHITECTURES=70;75;80;86;89;90"
+set(CUDA_ARCHITECTURES "75" CACHE STRING "CUDA architectures to target")
+set_target_properties(_nectarml PROPERTIES CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
 
-set_target_properties(_nectarml PROPERTIES
-    CUDA_ARCHITECTURES "75"
-)
+install(TARGETS _nectarml DESTINATION .)

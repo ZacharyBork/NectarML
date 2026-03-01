@@ -1,12 +1,36 @@
+# Temporary ignores
+/tmp
 test.py
+setup.py
+NOTES.md
+LICENSE
+REFERENCES.md
+.vscode
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# CUDA
+*.ptx
+*.cubin
+*.fatbin
+
+# Object files
+*.o
+*.a
+*.lo
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
 
-# C extensions
+# Compiled extensions
 *.so
+*.pyd
 
 # Distribution / packaging
 .Python

@@ -56,6 +56,25 @@ def make_grid(
     
     return canvas
 
+### CONVERSION ###
+
+def PIL_to_tensor(
+    input: Image.Image,
+    dtype: DTypeLike = float32,
+    device: Literal['cpu', 'cuda'] = 'cpu',
+    batch_dim: bool = True
+) -> Tensor:
+    data = np.array(input).astype(dtype)
+    output = Tensor(data, dtype=dtype, device=device)
+    output = output.permute((2, 0, 1))
+    if batch_dim: output = output.reshape((1,) + output.shape)
+    return output
+
+def tensor_to_PIL(input: Tensor) -> Image.Image:
+    if input.ndim > 3: input = input.squeeze(dim=0)
+    input = input.permute((1, 2, 0))
+    return Image.fromarray(input.data.astype(dtype=uint8), 'RGB')
+
 ### IMAGE I/O ###
 
 def load_image(
@@ -63,7 +82,8 @@ def load_image(
     dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     normalize: bool = False,
-    value_range: tuple[int | float, int | float] = [0.0, 1.0]
+    value_range: tuple[int | float, int | float] = [0.0, 1.0],
+    batch_dim: bool = True
 ) -> Tensor: 
     image_path = Path(image_path)
     if not image_path.exists():
@@ -71,15 +91,8 @@ def load_image(
             f'Unable to locate image file at path: {image_path.as_posix()}')
     
     image = Image.open(image_path)
-    data = np.array(image).astype(dtype)
-    output = Tensor(data, dtype=dtype, device=device)
-    
-    output = output.permute((2, 0, 1))
-    shape = (1,) + output.shape
-    output = output.reshape(shape)
-    
+    output = PIL_to_tensor(image, dtype, device, batch_dim)
     if normalize: _normalize_(output, value_range)
-    
     return output
     
 def save_image(
@@ -96,14 +109,9 @@ def save_image(
             f'Unable to locate output directory at path: {out_dir.as_posix()}')
         
     if isinstance(input, Sequence) or input.shape[0] > 1:
-        output = make_grid(
+        input = make_grid(
             input, normalize=normalize, value_range=value_range, **kwargs)
-    else:
-        output = input
-        if normalize: _normalize_(output, value_range)
-            
-    if output.ndim > 3: output = output.squeeze(dim=0)
-    output = output.permute((1, 2, 0))
-    image = Image.fromarray(output.data.astype(dtype=uint8), 'RGB')
-    image.save(output_path)
+    elif normalize: _normalize_(input, value_range)
+    
+    tensor_to_PIL(input).save(output_path)
 

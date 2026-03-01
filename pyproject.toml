@@ -39,6 +39,7 @@ dev = [
 cmake.source-dir = "csrc"
 cmake.build-type = "Release"
 wheel.packages = ["nectarml"]
+build-dir = "build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
