@@ -5,32 +5,67 @@ from collections.abc import Sequence, Callable
 
 import numpy as np
 
-from nectarml.typing import ArrayLike, DTypeLike, float32
+import _nectarml
+from nectarml import typing
 import nectarml._core as _core
 
 class Tensor():
     def __init__(
         self,
-        data: ArrayLike,
-        dtype: DTypeLike = float32,
+        data: Any,
+        shape: tuple[int, ...] | None = None,
+        dtype: typing.DTypeLike = typing.float32,
         device: Literal['cpu', 'cuda'] = 'cpu',
         requires_grad: bool = False,
         _children = ()
     ) -> None:
-        self.data = np.array(data, dtype=dtype)
-        self.dtype = dtype
-        self.device = device
-                
+        self._init_tensor(data, shape, dtype, device)       
+        
         self.grad: np.ndarray | None = None
+        self._grad_ptr: int | None = None
         self.requires_grad = requires_grad
         
         self._backward = lambda : None
         self._prev: set[Tensor] = set(_children)
+        
+    def _init_tensor(
+        self, 
+        data: Any,
+        shape: tuple[int, ...] | None = None,
+        dtype: typing.DTypeLike = typing.float32,
+        device: Literal['cpu', 'cuda'] = 'cpu'
+    ) -> None:
+        self.device = device
+        if self.device == 'cpu':
+            self.data = np.array(data, dtype=dtype)
+            self.shape = shape or self.data.shape
+            self._dtype = dtype
+        elif self.device == 'cuda': 
+            if shape is None:
+                raise ValueError(
+                    'Unable to initialize CUDA Tensor without explicit shape.')
+            self._data_ptr = data
+            self.shape = shape
+            self._dtype = dtype 
+        else: raise ValueError(f'Invalid device type: {self.device}')
 
     # GRADIENTS
+    
+    def _deallocate_grad(self) -> None:
+        if self.device == 'cuda':
+            if self._grad_ptr is not None:
+                self._grad_ptr = _nectarml.free_cuda(self._grad_ptr)
+        else: self.grad = None
 
+    def _allocate_grad(self) -> None:
+        if self.device == 'cuda':
+            self._deallocate_grad()
+            self._grad_ptr = _nectarml.alloc_cuda_full(
+                self.shape, self.dtype, 0.0)
+        else: self.grad = np.zeros_like(self.data)
+        
     def backward(self) -> None:
-        assert self.ndim == 0 or self.data.size == 1, \
+        assert self.ndim == 0 or self.size == 1, \
             'backward() can only be called on scalar tensors.'
         
         visited: set[int] = set()
@@ -45,43 +80,27 @@ class Tensor():
         
         build_graph(self)
         graph.reverse()
-        self.grad = np.ones_like(self.data)
+        self._allocate_grad()
         for node in graph: node._backward()
     
     def zero_grad(self) -> None:
         if self.requires_grad:
-            self.grad = np.zeros_like(self.data)
+            self._allocate_grad()
     
     # PROPERTIES
-    
+      
     @property
-    def shape(self) -> tuple[int, ...]:
-        return self.data.shape
+    def dtype(self) -> int:
+        if self.device == 'cpu': return self._dtype
+        else: return _core.cuda.DTYPE_MAP[self._dtype]
     
-    @shape.setter
-    def shape(self, value: tuple[int, ...]) -> None:
-        self.data = self.data.reshape(value)
-        
     @property
     def ndim(self) -> int:
-        return self.data.ndim
-        
-    @property
-    def device(self) -> str:
-        return self._device
+        return len(self.shape)
     
-    @device.setter
-    def device(self, value: str) -> None:
-        self._device = value
-        
     @property
-    def dtype(self) -> DTypeLike:
-        return self._dtype
-    
-    @dtype.setter
-    def dtype(self, value: DTypeLike) -> None:
-        self._dtype = value
-        self.data = self.data.astype(dtype=value, copy=False)
+    def size(self) -> int:
+        return np.prod(self.shape)
         
     @property
     def requires_grad(self) -> bool:
@@ -90,9 +109,53 @@ class Tensor():
     @requires_grad.setter
     def requires_grad(self, value: bool) -> None:
         self._requires_grad = value
-        if value and self.grad is None:
-            self.grad = np.zeros_like(self.data)
-        elif not value: self.grad = None
+        if value:
+            if self.device == 'cuda' and self._grad_ptr is None \
+            or self.device == 'cpu' and self.grad is None:
+                self._allocate_grad()
+        else: self._deallocate_grad()
+    
+    # DEVICE / DTYPE        
+        
+    def to(
+        self,
+        device: Literal['cpu', 'cuda'],
+        dtype: typing.DTypeLike | None = None
+    ) -> Tensor: 
+        if device == self.device:
+            if dtype is None or dtype == self._dtype:
+                return self
+        
+        dtype = dtype or self._dtype
+        if device == 'cuda':
+            shape = self.shape
+            if self.device == 'cpu':
+                data = _nectarml.to_cuda(
+                    self.data.astype(dtype), self.size, self.dtype)
+            else:
+                dest_dtype = _core.cuda.DTYPE_MAP[dtype]
+                data = _nectarml.cast_tensor(
+                    self._data_ptr, self.size, self.dtype, dest_dtype)
+       
+        elif device == 'cpu':
+            shape = None
+            if self.device == 'cuda':
+                data = _nectarml.to_cpu(self._data_ptr, self.shape, self.dtype)
+                data = data.astype(dtype)
+            else: data = self.data
+            
+        else: raise ValueError(f'Invalid device type: {device}')
+        
+        new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
+            requires_grad=self.requires_grad)
+        new.grad = self.grad
+        new._prev = self._prev
+        new._backward = self._backward
+        return new
+        
+    def cuda(self) -> Tensor: return self.to(device='cuda')
+
+    def cpu(self) -> Tensor: return self.to(device='cpu')
     
     # UTILS
     
@@ -100,7 +163,8 @@ class Tensor():
         assert isinstance(other, Tensor)
         
     def _numerical_to_tensor(self, other: int | float) -> Tensor:
-        return Tensor(np.full_like(self.data, other))
+        new = Tensor(np.full_like(self.data, other), dtype=self.dtype)
+        return new.to(self.device)
     
     def _handle_tensor_or_numerical(
         self, 
@@ -122,9 +186,9 @@ class Tensor():
         _requires_grad = False
         for child in children:
             if child.requires_grad: _requires_grad = True
-        return Tensor(
-            data=data, device=self.device, dtype=self.dtype, 
+        new = Tensor(data=data, device=self.device, dtype=self.dtype, 
             requires_grad=_requires_grad, _children=children)
+        return new.to(self.device)
     
     def _eval_core_function(
         self,
@@ -162,14 +226,14 @@ class Tensor():
         self, 
         dim: int | None = None, 
         keepdims: bool = False
-    ) -> ArrayLike:
+    ) -> typing.ArrayLike:
         return _core.reductions.argmin(self.data, dim=dim, keepdims=keepdims)
         
     def argmax(
         self, 
         dim: int | None = None, 
         keepdims: bool = False
-    ) -> ArrayLike:
+    ) -> typing.ArrayLike:
         return _core.reductions.argmax(self.data, dim=dim, keepdims=keepdims)
     
     def mean(
@@ -274,6 +338,12 @@ class Tensor():
     
     def __hash__(self) -> int: return id(self)
     
+    # GARBAGE COLLECTION
+    
+    def __del__(self) -> None:
+        if self.device == 'cuda' and self._data_ptr is not None:
+            _nectarml.free_cuda(self._data_ptr)
+        
     # COMPARISON
     
     def __eq__(self, other: Tensor) -> np.ndarray:

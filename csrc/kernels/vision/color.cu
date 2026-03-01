@@ -1,5 +1,4 @@
-#include <cuda_runtime.h>
-#include <stdint.h>
+#include <common.h>
 
 __device__ void rgb_to_hsv(float r, float g, float b, float& h, float& s, float& v) {
     float cmax = fmaxf(fmaxf(r, g), b);
@@ -73,7 +72,7 @@ __global__ void hue_shift_kernel(
 }
 
 void launch_hue_shift(uint8_t* d_image, int width, int height, float shift) {
-    dim3 block(16, 16);
-    dim3 grid((width + 15) / 16, (height + 15) / 16);
+    dim3 block(BLOCK_SIZE_2D, BLOCK_SIZE_2D);
+    dim3 grid((width + 15) / BLOCK_SIZE_2D, (height + 15) / BLOCK_SIZE_2D);
     hue_shift_kernel<<<grid, block>>>(d_image, width, height, shift);
 }

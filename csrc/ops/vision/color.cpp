@@ -1,7 +1,5 @@
-#include <cuda_runtime.h>
-#include <stdint.h>
-#include <stdexcept>
 #include <pybind11/numpy.h>
+#include <common.h>
 
 namespace py = pybind11;
 
