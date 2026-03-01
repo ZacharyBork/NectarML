@@ -1,1 +1,47 @@
- 
+[build-system]
+requires = ["scikit-build-core>=0.9", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "nectarml"
+version = "0.0.1"
+description = "A lightweight numpy-based machine learning library."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Zachary Bork", email = "nectargan.dev@gmail.com" }]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: GPU",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+    "Natural Language :: English",
+]
+
+dependencies = [
+    "numpy>=2.2.1",
+    "pillow>=11.2.1"
+]
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0"
+]
+
+[tool.scikit-build]
+cmake.source-dir = "csrc"
+cmake.build-type = "Release"
+wheel.packages = ["nectarml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+norecursedirs = [".git", ".venv", "build", "dist", "nectarml"]
+
