@@ -105,7 +105,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_multiply<T>(
+            launch_subtract<T>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -121,7 +121,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_subtract<T>(
+            launch_multiply<T>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
