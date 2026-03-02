@@ -386,12 +386,21 @@ class Tensor():
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
-        out_data, _backward = _core.math.subtract(self.data, other.data)
+        self_requires_grad = self.requires_grad
+        other_requires_grad = other.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.subtract(
+                self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
+
         def _backward_hook():
             grad = _backward(out.grad)
-            if self.requires_grad: self.grad += grad
-            if other.requires_grad: other.grad += grad
+            if self_requires_grad: self.grad += grad
+            if other_requires_grad: other.grad += grad
+
         out._backward = _backward_hook
         return out
     
@@ -408,14 +417,21 @@ class Tensor():
 
     def __mul__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
-        out_data, _backward = _core.math.multiply(self.data, other.data)
-        out = self._build_output_tensor(out_data, children)
+        self_requires_grad = self.requires_grad
+        other_requires_grad = other.requires_grad
         
+        if self.device == 'cuda':
+            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
+            out_data = _nectarml.multiply(
+                self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.multiply(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
+
         def _backward_hook():
-            a_grad, b_grad = _backward(out.grad)
-            if self.requires_grad: self.grad += a_grad
-            if other.requires_grad: other.grad += b_grad
-            
+            grad = _backward(out.grad)
+            if self_requires_grad: self.grad += grad
+            if other_requires_grad: other.grad += grad
+
         out._backward = _backward_hook
         return out
     

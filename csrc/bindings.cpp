@@ -18,6 +18,9 @@ py::array to_cpu(uintptr_t device_ptr, std::vector<ssize_t> shape, DType dtype);
 /* ELEMENTWISE */
 
 uintptr_t add(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+uintptr_t subtract(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+uintptr_t multiply(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+uintptr_t divide(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
 
 /* VISION.TRANSFORMS */
 
@@ -70,6 +73,27 @@ PYBIND11_MODULE(_nectarml, m) {
     /* ELEMENTWISE */
 
     m.def("add", &add, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Adds tensor data a and b, then returns as new tensor data.");
+
+    m.def("subtract", &subtract, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Adds tensor data a and b, then returns as new tensor data.");
+
+    m.def("multiply", &multiply, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Adds tensor data a and b, then returns as new tensor data.");
+
+    m.def("divide", &divide, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
