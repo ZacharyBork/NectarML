@@ -2,6 +2,77 @@ from nectarml import Tensor
 from nectarml.functional.common import _eval_core_function
 from nectarml._core import math
   
+### BASIC ###
+  
+def add(a: Tensor, b: Tensor | int | float) -> Tensor:
+    b, children = a._handle_tensor_or_numerical(b)
+    out_data, _backward = math.add(a.data, b.data)
+    out = a._build_output_tensor(out_data, children)
+    
+    def _backward_hook():
+        grad = _backward(out.grad)
+        if a.requires_grad: a.grad += grad
+        if b.requires_grad: b.grad += grad
+        
+    out._backward = _backward_hook
+    return out
+
+def subtract(a: Tensor, b: Tensor | int | float) -> Tensor:
+    b, children = a._handle_tensor_or_numerical(b)
+    out_data, _backward = math.subtract(a.data, b.data)
+    out = a._build_output_tensor(out_data, children)
+    
+    def _backward_hook():
+        grad = _backward(out.grad)
+        if a.requires_grad: a.grad += grad
+        if b.requires_grad: b.grad += grad
+        
+    out._backward = _backward_hook
+    return out
+
+def multiply(a: Tensor, b: Tensor | int | float) -> Tensor:
+    b, children = a._handle_tensor_or_numerical(b)
+    out_data, _backward = math.multiply(a.data, b.data)
+    out = a._build_output_tensor(out_data, children)
+    
+    def _backward_hook():
+        a_grad, b_grad = _backward(out.grad)
+        if a.requires_grad: a.grad += a_grad
+        if b.requires_grad: b.grad += b_grad
+        
+    out._backward = _backward_hook
+    return out
+
+def pow(a: Tensor, exponent: int | float) -> Tensor:
+    out_data, _backward = math.pow(a.data, exponent)
+    out = a._build_output_tensor(out_data, (a,))
+    def _backward_hook():
+        if a.requires_grad: a.grad += _backward(out.grad)
+    out._backward = _backward_hook
+    return out
+
+def matmul(a: Tensor, b: Tensor) -> Tensor:
+    out_data, _backward = math.matmul(a.data, b.data)
+    out = a._build_output_tensor(out_data, (a, b))
+    
+    def _backward_hook():
+        a_grad, b_grad = _backward(out.grad)
+        if a.requires_grad: a.grad += a_grad
+        if b.requires_grad: b.grad += b_grad
+        
+    out._backward = _backward_hook
+    return out
+
+def negate(a: Tensor) -> Tensor:
+    out_data, _backward = math.negate(a.data)
+    out = a._build_output_tensor(out_data, (a,))
+    def _backward_hook():
+        if a.requires_grad: a.grad += _backward(out.grad)
+    out._backward = _backward_hook
+    return out
+  
+### OTHER ###
+  
 def minimum(a: Tensor, b: Tensor) -> Tensor:
     out_data, _backward = math.minimum(a.data, b.data)
     out = a._build_output_tensor(out_data, (a, b))
