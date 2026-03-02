@@ -1,4 +1,4 @@
-#include <common.h>
+#include "common.h"
 
 __device__ void rgb_to_hsv(float r, float g, float b, float& h, float& s, float& v) {
     float cmax = fmaxf(fmaxf(r, g), b);

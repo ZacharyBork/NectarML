@@ -1,5 +1,5 @@
 #include <pybind11/numpy.h>
-#include <common.h>
+#include "common.h"
 
 /* KERNELS */
 

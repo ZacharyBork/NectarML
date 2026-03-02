@@ -1,4 +1,4 @@
-#include <common.h>
+#include "common.h"
 
 template<typename SrcT, typename DstT>
 __global__ void cast_kernel(SrcT* src, DstT* dst, size_t n) {

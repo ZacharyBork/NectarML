@@ -1,4 +1,4 @@
-#include <common.h>
+#include "common.h"
 
 /* ADDITION */
 
@@ -90,7 +90,7 @@ template<typename T>
 __global__ void sqrt_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>sqrt(static_cast<double>(x[idx]));
+    out[idx] = static_cast<T>(sqrt(static_cast<double>(x[idx])));
 }
 
 template<typename T>
@@ -109,7 +109,7 @@ template<typename T>
 __global__ void rsqrt_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>rsqrtf(static_cast<double>(x[idx]));
+    out[idx] = static_cast<T>(rsqrtf(static_cast<double>(x[idx])));
 }
 
 template<typename T>
@@ -130,7 +130,7 @@ template<typename T>
 __global__ void exp_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>expf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(expf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -151,7 +151,7 @@ template<typename T>
 __global__ void log_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>logf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(logf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -170,7 +170,7 @@ template<typename T>
 __global__ void log2_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>log2f(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(log2f(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -189,7 +189,7 @@ template<typename T>
 __global__ void log10_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>log10f(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(log10f(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -210,7 +210,7 @@ template<typename T>
 __global__ void sin_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>sinf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(sinf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -229,7 +229,7 @@ template<typename T>
 __global__ void cos_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>cosf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(cosf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -250,7 +250,7 @@ template<typename T>
 __global__ void tan_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>tanf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(tanf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -269,7 +269,7 @@ template<typename T>
 __global__ void atan_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>atanf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(atanf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -288,9 +288,9 @@ template<typename T>
 __global__ void atan2_kernel(T* y, T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>atan2f(
+    out[idx] = static_cast<T>(atan2f(
         static_cast<float>(y[idx]),
-        static_cast<float>(x[idx]));
+        static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -311,7 +311,7 @@ template<typename T>
 __global__ void pow_kernel(T* base, T* out, float exponent, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>powf(static_cast<float>(base[idx], exponent));
+    out[idx] = static_cast<T>(powf(static_cast<float>(base[idx]), exponent));
 }
 
 template<typename T>
@@ -332,7 +332,7 @@ template<typename T>
 __global__ void abs_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>fabsf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(fabsf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -353,7 +353,7 @@ template<typename T>
 __global__ void floor_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>floorf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(floorf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -372,7 +372,7 @@ template<typename T>
 __global__ void ceil_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>ceilf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(ceilf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -391,7 +391,7 @@ template<typename T>
 __global__ void round_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>roundf(static_cast<float>(x[idx]));
+    out[idx] = static_cast<T>(roundf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
@@ -429,9 +429,9 @@ template<typename T>
 __global__ void fmod_kernel(T* x, T* y, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>fmodf(
+    out[idx] = static_cast<T>(fmodf(
         static_cast<float>(x[idx]),
-        static_cast<float>(y[idx]));
+        static_cast<float>(y[idx])));
 }
 
 template<typename T>
@@ -450,9 +450,9 @@ template<typename T>
 __global__ void min_kernel(T* x, T* y, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>fminf(
+    out[idx] = static_cast<T>(fminf(
         static_cast<float>(x[idx]),
-        static_cast<float>(y[idx]));
+        static_cast<float>(y[idx])));
 }
 
 template<typename T>
@@ -471,9 +471,9 @@ template<typename T>
 __global__ void max_kernel(T* x, T* y, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>fmaxf(
+    out[idx] = static_cast<T>(fmaxf(
         static_cast<float>(x[idx]),
-        static_cast<float>(y[idx]));
+        static_cast<float>(y[idx])));
 }
 
 template<typename T>
@@ -494,9 +494,9 @@ template<typename T>
 __global__ void copysign_kernel(T* x, T* y, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>copysignf(
+    out[idx] = static_cast<T>(copysignf(
         static_cast<float>(x[idx]),
-        static_cast<float>(y[idx]));
+        static_cast<float>(y[idx])));
 }
 
 template<typename T>
@@ -517,16 +517,14 @@ template<typename T>
 __global__ void trunc_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = static_cast<T>truncf(
-        static_cast<float>(x[idx]),
-        static_cast<float>(y[idx]));
+    out[idx] = static_cast<T>(truncf(static_cast<float>(x[idx])));
 }
 
 template<typename T>
 void launch_trunc(T* x, T* out, size_t n_elements) {
     int block = BLOCK_SIZE_1D;
     int grid = (n_elements + block - 1) / block;
-    trunc_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+    trunc_kernel<T><<<grid, block>>>(x, out, n_elements);
 }
 
 template void launch_trunc<float>(float*, float*, size_t);
