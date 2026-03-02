@@ -72,7 +72,8 @@ __global__ void hue_shift_kernel(
 }
 
 void launch_hue_shift(uint8_t* d_image, int width, int height, float shift) {
-    dim3 block(BLOCK_SIZE_2D, BLOCK_SIZE_2D);
-    dim3 grid((width + 15) / BLOCK_SIZE_2D, (height + 15) / BLOCK_SIZE_2D);
+    int BS2D = BLOCK_SIZE_2D;
+    dim3 block(BS2D, BS2D);
+    dim3 grid((width + (BS2D-1)) / BS2D, (height + (BS2D-1)) / BS2D);
     hue_shift_kernel<<<grid, block>>>(d_image, width, height, shift);
 }

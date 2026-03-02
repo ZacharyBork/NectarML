@@ -84,6 +84,453 @@ template void launch_divide<half>(half*, half*, half*, size_t);
 template void launch_divide<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
 template void launch_divide<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
 
+/* SQRT */
 
+template<typename T>
+__global__ void sqrt_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>sqrt(static_cast<double>(x[idx]));
+}
 
+template<typename T>
+void launch_sqrt(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    sqrt_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_sqrt<float>(float*, float*, size_t);
+template void launch_sqrt<half>(half*, half*, size_t);
+template void launch_sqrt<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_sqrt<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void rsqrt_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>rsqrtf(static_cast<double>(x[idx]));
+}
+
+template<typename T>
+void launch_rsqrt(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    rsqrt_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_rsqrt<float>(float*, float*, size_t);
+template void launch_rsqrt<half>(half*, half*, size_t);
+template void launch_rsqrt<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_rsqrt<int32_t>(int32_t*, int32_t*, size_t);
+
+/* EXPONENT */
+
+template<typename T>
+__global__ void exp_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>expf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_exp(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    exp_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_exp<float>(float*, float*, size_t);
+template void launch_exp<half>(half*, half*, size_t);
+template void launch_exp<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_exp<int32_t>(int32_t*, int32_t*, size_t);
+
+/* LOG */
+
+template<typename T>
+__global__ void log_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>logf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_log(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    log_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_log<float>(float*, float*, size_t);
+template void launch_log<half>(half*, half*, size_t);
+template void launch_log<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_log<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void log2_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>log2f(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_log2(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    log2_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_log2<float>(float*, float*, size_t);
+template void launch_log2<half>(half*, half*, size_t);
+template void launch_log2<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_log2<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void log10_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>log10f(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_log10(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    log10_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_log10<float>(float*, float*, size_t);
+template void launch_log10<half>(half*, half*, size_t);
+template void launch_log10<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_log10<int32_t>(int32_t*, int32_t*, size_t);
+
+/* SIN / COS */
+
+template<typename T>
+__global__ void sin_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>sinf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_sin(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    sin_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_sin<float>(float*, float*, size_t);
+template void launch_sin<half>(half*, half*, size_t);
+template void launch_sin<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_sin<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void cos_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>cosf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_cos(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    cos_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_cos<float>(float*, float*, size_t);
+template void launch_cos<half>(half*, half*, size_t);
+template void launch_cos<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_cos<int32_t>(int32_t*, int32_t*, size_t);
+
+/* TAN / ATAN */
+
+template<typename T>
+__global__ void tan_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>tanf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_tan(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    tan_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_tan<float>(float*, float*, size_t);
+template void launch_tan<half>(half*, half*, size_t);
+template void launch_tan<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_tan<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void atan_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>atanf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_atan(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    atan_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_atan<float>(float*, float*, size_t);
+template void launch_atan<half>(half*, half*, size_t);
+template void launch_atan<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_atan<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void atan2_kernel(T* y, T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>atan2f(
+        static_cast<float>(y[idx]),
+        static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_atan2(T* y, T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    atan2_kernel<T><<<grid, block>>>(y, x, out, n_elements);
+}
+
+template void launch_atan2<float>(float*, float*, float*, size_t);
+template void launch_atan2<half>(half*, half*, half*, size_t);
+template void launch_atan2<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_atan2<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+
+/* POW */
+
+template<typename T>
+__global__ void pow_kernel(T* base, T* out, float exponent, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>powf(static_cast<float>(base[idx], exponent));
+}
+
+template<typename T>
+void launch_pow(T* base, T* out, float exponent, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    pow_kernel<T><<<grid, block>>>(base, out, exponent, n_elements);
+}
+
+template void launch_pow<float>(float*, float*, float, size_t);
+template void launch_pow<half>(half*, half*, float, size_t);
+template void launch_pow<uint8_t>(uint8_t*, uint8_t*, float, size_t);
+template void launch_pow<int32_t>(int32_t*, int32_t*, float, size_t);
+
+/* ABS */
+
+template<typename T>
+__global__ void abs_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>fabsf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_abs(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    abs_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_abs<float>(float*, float*, size_t);
+template void launch_abs<half>(half*, half*, size_t);
+template void launch_abs<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_abs<int32_t>(int32_t*, int32_t*, size_t);
+
+/* ROUNDING */
+
+template<typename T>
+__global__ void floor_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>floorf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_floor(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    floor_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_floor<float>(float*, float*, size_t);
+template void launch_floor<half>(half*, half*, size_t);
+template void launch_floor<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_floor<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void ceil_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>ceilf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_ceil(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    ceil_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_ceil<float>(float*, float*, size_t);
+template void launch_ceil<half>(half*, half*, size_t);
+template void launch_ceil<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_ceil<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void round_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>roundf(static_cast<float>(x[idx]));
+}
+
+template<typename T>
+void launch_round(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    round_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_round<float>(float*, float*, size_t);
+template void launch_round<half>(half*, half*, size_t);
+template void launch_round<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_round<int32_t>(int32_t*, int32_t*, size_t);
+
+/* MODULO */
+
+template<typename T>
+__global__ void mod_kernel(T* x, T* y, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = x[idx] % y[idx];
+}
+
+template<typename T>
+void launch_mod(T* x, T* y, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    mod_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_mod<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_mod<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void fmod_kernel(T* x, T* y, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>fmodf(
+        static_cast<float>(x[idx]),
+        static_cast<float>(y[idx]));
+}
+
+template<typename T>
+void launch_fmod(T* x, T* y, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    fmod_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_fmod<float>(float*, float*, float*, size_t);
+template void launch_fmod<half>(half*, half*, half*, size_t);
+
+/* MIN / MAX */
+
+template<typename T>
+__global__ void min_kernel(T* x, T* y, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>fminf(
+        static_cast<float>(x[idx]),
+        static_cast<float>(y[idx]));
+}
+
+template<typename T>
+void launch_min(T* x, T* y, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    min_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_min<float>(float*, float*, float*, size_t);
+template void launch_min<half>(half*, half*, half*, size_t);
+template void launch_min<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_min<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void max_kernel(T* x, T* y, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>fmaxf(
+        static_cast<float>(x[idx]),
+        static_cast<float>(y[idx]));
+}
+
+template<typename T>
+void launch_max(T* x, T* y, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    max_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_max<float>(float*, float*, float*, size_t);
+template void launch_max<half>(half*, half*, half*, size_t);
+template void launch_max<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_max<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+
+/* COPYSIGN */
+
+template<typename T>
+__global__ void copysign_kernel(T* x, T* y, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>copysignf(
+        static_cast<float>(x[idx]),
+        static_cast<float>(y[idx]));
+}
+
+template<typename T>
+void launch_copysign(T* x, T* y, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    copysign_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_copysign<float>(float*, float*, float*, size_t);
+template void launch_copysign<half>(half*, half*, half*, size_t);
+template void launch_copysign<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_copysign<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+
+/* TRUNCATE */
+
+template<typename T>
+__global__ void trunc_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>truncf(
+        static_cast<float>(x[idx]),
+        static_cast<float>(y[idx]));
+}
+
+template<typename T>
+void launch_trunc(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    trunc_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+}
+
+template void launch_trunc<float>(float*, float*, size_t);
+template void launch_trunc<half>(half*, half*, size_t);
+template void launch_trunc<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_trunc<int32_t>(int32_t*, int32_t*, size_t);
 
