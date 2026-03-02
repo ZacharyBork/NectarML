@@ -101,7 +101,7 @@
 ### 🟡  Image Transform/Augmentation Utilities
 
     🟡 1. Spatial / Geometric
-    ❌ 2. Color / Photometric
+    🟡 2. Color / Photometric
     ❌ 3. Blur / Noise
     ❌ 4. Dropout / Erasing
     ❌ 5. Normalization
@@ -110,30 +110,33 @@
 
 ### ❌  CUDA:
 
-    ❌ 1. Host
+    🟡 1. Host
         ❌ 1.  Activation
         ❌ 2.  Conv
         ❌ 3.  Dispatch
-        ❌ 4.  Elementwise
+        🟡 4.  Elementwise
         ❌ 5.  Indexing
         ❌ 6.  Interpolation
         ❌ 7.  Matmul
-        ❌ 8.  Memory
+        🟡 8.  Memory
         ❌ 9.  Normalization
         ❌ 10. Padding
         ❌ 11. Reductions
-    ❌ 2. Kernels
-        ❌ 1. Activation
-        ❌ 2. Conv
-        ❌ 3. Elementwise
-        ❌ 4. Indexing
-        ❌ 5. Interpolation
-        ❌ 6. Matmul
-        ❌ 7. Normalization
-        ❌ 8. Padding
-        ❌ 9. Reductions
-    ❌ 3. Bindings
-    ❌ 4. CMakeLists
+        ❌ 12. Vision
+    🟡 2. Kernels
+        ❌ 1.  Activation
+        ❌ 2.  Conv
+        🟡 3.  Elementwise
+        ❌ 4.  Indexing
+        ❌ 5.  Interpolation
+        ❌ 6.  Matmul
+        🟡 7.  Memory
+        ❌ 8.  Normalization
+        ❌ 9.  Padding
+        ❌ 10. Reductions
+        ❌ 11. Vision
+    🟡 3. Bindings
+    ✅ 4. CMakeLists
 
 ### ❌  Documentation:
 
