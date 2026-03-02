@@ -359,13 +359,13 @@ class Tensor():
     
     def __add__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
-        out = self._build_output_tensor(self.data + other.data, children)
-        
-        def _backward():
-            if self.requires_grad: self.grad += out.grad
-            if other.requires_grad: other.grad += out.grad
-            
-        out._backward = _backward
+        out_data, _backward = _core.math.add(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
+        def _backward_hook():
+            grad = _backward(out.grad)
+            if self.requires_grad: self.grad += grad
+            if other.requires_grad: other.grad += grad
+        out._backward = _backward_hook
         return out
     
     def __radd__(self, other: Tensor | int | float) -> Tensor:
@@ -373,34 +373,37 @@ class Tensor():
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
-        out = self._build_output_tensor(self.data - other.data, children)
-        
-        def _backward():
-            if self.requires_grad: self.grad += out.grad
-            if other.requires_grad: other.grad += -out.grad
-            
-        out._backward = _backward
+        out_data, _backward = _core.math.subtract(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
+        def _backward_hook():
+            grad = _backward(out.grad)
+            if self.requires_grad: self.grad += grad
+            if other.requires_grad: other.grad += grad
+        out._backward = _backward_hook
         return out
     
     def __rsub__(self, other: Tensor | int | float) -> Tensor:
         return (-self) + other
     
     def __neg__(self) -> Tensor:
-        out = self._build_output_tensor(-self.data, (self,))
-        def _backward():
-            if self.requires_grad: self.grad += -out.grad
-        out._backward = _backward
+        out_data, _backward = _core.math.negate(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+        def _backward_hook():
+            if self.requires_grad: self.grad += _backward(out.grad)
+        out._backward = _backward_hook
         return out
 
     def __mul__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
-        out = self._build_output_tensor(self.data * other.data, children)
+        out_data, _backward = _core.math.multiply(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
         
-        def _backward():
-            if self.requires_grad: self.grad += other.data * out.grad
-            if other.requires_grad: other.grad += self.data * out.grad
+        def _backward_hook():
+            a_grad, b_grad = _backward(out.grad)
+            if self.requires_grad: self.grad += a_grad
+            if other.requires_grad: other.grad += b_grad
             
-        out._backward = _backward
+        out._backward = _backward_hook
         return out
     
     def __rmul__(self, other: Tensor | int | float) -> Tensor:
@@ -412,31 +415,22 @@ class Tensor():
         if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
         
-        out = self._build_output_tensor(
-            np.matmul(self.data, other.data), (self, other))
+        out_data, _backward = _core.math.matmul(self.data, other.data)
+        out = self._build_output_tensor(out_data, (self, other))
         
-        def _backward():
-            if self.requires_grad:
-                self.grad += np.matmul(
-                    out.grad, np.swapaxes(other.data, -1, -2))
-            if other.requires_grad:
-                other.grad += np.matmul(
-                    np.swapaxes(self.data, -1, -2), out.grad)
+        def _backward_hook():
+            a_grad, b_grad = _backward(out.grad)
+            if self.requires_grad: self.grad += a_grad
+            if other.requires_grad: other.grad += b_grad
             
-        out._backward = _backward
+        out._backward = _backward_hook
         return out
     
     def __rmatmul__(self, other: Tensor) -> Tensor: return other @ self
     
     def __pow__(self, exponent: float | int) -> Tensor: 
-        out = self._build_output_tensor(self.data ** exponent, (self,))
-        
-        def _backward():
-            if self.requires_grad:
-                self.grad += exponent * (self.data ** (exponent-1)) * out.grad
-            
-        out._backward = _backward
-        return out
+        return self._eval_core_function(
+            lambda x : _core.math.pow(x, exponent))
     
     def __rpow__(self, exponent: float | int) -> Tensor: 
         raise NotImplementedError

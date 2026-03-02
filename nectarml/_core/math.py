@@ -2,10 +2,71 @@ from collections.abc import Callable
 
 import numpy as np
 
-def minimum(
+### BASIC ###
+
+def add(
     a: np.ndarray, 
     b: np.ndarray
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = a + b
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad
+    return out, _backward
+
+def subtract(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = a - b
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad
+    return out, _backward
+
+def multiply(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
+    out = a * b
+    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        a_grad = b * out_grad
+        b_grad = a * out_grad
+        return a_grad, b_grad
+    return out, _backward
+
+def pow(
+    a: np.ndarray, 
+    exponent: float | int
+) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
+    out = a ** exponent
+    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        return exponent * (a**(exponent-1)) * out_grad
+    return out, _backward
+
+def matmul(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
+    out = np.matmul(a, b)
+    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        a_grad = np.matmul(out_grad, np.swapaxes(b.data, -1, -2))
+        b_grad = np.matmul(np.swapaxes(a.data, -1, -2), out_grad)
+        return a_grad, b_grad
+    return out, _backward
+
+def negate(
+    a: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = -a
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return -out_grad
+    return out, _backward
+
+### OTHER ###
+
+def minimum(
+    a: np.ndarray, 
+    b: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
     out = np.minimum(a, b)
     def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         a_grad = (a <= b).astype(a.dtype) * out_grad
@@ -16,7 +77,7 @@ def minimum(
 def maximum(
     a: np.ndarray, 
     b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
     out = np.maximum(a, b)
     def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         a_grad = (a >= b).astype(a.dtype) * out_grad
