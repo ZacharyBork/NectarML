@@ -15,6 +15,10 @@ uintptr_t cast_tensor(uintptr_t device_ptr, size_t n_elements, DType src_dtype, 
 uintptr_t to_cuda(uintptr_t host_ptr, size_t n_elements, DType dtype);
 py::array to_cpu(uintptr_t device_ptr, std::vector<ssize_t> shape, DType dtype);
 
+/* ELEMENTWISE */
+
+uintptr_t add(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+
 /* VISION.TRANSFORMS */
 
 py::array_t<uint8_t> hue_shift(py::array_t<uint8_t> image, float shift);
@@ -62,6 +66,15 @@ PYBIND11_MODULE(_nectarml, m) {
         py::arg("shape"),
         py::arg("dtype"),
         "Moves tensor data from GPU memory to system memory.");
+
+    /* ELEMENTWISE */
+
+    m.def("add", &add, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Adds tensor data a and b, then returns as new tensor data.");
 
     /* VISION.TRANSFORMS */
 
