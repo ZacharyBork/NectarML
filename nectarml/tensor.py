@@ -32,6 +32,8 @@ class Tensor():
         
         self._backward = lambda : None
         self._prev: set[Tensor] = set(_children)
+    
+    ### INIT ###
         
     def _init_tensor(
         self, 
@@ -48,46 +50,8 @@ class Tensor():
             self._data_ptr = data
             self.shape = shape
         else: raise ValueError(f'Invalid device type: {self.device}')
-
-    # GRADIENTS
     
-    def _deallocate_grad(self) -> None:
-        if self.device == 'cuda':
-            if self._grad_ptr is not None:
-                self._grad_ptr = _nectarml.free_cuda(self._grad_ptr)
-        else: self.grad = None
-
-    def _allocate_grad(self) -> None:
-        if self.device == 'cuda':
-            self._deallocate_grad()
-            self._grad_ptr = _nectarml.alloc_cuda_full(
-                self.shape, self.dtype, 0.0)
-        else: self.grad = np.zeros_like(self.data)
-        
-    def backward(self) -> None:
-        assert self.ndim == 0 or self.size == 1, \
-            'backward() can only be called on scalar tensors.'
-        
-        visited: set[int] = set()
-        graph: list[Tensor] = []
-        
-        def build_graph(node: Tensor):
-            if id(node) not in visited:
-                visited.add(id(node))
-                for child in node._prev:
-                    build_graph(child)
-                graph.append(node)
-        
-        build_graph(self)
-        graph.reverse()
-        self._allocate_grad()
-        for node in graph: node._backward()
-    
-    def zero_grad(self) -> None:
-        if self.requires_grad:
-            self._allocate_grad()
-    
-    # PROPERTIES
+    ### PROPERTIES ###
       
     @property
     def dtype(self) -> int:
@@ -117,8 +81,46 @@ class Tensor():
             or self.device == 'cpu' and self.grad is None:
                 self._allocate_grad()
         else: self._deallocate_grad()
+        
+    ### GRADIENTS ###
     
-    # DEVICE / DTYPE        
+    def _deallocate_grad(self) -> None:
+        if self.device == 'cuda':
+            if self._grad_ptr is not None:
+                self._grad_ptr = _nectarml.free_cuda(self._grad_ptr)
+        else: self.grad = None
+
+    def _allocate_grad(self) -> None:
+        if self.device == 'cuda':
+            self._deallocate_grad()
+            self._grad_ptr = _nectarml.alloc_cuda_full(
+                self.size, self.cuda_dtype, 0.0)
+        else: self.grad = np.zeros_like(self.data)
+        
+    def backward(self) -> None:
+        assert self.ndim == 0 or self.size == 1, \
+            'backward() can only be called on scalar tensors.'
+        
+        visited: set[int] = set()
+        graph: list[Tensor] = []
+        
+        def build_graph(node: Tensor):
+            if id(node) not in visited:
+                visited.add(id(node))
+                for child in node._prev:
+                    build_graph(child)
+                graph.append(node)
+        
+        build_graph(self)
+        graph.reverse()
+        self._allocate_grad()
+        for node in graph: node._backward()
+    
+    def zero_grad(self) -> None:
+        if self.requires_grad:
+            self._allocate_grad()
+    
+    ### DEVICE / DTYPE ###
         
     def to(
         self,
@@ -161,7 +163,7 @@ class Tensor():
 
     def cpu(self) -> Tensor: return self.to(device='cpu')
     
-    # UTILS
+    ### UTILS ###
     
     def _validate_other(self, other: Tensor) -> None:
         assert isinstance(other, Tensor)
@@ -208,7 +210,7 @@ class Tensor():
         out._backward = _backward_hook
         return out
     
-    # REDUCTIONS
+    ### REDUCTIONS ###
     
     def min(
         self, 
@@ -266,25 +268,123 @@ class Tensor():
         return self._eval_core_function(
             lambda x : _core.reductions.prod(x, dim, keepdims, initial))
         
-    # MATH OPS
+    ### MATH OPS ###
     
-    def abs(self) -> Tensor: return self._eval_core_function(_core.math.abs)
-    
-    def exp(self) -> Tensor: return self._eval_core_function(_core.math.exp)
-    
-    def log(self) -> Tensor: return self._eval_core_function(_core.math.log)
-    
-    def sqrt(self) -> Tensor: return self._eval_core_function(_core.math.sqrt)
-    
-    def sin(self) -> Tensor: return self._eval_core_function(_core.math.sin)
-    
-    def cos(self) -> Tensor: return self._eval_core_function(_core.math.cos)
-    
-    def tanh(self) -> Tensor: return self._eval_core_function(_core.math.tanh)
-    
+    def abs(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.abs(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.abs(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+            
+    def exp(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.exp(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.exp(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+            
+    def log(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.log(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.log(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+            
+    def sqrt(self) -> Tensor:
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.sqrt(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.sqrt(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+            
+    def sin(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.sin(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.sin(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+        
+    def cos(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.cos(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.cos(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+        
+    def tanh(self) -> Tensor: 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = _nectarml.tanh(
+                self._data_ptr, self.size, self.cuda_dtype)
+        else: out_data, _backward = _core.math.tanh(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+        
     def sigmoid(self) -> Tensor: return ((-self).exp() + 1) ** -1
     
-    # RESHAPING
+    ### RESHAPING ###
     
     def reshape(self, shape: tuple[int, ...]) -> Tensor:
         return self._eval_core_function(
@@ -320,7 +420,7 @@ class Tensor():
     def broadcast_to(self, shape: tuple[int, ...]) -> Tensor:
         return self.expand(shape)
         
-    # GETTERS / SETTERS
+    ### GETTERS / SETTERS ###
         
     def __getitem__(self, key: Any) -> int | float:
         return self.data[key]
@@ -342,13 +442,13 @@ class Tensor():
     
     def __hash__(self) -> int: return id(self)
     
-    # GARBAGE COLLECTION
+    ### GARBAGE COLLECTION ###
     
     def __del__(self) -> None:
         if self.device == 'cuda' and self._data_ptr is not None:
             _nectarml.free_cuda(self._data_ptr)
         
-    # COMPARISON
+    ### COMPARISON ###
     
     def __eq__(self, other: Tensor) -> np.ndarray:
         return self.data == other.data
@@ -359,7 +459,7 @@ class Tensor():
     def __gt__(self, other: Tensor) -> np.ndarray:
         return self.data > other.data
     
-    # MATH OPS
+    ### MATH OPS ###
     
     def __add__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
