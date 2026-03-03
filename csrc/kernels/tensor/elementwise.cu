@@ -226,6 +226,63 @@ template void launch_sin<uint8_t>(uint8_t*, uint8_t*, size_t);
 template void launch_sin<int32_t>(int32_t*, int32_t*, size_t);
 
 template<typename T>
+__global__ void asin_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(asinf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_asin(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    asin_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_asin<float>(float*, float*, size_t);
+template void launch_asin<half>(half*, half*, size_t);
+template void launch_asin<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_asin<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void sinh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(sinhf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_sinh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    sinh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_sinh<float>(float*, float*, size_t);
+template void launch_sinh<half>(half*, half*, size_t);
+template void launch_sinh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_sinh<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void asinh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(asinhf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_asinh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    asinh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_asinh<float>(float*, float*, size_t);
+template void launch_asinh<half>(half*, half*, size_t);
+template void launch_asinh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_asinh<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
 __global__ void cos_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
@@ -243,6 +300,63 @@ template void launch_cos<float>(float*, float*, size_t);
 template void launch_cos<half>(half*, half*, size_t);
 template void launch_cos<uint8_t>(uint8_t*, uint8_t*, size_t);
 template void launch_cos<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void acos_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(acosf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_acos(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    acos_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_acos<float>(float*, float*, size_t);
+template void launch_acos<half>(half*, half*, size_t);
+template void launch_acos<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_acos<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void cosh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(coshf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_cosh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    cosh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_cosh<float>(float*, float*, size_t);
+template void launch_cosh<half>(half*, half*, size_t);
+template void launch_cosh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_cosh<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void acosh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(acoshf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_acosh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    acosh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_acosh<float>(float*, float*, size_t);
+template void launch_acosh<half>(half*, half*, size_t);
+template void launch_acosh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_acosh<int32_t>(int32_t*, int32_t*, size_t);
 
 /* TAN / ATAN */
 
@@ -266,6 +380,25 @@ template void launch_tan<uint8_t>(uint8_t*, uint8_t*, size_t);
 template void launch_tan<int32_t>(int32_t*, int32_t*, size_t);
 
 template<typename T>
+__global__ void tanh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(tanhf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_tanh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    tanh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_tanh<float>(float*, float*, size_t);
+template void launch_tanh<half>(half*, half*, size_t);
+template void launch_tanh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_tanh<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
 __global__ void atan_kernel(T* x, T* out, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
@@ -283,6 +416,25 @@ template void launch_atan<float>(float*, float*, size_t);
 template void launch_atan<half>(half*, half*, size_t);
 template void launch_atan<uint8_t>(uint8_t*, uint8_t*, size_t);
 template void launch_atan<int32_t>(int32_t*, int32_t*, size_t);
+
+template<typename T>
+__global__ void atanh_kernel(T* x, T* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = static_cast<T>(atanhf(static_cast<float>(x[idx])));
+}
+
+template<typename T>
+void launch_atanh(T* x, T* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    atanh_kernel<T><<<grid, block>>>(x, out, n_elements);
+}
+
+template void launch_atanh<float>(float*, float*, size_t);
+template void launch_atanh<half>(half*, half*, size_t);
+template void launch_atanh<uint8_t>(uint8_t*, uint8_t*, size_t);
+template void launch_atanh<int32_t>(int32_t*, int32_t*, size_t);
 
 template<typename T>
 __global__ void atan2_kernel(T* y, T* x, T* out, size_t n) {

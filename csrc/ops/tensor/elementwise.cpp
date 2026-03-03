@@ -37,13 +37,37 @@ template<typename T>
 void launch_sin(T* x, T* out, size_t n_elements);
 
 template<typename T>
+void launch_asin(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_sinh(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_asinh(T* x, T* out, size_t n_elements);
+
+template<typename T>
 void launch_cos(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_acos(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_cosh(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_acosh(T* x, T* out, size_t n_elements);
 
 template<typename T>
 void launch_tan(T* x, T* out, size_t n_elements);
 
 template<typename T>
+void launch_tanh(T* x, T* out, size_t n_elements);
+
+template<typename T>
 void launch_atan(T* x, T* out, size_t n_elements);
+
+template<typename T>
+void launch_atanh(T* x, T* out, size_t n_elements);
 
 template<typename T>
 void launch_atan2(T* y, T* x, T* out, size_t n_elements);
@@ -218,11 +242,65 @@ namespace nectar {
         });
     }
 
+    uintptr_t asin(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_asin<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t sinh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_sinh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t asinh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_asinh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
     uintptr_t cos(uintptr_t x_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_cos<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t acos(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_acos<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t cosh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_cosh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t acosh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_acosh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -238,11 +316,29 @@ namespace nectar {
         });
     }
 
+    uintptr_t tanh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_tanh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
     uintptr_t atan(uintptr_t x_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_atan<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t atanh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_atanh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }

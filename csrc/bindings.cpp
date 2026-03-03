@@ -29,9 +29,17 @@ namespace nectar {
     uintptr_t log2(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t log10(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t sin(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t asin(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t sinh(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t asinh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t cos(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t acos(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t cosh(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t acosh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t tan(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t tanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atan(uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t atanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atan2(uintptr_t y_ptr, uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t pow(uintptr_t base_ptr, float exponent, size_t n_elements, DType dtype);
     uintptr_t abs(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -166,11 +174,47 @@ PYBIND11_MODULE(_nectarml, m) {
         py::arg("dtype"),
         "Calculates the sine of tensor data x and returns as new tensor data.");
 
+    m.def("asin", &nectar::asin, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the arc sine of tensor data x and returns as new tensor data.");
+
+    m.def("sinh", &nectar::sinh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the hyperbolic sine of tensor data x and returns as new tensor data.");
+
+    m.def("asinh", &nectar::asinh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the inverse hyperbolic sine of tensor data x and returns as new tensor data.");
+
     m.def("cos", &nectar::cos, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the cosine of tensor data x and returns as new tensor data.");
+
+    m.def("acos", &nectar::acos, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the arc cosine of tensor data x and returns as new tensor data.");
+
+    m.def("cosh", &nectar::cosh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the hyperbolic cosine of tensor data x and returns as new tensor data.");
+
+    m.def("acosh", &nectar::acosh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the non-negative inverse hyperbolic cosine of tensor data x and returns as new tensor data.");
 
     m.def("tan", &nectar::tan, 
         py::arg("x_ptr"),
@@ -178,11 +222,23 @@ PYBIND11_MODULE(_nectarml, m) {
         py::arg("dtype"),
         "Calculates the tangent of tensor data x and returns as new tensor data.");
 
+    m.def("tanh", &nectar::tanh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the hyperbolic tangent of tensor data x and returns as new tensor data.");
+
     m.def("atan", &nectar::atan, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the arctangent of tensor data x and returns as new tensor data.");
+
+    m.def("atanh", &nectar::atanh, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Calculates the inverse hyperbolid tangent of tensor data x and returns as new tensor data.");
 
     m.def("atan2", &nectar::atan2, 
         py::arg("y_ptr"),
