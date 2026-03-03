@@ -109,6 +109,22 @@ def log(
         return (1 / input) * out_grad
     return out, _backward
 
+def log2(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.log2(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / (input * np.log(2))
+    return out, _backward
+
+def log2(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.log2(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / (input * np.log(10))
+    return out, _backward
+
 def sqrt(
     input: np.ndarray
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
@@ -125,12 +141,44 @@ def sin(
         return np.cos(input) * out_grad
     return out, _backward
 
+def asin(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.asin(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / np.sqrt(np.maximum(1 - input**2, 1e-7))
+    return out, _backward
+
+def sinh(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.sinh(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return np.cosh(input) * out_grad
+    return out, _backward
+
+def asinh(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.asinh(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / np.sqrt(input**2 + 1)
+    return out, _backward
+
 def cos(
     input: np.ndarray
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
     out = np.cos(input)
     def _backward(out_grad: np.ndarray) -> np.ndarray:
         return -np.sin(input) * out_grad
+    return out, _backward
+
+def acos(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.acos(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return -out_grad / np.sqrt(np.maximum(1 - input**2, 1e-7))
     return out, _backward
 
 def cosh(
@@ -141,11 +189,54 @@ def cosh(
         return np.sinh(input) * out_grad
     return out, _backward
 
+def acosh(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.acosh(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / np.sqrt(np.maximum(input**2 - 1, 1e-7))
+    return out, _backward
+
+def tan(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.tan(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad * (1 + out**2)
+    return out, _backward
+
 def tanh(
     input: np.ndarray
 ) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
     out = np.tanh(input)
     def _backward(out_grad: np.ndarray) -> np.ndarray:
         return (1 - out ** 2) * out_grad
+    return out, _backward
+
+def atan(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.atan(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / (1 + input**2)
+    return out, _backward
+
+def atanh(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.atanh(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        return out_grad / np.maximum(1 - input**2, 1e-7)
+    return out, _backward
+
+def atan2(
+    input: np.ndarray
+) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
+    out = np.atan2(input)
+    def _backward(out_grad: np.ndarray) -> np.ndarray:
+        denom = input**2 + out**2
+        grad_x = out_grad * -out / np.maximum(denom, 1e-7)
+        grad_y = out_grad * input / np.maximum(denom, 1e-7)
+        return grad_y, grad_x
     return out, _backward
 
