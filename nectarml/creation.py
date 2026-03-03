@@ -54,7 +54,7 @@ def zeros(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        np.zeros(shape), dtype=dtype, 
+        np.zeros(shape), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def ones(
@@ -64,7 +64,7 @@ def ones(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        np.ones(shape), dtype=dtype, 
+        np.ones(shape), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def rand(
@@ -74,7 +74,7 @@ def rand(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        _rng.random(shape), dtype=dtype, 
+        _rng.random(shape), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def randn(
@@ -86,7 +86,7 @@ def randn(
 ) -> Tensor: 
     rng = np.random.default_rng(seed) if seed is not None else _rng
     return Tensor(
-        rng.standard_normal(shape), dtype=dtype, 
+        rng.standard_normal(shape), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def full(
@@ -97,7 +97,7 @@ def full(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        np.full(shape, fill_value), dtype=dtype, 
+        np.full(shape, fill_value), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def empty(
@@ -107,7 +107,7 @@ def empty(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        np.empty(shape), dtype=dtype, 
+        np.empty(shape), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def eye(

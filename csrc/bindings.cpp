@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include "common.h"
 
 namespace py = pybind11;
@@ -13,7 +14,7 @@ uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value);
 
 uintptr_t cast_tensor(uintptr_t device_ptr, size_t n_elements, DType src_dtype, DType dst_dtype);
 uintptr_t to_cuda(uintptr_t host_ptr, size_t n_elements, DType dtype);
-py::array to_cpu(uintptr_t device_ptr, std::vector<ssize_t> shape, DType dtype);
+py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype);
 
 /* ELEMENTWISE */
 
@@ -46,7 +47,7 @@ namespace nectar {
     uintptr_t floor(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t ceil(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t round(uintptr_t x_ptr, size_t n_elements, DType dtype);
-    uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    // uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t fmod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t min(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
@@ -278,12 +279,12 @@ PYBIND11_MODULE(_nectarml, m) {
         py::arg("dtype"),
         "Calculates the nearest integer to x and returns as new tensor data.");
 
-    m.def("mod", &nectar::mod, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
-        py::arg("dtype"),
-        "Calculates integer modulo of x and y and returns as new tensor data.");
+    // m.def("mod", &nectar::mod, 
+    //     py::arg("x_ptr"),
+    //     py::arg("y_ptr"),
+    //     py::arg("n_elements"),
+    //     py::arg("dtype"),
+    //     "Calculates integer modulo of x and y and returns as new tensor data.");
 
     m.def("fmod", &nectar::fmod, 
         py::arg("x_ptr"),

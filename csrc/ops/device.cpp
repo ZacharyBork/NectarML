@@ -33,7 +33,7 @@ uintptr_t to_cuda(uintptr_t host_ptr, size_t n_elements, DType dtype) {
     });
 }
 
-py::array to_cpu(uintptr_t device_ptr, std::vector<ssize_t> shape, DType dtype) {
+py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype) {
     size_t n_elements = 1;
     for (auto s : shape) n_elements *= s;
 

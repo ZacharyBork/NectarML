@@ -87,8 +87,8 @@ void launch_ceil(T* x, T* out, size_t n_elements);
 template<typename T>
 void launch_round(T* x, T* out, size_t n_elements);
 
-template<typename T>
-void launch_mod(T* x, T* y, T* out, size_t n_elements);
+// template<typename T>
+// void launch_mod(T* x, T* y, T* out, size_t n_elements);
 
 template<typename T>
 void launch_fmod(T* x, T* y, T* out, size_t n_elements);
@@ -414,18 +414,18 @@ namespace nectar {
 
     /* MODULO */
 
-    uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_mod<T>(
-                reinterpret_cast<T*>(x_ptr),
-                reinterpret_cast<T*>(y_ptr),
-                d_out, 
-                n_elements);
-            return reinterpret_cast<uintptr_t>(d_out);
-        });
-    }
+    // uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+    //     DISPATCH_DTYPE(dtype, T, {
+    //         T* d_out;
+    //         cudaMalloc(&d_out, n_elements * sizeof(T));
+    //         launch_mod<T>(
+    //             reinterpret_cast<T*>(x_ptr),
+    //             reinterpret_cast<T*>(y_ptr),
+    //             d_out, 
+    //             n_elements);
+    //         return reinterpret_cast<uintptr_t>(d_out);
+    //     });
+    // }
 
     uintptr_t fmod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {

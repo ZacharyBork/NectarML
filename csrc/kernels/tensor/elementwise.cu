@@ -560,22 +560,24 @@ template void launch_round<int32_t>(int32_t*, int32_t*, size_t);
 
 /* MODULO */
 
-template<typename T>
-__global__ void mod_kernel(T* x, T* y, T* out, size_t n) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= n) return;
-    out[idx] = x[idx] % y[idx];
-}
+// template<typename T>
+// __global__ void mod_kernel(T* x, T* y, T* out, size_t n) {
+//     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (idx >= n) return;
+//     out[idx] = x[idx] % y[idx];
+// }
 
-template<typename T>
-void launch_mod(T* x, T* y, T* out, size_t n_elements) {
-    int block = BLOCK_SIZE_1D;
-    int grid = (n_elements + block - 1) / block;
-    mod_kernel<T><<<grid, block>>>(x, y, out, n_elements);
-}
+// template<typename T>
+// void launch_mod(T* x, T* y, T* out, size_t n_elements) {
+//     int block = BLOCK_SIZE_1D;
+//     int grid = (n_elements + block - 1) / block;
+//     mod_kernel<T><<<grid, block>>>(x, y, out, n_elements);
+// }
 
-template void launch_mod<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_mod<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
+// template void launch_mod<float>(float*, float*, float*, size_t);
+// template void launch_mod<half>(half*, half*, half*, size_t);
+// template void launch_mod<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+// template void launch_mod<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
 
 template<typename T>
 __global__ void fmod_kernel(T* x, T* y, T* out, size_t n) {
@@ -595,6 +597,8 @@ void launch_fmod(T* x, T* y, T* out, size_t n_elements) {
 
 template void launch_fmod<float>(float*, float*, float*, size_t);
 template void launch_fmod<half>(half*, half*, half*, size_t);
+template void launch_fmod<uint8_t>(uint8_t*, uint8_t*, uint8_t*, size_t);
+template void launch_fmod<int32_t>(int32_t*, int32_t*, int32_t*, size_t);
 
 /* MIN / MAX */
 

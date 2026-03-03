@@ -7,6 +7,7 @@ import numpy as np
 
 import _nectarml
 from nectarml import typing
+import nectarml.cuda as cuda
 import nectarml._core as _core
 
 class Tensor():
@@ -24,7 +25,7 @@ class Tensor():
         
         self.data: np.ndarray | None = None
         self._data_ptr: int | None = None
-        self._init_tensor(data, shape, dtype, device)       
+        self._init_tensor(data, shape)       
         
         self.grad: np.ndarray | None = None
         self._grad_ptr: int | None = None
@@ -59,7 +60,7 @@ class Tensor():
         
     @property
     def cuda_dtype(self) -> int:
-        return _core.cuda.DTYPE_MAP[self.dtype]
+        return cuda.map_dtype(self.dtype)
     
     @property
     def ndim(self) -> int:
@@ -130,26 +131,18 @@ class Tensor():
         if device == self.device:
             if dtype is None or dtype == self.dtype:
                 return self
-        
+                                
         dtype = dtype or self.dtype
         if device == 'cuda':
             shape = self.shape
-            if self.device == 'cpu':
-                data = _nectarml.to_cuda(
-                    self.data.astype(dtype), self.size, self.cuda_dtype)
-            else:
-                dest_dtype = _core.cuda.DTYPE_MAP[dtype]
-                data = _nectarml.cast_tensor(
-                    self._data_ptr, self.size, self.cuda_dtype, dest_dtype)
-       
+            if self.device == 'cpu': data = cuda.to_cuda(self.data, dtype)
+            else: data = cuda.cast_tensor(
+                self._data_ptr, self.size, self.dtype, dtype)
         elif device == 'cpu':
             shape = None
-            if self.device == 'cuda':
-                data = _nectarml.to_cpu(
-                    self._data_ptr, self.shape, self.cuda_dtype)
-                data = data.astype(dtype)
-            else: data = self.data
-            
+            if self.device == 'cpu': data = self.data
+            else: data = cuda.to_cpu(
+                self._data_ptr, self.shape, self.dtype, dtype)
         else: raise ValueError(f'Invalid device type: {device}')
         
         new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
@@ -428,7 +421,12 @@ class Tensor():
     def __setitem__(self, key: Any, value: int | float) -> None:
         self.data[key] = value
         
-    def __str__(self) -> str: return self.data.__str__()
+    def __str__(self) -> str: 
+        if self.device == 'cuda':
+            return _nectarml.to_cpu(
+                self._data_ptr, list(self.shape), self.cuda_dtype
+            ).__str__()
+        else: return self.data.__str__()
     
     def __repr__(self) -> str:
         return (
