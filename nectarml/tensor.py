@@ -81,12 +81,14 @@ class Tensor():
         
     @requires_grad.setter
     def requires_grad(self, value: bool) -> None:
-        self._requires_grad = value
-        if value:
-            if self.device == 'cuda' and self._grad_ptr is None \
-            or self.device == 'cpu' and self.grad is None:
-                self._allocate_grad()
-        else: self._deallocate_grad()
+        if self.dtype != typing.bool_: 
+            self._requires_grad = value
+            if value:
+                if self.device == 'cuda' and self._grad_ptr is None \
+                or self.device == 'cpu' and self.grad is None:
+                    self._allocate_grad()
+            else: self._deallocate_grad()
+        else: self._requires_grad = False
     
     ### DATA UTILS ###
     
@@ -133,10 +135,6 @@ class Tensor():
         if self.requires_grad:
             self._allocate_grad()
             
-    def _bool_type_check(self, op_name: str) -> None:
-        if self.dtype == typing.bool_:
-            raise RuntimeError(f'Boolean tensors do not support {op_name}.')
-    
     ### DEVICE / DTYPE ###
         
     def to(
@@ -174,8 +172,17 @@ class Tensor():
     
     ### UTILS ###
     
+    def _bool_type_check(self, op: str, other: Tensor | None = None) -> None:
+        msg = f'Boolean tensors do not support operation: {op}'
+        if isinstance(other, Tensor) and other.dtype == typing.bool_:
+            raise RuntimeError(msg)
+        if self.dtype == typing.bool_: raise RuntimeError(msg)
+    
     def _validate_other(self, other: Tensor) -> None:
         assert isinstance(other, Tensor)
+        assert self.device == other.device, (
+            f'Expected all tensors to be on the same device, but found at '
+            f'least two devices, {self.device} and {other.device}.')
         
     def _numerical_to_tensor(self, other: int | float) -> Tensor:
         new = Tensor(np.full(self.shape, other), dtype=self.dtype)
@@ -226,6 +233,7 @@ class Tensor():
         dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False
     ) -> Tensor:
+        self._bool_type_check('Tensor.min()')
         return self._eval_core_function(
             lambda x : _core.reductions.min(x, dim=dim, keepdims=keepdims))
     
@@ -234,6 +242,7 @@ class Tensor():
         dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False
     ) -> Tensor:
+        self._bool_type_check('Tensor.max()')
         return self._eval_core_function(
             lambda x : _core.reductions.max(x, dim=dim, keepdims=keepdims))
     
@@ -242,6 +251,7 @@ class Tensor():
         dim: int | None = None, 
         keepdims: bool = False
     ) -> typing.ArrayLike:
+        self._bool_type_check('Tensor.argmin()')
         return _core.reductions.argmin(self.data, dim=dim, keepdims=keepdims)
         
     def argmax(
@@ -249,6 +259,7 @@ class Tensor():
         dim: int | None = None, 
         keepdims: bool = False
     ) -> typing.ArrayLike:
+        self._bool_type_check('Tensor.argmax()')
         return _core.reductions.argmax(self.data, dim=dim, keepdims=keepdims)
     
     def mean(
@@ -256,6 +267,7 @@ class Tensor():
         dim: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
     ) -> Tensor:
+        self._bool_type_check('Tensor.mean()')
         return self._eval_core_function(
             lambda x : _core.reductions.mean(x, dim=dim, keepdims=keepdims))
         
@@ -265,6 +277,7 @@ class Tensor():
         keepdims: bool = False,
         initial: int | float = 0
     ) -> Tensor:
+        self._bool_type_check('Tensor.sum()')
         return self._eval_core_function(
             lambda x : _core.reductions.sum(x, dim, keepdims, initial))
     
@@ -274,12 +287,14 @@ class Tensor():
         keepdims: bool = False,
         initial: int | float = 1
     ) -> Tensor:
+        self._bool_type_check('Tensor.prod()')
         return self._eval_core_function(
             lambda x : _core.reductions.prod(x, dim, keepdims, initial))
         
     ### MATH OPS ###
     
     def abs(self) -> Tensor: 
+        self._bool_type_check('Tensor.abs()')
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -295,7 +310,8 @@ class Tensor():
         out._backward = _backward_hook
         return out
             
-    def exp(self) -> Tensor: 
+    def exp(self) -> Tensor:
+        self._bool_type_check('Tensor.exp()') 
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -311,7 +327,8 @@ class Tensor():
         out._backward = _backward_hook
         return out
             
-    def log(self) -> Tensor: 
+    def log(self) -> Tensor:
+        self._bool_type_check('Tensor.log()') 
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -328,6 +345,7 @@ class Tensor():
         return out
             
     def sqrt(self) -> Tensor:
+        self._bool_type_check('Tensor.sqrt()')
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -343,7 +361,8 @@ class Tensor():
         out._backward = _backward_hook
         return out
             
-    def sin(self) -> Tensor: 
+    def sin(self) -> Tensor:
+        self._bool_type_check('Tensor.sin()') 
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -360,6 +379,7 @@ class Tensor():
         return out
         
     def cos(self) -> Tensor: 
+        self._bool_type_check('Tensor.cos()')
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -375,7 +395,8 @@ class Tensor():
         out._backward = _backward_hook
         return out
         
-    def tanh(self) -> Tensor: 
+    def tanh(self) -> Tensor:
+        self._bool_type_check('Tensor.tanh()') 
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
@@ -391,7 +412,9 @@ class Tensor():
         out._backward = _backward_hook
         return out
         
-    def sigmoid(self) -> Tensor: return ((-self).exp() + 1) ** -1
+    def sigmoid(self) -> Tensor: 
+        self._bool_type_check('Tensor.sigmoid()')
+        return ((-self).exp() + 1) ** -1
     
     ### RESHAPING ###
     
@@ -431,10 +454,10 @@ class Tensor():
         
     ### GETTERS / SETTERS ###
         
-    def __getitem__(self, key: Any) -> int | float:
+    def __getitem__(self, key: Any) -> int | float | bool:
         return self.numpy()[key]
     
-    def __setitem__(self, key: Any, value: int | float) -> None:
+    def __setitem__(self, key: Any, value: int | float | bool) -> None:
         self.data[key] = value
         
     def __str__(self) -> str: 
@@ -461,34 +484,44 @@ class Tensor():
     ### COMPARISON ###
     
     def __eq__(self, other: Tensor) -> Tensor:
+        self._bool_type_check('Tensor.__eq__()', other)
+        self._validate_other(other)
         if self.device == 'cuda':
             data = cuda.math.equal(
                 self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: data = self.data == other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __lt__(self, other: Tensor) -> np.ndarray:
+    def __lt__(self, other: Tensor) -> Tensor:
+        self._bool_type_check('Tensor.__lt__()', other)
+        self._validate_other(other)
         if self.device == 'cuda':
             data = cuda.math.less_than(
                 self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: data = self.data < other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __le__(self, other: Tensor) -> np.ndarray:
+    def __le__(self, other: Tensor) -> Tensor:
+        self._bool_type_check('Tensor.__le__()', other)
+        self._validate_other(other)
         if self.device == 'cuda':
             data = cuda.math.less_than_or_equal(
                 self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: data = self.data <= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __gt__(self, other: Tensor) -> np.ndarray:
+    def __gt__(self, other: Tensor) -> Tensor:
+        self._bool_type_check('Tensor.__gt__()', other)
+        self._validate_other(other)
         if self.device == 'cuda':
             data = cuda.math.greater_than(
                 self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: data = self.data > other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __gt__(self, other: Tensor) -> np.ndarray:
+    def __ge__(self, other: Tensor) -> Tensor:
+        self._bool_type_check('Tensor.__ge__()', other)
+        self._validate_other(other)
         if self.device == 'cuda':
             data = cuda.math.greater_than_or_equal(
                 self._data_ptr, other._data_ptr, self.size, self.dtype)
@@ -499,6 +532,8 @@ class Tensor():
     
     def __add__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__add__()', other)
+
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
@@ -522,6 +557,8 @@ class Tensor():
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__sub__()', other)
+        
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
@@ -544,6 +581,7 @@ class Tensor():
         return (-self) + other
     
     def __neg__(self) -> Tensor:
+        self._bool_type_check('Tensor.__neg__()')
         out_data, _backward = _core.math.negate(self.data)
         out = self._build_output_tensor(out_data, (self,))
         def _backward_hook():
@@ -553,6 +591,7 @@ class Tensor():
 
     def __mul__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__sub__()', other)
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
@@ -575,7 +614,8 @@ class Tensor():
         return self * other
     
     def __matmul__(self, other: Tensor) -> Tensor:
-        assert isinstance(other, Tensor)
+        self._validate_other(other)
+        self._bool_type_check('Tensor.__matmul__()', other)
         assert other.data.shape == self.data.shape
         if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
@@ -594,6 +634,7 @@ class Tensor():
     def __rmatmul__(self, other: Tensor) -> Tensor: return other @ self
     
     def __pow__(self, exponent: float | int) -> Tensor: 
+        self._bool_type_check('Tensor.__pow__()')
         return self._eval_core_function(
             lambda x : _core.math.pow(x, exponent))
     
@@ -601,12 +642,15 @@ class Tensor():
         raise NotImplementedError
     
     def __truediv__(self, other: Tensor | float | int) -> Tensor:
+        self._bool_type_check('Tensor.__truediv__()', other)
         return self * other ** -1
     
     def __rtruediv__(self, other: Tensor | float | int) -> Tensor:
+        self._bool_type_check('Tensor.__rtruediv__()', other)
         return (self ** -1) * other
     
     def __abs__(self) -> Tensor:
+        self._bool_type_check('Tensor.__abs__()')
         return self._eval_core_function(_core.math.abs)
     
     
