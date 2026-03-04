@@ -1,3 +1,4 @@
+from . import cuda
 from .tensor import Tensor
 from .autocast import autocast
 from .creation import (

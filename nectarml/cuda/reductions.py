@@ -6,10 +6,8 @@ from nectarml.cuda.utils import map_dtype
 
 def sum(
     in_ptr: int, 
-    size: int, 
-    dtype: DTypeLike, 
-    dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False
+    shape: tuple[int, ...],
+    reduce_dim: int | None,
+    dtype: DTypeLike
 ) -> int:
-    out = _nectarml.reduce_sum(in_ptr, size, map_dtype(dtype))
-    return out
+    return _nectarml.reduce_sum(in_ptr, shape, reduce_dim, map_dtype(dtype))

@@ -2,9 +2,26 @@ import _nectarml
 from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import map_dtype
 
+### STATISTICS ###
+
+def get_cuda_meminfo() -> tuple[int, int, int]:
+    return _nectarml.get_cuda_meminfo() # (total, free, used)
+
+def memory_allocated() -> int:
+    _, _, used = get_cuda_meminfo()
+    return used
+
+def get_memory_statistics(precision: int = 2) -> str:
+    stats = get_cuda_meminfo()
+    mb = [round(i/1024**3, precision) for i in stats]
+    total, free, used = mb
+    return f'Total: {total} | Free: {free} | Used: {used}'
+
+### ALLOCATION / DEALLOCATION
+
 def free_cuda(device_ptr: int) -> None:
     _nectarml.free_cuda(device_ptr)
-    
+
 def alloc_cuda_full(
     n_elements: int, 
     dtype: DTypeLike, 

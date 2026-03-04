@@ -5,6 +5,7 @@
 namespace py = pybind11;
 
 void free_cuda(uintptr_t ptr);
+py::tuple get_cuda_meminfo();
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value);
 uintptr_t alloc_cuda_random(size_t n_elements, DType dtype, unsigned long long seed, float min_value, float max_value);
 uintptr_t alloc_cuda_empty(size_t n_elements, DType dtype);
@@ -13,6 +14,9 @@ void register_memory(py::module_& m) {
     m.def("free_cuda", &free_cuda, 
         py::arg("ptr"),
         "Frees GPU memory of object at at given pointer.");
+
+    m.def("get_cuda_meminfo", &get_cuda_meminfo, 
+        "Returns tuple of VRAM statistics: (total, free, used)");
 
     m.def("alloc_cuda_full", &alloc_cuda_full, 
         py::arg("n_elements"),

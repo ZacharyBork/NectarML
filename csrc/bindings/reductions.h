@@ -5,16 +5,22 @@
 namespace py = pybind11;
 
 namespace nectar {
-    uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, DType dtype);
+    uintptr_t reduce_sum(
+        uintptr_t in_ptr, 
+        std::vector<int> shape,
+        int reduce_dim,
+        DType dtype
+    );
 }
 
 void register_reductions(py::module_& m) {
 
     m.def("reduce_sum", &nectar::reduce_sum, 
-        py::arg("ptr"),
-        py::arg("n_elements"),
+        py::arg("in_ptr"),
+        py::arg("shape"),
+        py::arg("reduce_dim"),
         py::arg("dtype"),
-        "Frees GPU memory of object at at given pointer.");
+        "Performs a dimension-wise sum reduction on a CUDA tensor.");
 
 }
 

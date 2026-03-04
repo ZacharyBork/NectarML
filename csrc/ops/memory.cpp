@@ -3,6 +3,8 @@
 #include <pybind11/numpy.h>
 #include "common.h"
 
+namespace py = pybind11;
+
 /* KERNELS */
 
 template<typename T>
@@ -21,6 +23,13 @@ void launch_alloc_cuda_random(
 /* FUNCTIONS */
 
 void free_cuda(uintptr_t ptr) { cudaFree(reinterpret_cast<void*>(ptr)); }
+
+py::tuple get_cuda_meminfo() {
+    size_t free, total;
+    cudaMemGetInfo(&free, &total);
+    size_t used = total - free;
+    return py::make_tuple(total, free, used);
+}
 
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value) {
     DISPATCH_DTYPE(dtype, T, {

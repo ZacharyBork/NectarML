@@ -228,6 +228,19 @@ class Tensor():
     
     ### REDUCTIONS ###
     
+    def _get_reduce_shape(
+        self, 
+        dim: int | tuple[int, ...] | None, 
+        keepdims: bool
+    ) -> tuple[int, ...]:
+        out_shape = list(self.shape)
+        if keepdims: out_shape[dim] = 1
+        else: 
+            if isinstance(dim, (tuple, list)):
+                for idx, i in enumerate(dim): out_shape.pop(i-idx)
+            else: out_shape.pop(dim)
+        return tuple(out_shape)
+    
     def min(
         self, 
         dim: int | tuple[int, ...] | None = None,
@@ -271,20 +284,28 @@ class Tensor():
         return self._eval_core_function(
             lambda x : _core.reductions.mean(x, dim=dim, keepdims=keepdims))
         
-    def sum(
-        self, 
-        dim: int | tuple[int, ...] | None = None,
-        keepdims: bool = False,
-        initial: int | float = 0
-    ) -> Tensor:
+    def sum(self, dim=None, keepdims=False, initial=0):
         self._bool_type_check('Tensor.sum()')
+        _backward = lambda grad: grad
+        
         if self.device == 'cuda':
-            _backward = lambda grad : grad 
-            data = cuda.reductions.sum(self._data_ptr, self.size, self.dtype)
-        else: data, _backward = _core.reductions.sum(
-            self.data, dim, keepdims, initial)
+            if isinstance(dim, (tuple, list)):
+                result = self
+                for d in sorted(dim, reverse=True):
+                    result = result.sum(d, keepdims=True)
+                if not keepdims:
+                    result.shape = result._get_reduce_shape(dim, keepdims)
+                return result
+            data = cuda.reductions.sum(
+                self._data_ptr, list(self.shape), dim, self.dtype)
+            output_shape = self._get_reduce_shape(dim, keepdims)
+        else:
+            data, _backward = _core.reductions.sum(
+                self.data, dim, keepdims, initial)
+            output_shape = data.shape
+
         out = Tensor(
-            data, self.shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, self.requires_grad)
         out._backward = _backward
         return out
     
@@ -468,7 +489,9 @@ class Tensor():
         self.data[key] = value
         
     def __str__(self) -> str: 
-        return self.numpy().__str__()
+        data_str = np.array2string(self.numpy(), separator=', ')
+        data_str = data_str.replace('\n', '\n' + ' ' * 7)
+        return f'Tensor({data_str}, device=\'{self.device}\')'
     
     def __repr__(self) -> str:
         return (

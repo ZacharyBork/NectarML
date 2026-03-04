@@ -4,10 +4,15 @@
 #include <cuda_fp16.h>
 #include <stdint.h>
 #include <stdexcept>
+#include <vector>
 #include <type_traits>
+
+/* ALLOCATION CONSTANTS */
 
 constexpr int BLOCK_SIZE_1D = 256;
 constexpr int BLOCK_SIZE_2D = 16;
+
+/* DTYPE */
 
 enum class DType {
     Float32,
@@ -26,6 +31,61 @@ switch (dtype) { \
     case DType::Bool:    { using T = uint8_t;  __VA_ARGS__; break; } \
     default: throw std::runtime_error("Unsupported dtype"); \
 }
+
+/* TENSOR INDEX */
+
+#define MAX_DIMS 6
+
+struct TensorIndex {
+    int shape[MAX_DIMS];
+    int strides[MAX_DIMS];
+    int ndim;
+    int n_elements;
+
+    __host__ __device__ TensorIndex() : ndim(0), n_elements((0)) {
+        for(int i = 0; i < MAX_DIMS; i++) {
+            shape[i] = 0;
+            strides[i] = 0;
+        }
+    }
+
+    __host__ __device__ TensorIndex(const int* shape_, int ndim_) : ndim(ndim_) {
+        n_elements = 1;
+        for (int i = 0; i < ndim; i++) {
+            shape[i] = shape_[i];
+            n_elements *= shape[i];
+        }
+        for (int i = 0; i < MAX_DIMS - ndim; i++) 
+            shape[ndim + i] = 0;
+        _compute_strides();
+    }
+
+    __host__ __device__ void _compute_strides() {
+        strides[ndim - 1] = 1;
+        for (int i = ndim - 2; i >= 0; i--)
+            strides[i] = strides[i + 1] * shape[i + 1];
+    }
+
+    __host__ __device__ int to_flat(int* indices) {
+        int flat = 0;
+        for(int i = 0; i < ndim; i++) 
+            flat += indices[i] * strides[i];
+        return flat;
+    }
+
+    __host__ __device__ void to_index(int flat, int* out_indices) {
+        for(int i = ndim-1; i >= 0; i--) {
+            out_indices[i] = flat % shape[i];
+            flat /= shape[i];
+        }
+    }
+};
+
+inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
+    return TensorIndex(shape.data(), shape.size());
+}
+
+/* GLOBAL FUNCTIONS */
 
 constexpr int nextPow2(int n) {
     int p = 1;
