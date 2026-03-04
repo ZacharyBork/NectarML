@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdexcept>
 #include <vector>
+#include <limits>
 #include <type_traits>
 
 /* ALLOCATION CONSTANTS */
@@ -91,5 +92,17 @@ constexpr int nextPow2(int n) {
     int p = 1;
     while (p < n) p <<= 1;
     return p;
+}
+
+template<typename T>
+__host__ __device__ T max_val() {
+    if constexpr (std::is_same_v<T, half>) { return __float2half(65504.0f); } 
+    else { return std::numeric_limits<T>::max(); }
+}
+
+template<typename T>
+__host__ __device__ T min_val() {
+    if constexpr (std::is_same_v<T, half>) { return __float2half(-65504.0f); } 
+    else { return std::numeric_limits<T>::lowest(); }
 }
 
