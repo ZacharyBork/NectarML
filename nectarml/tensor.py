@@ -168,7 +168,7 @@ class Tensor():
         assert isinstance(other, Tensor)
         
     def _numerical_to_tensor(self, other: int | float) -> Tensor:
-        new = Tensor(np.full_like(self.data, other), dtype=self.dtype)
+        new = Tensor(np.full(self.shape, other), dtype=self.dtype)
         return new.to(self.device)
     
     def _handle_tensor_or_numerical(
