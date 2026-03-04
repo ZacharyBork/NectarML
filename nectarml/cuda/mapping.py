@@ -8,5 +8,6 @@ DTYPE_MAP = {
     typing.half:    _nectarml.DType.Float16,
     typing.int32:   _nectarml.DType.Int32,
     typing.uint8:   _nectarml.DType.UInt8,
+    typing.bool_:   _nectarml.DType.Bool,
 }
 

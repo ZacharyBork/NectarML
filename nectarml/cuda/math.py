@@ -2,6 +2,34 @@ import _nectarml
 from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import map_dtype
 
+### COMPARISON ###
+
+def equal(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
+    return _nectarml.equal(a_ptr, b_ptr, size, map_dtype(dtype))
+
+def less_than(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
+    return _nectarml.less_than(a_ptr, b_ptr, size, map_dtype(dtype))
+
+def less_than_or_equal(
+    a_ptr: int, 
+    b_ptr: int, 
+    size: int, 
+    dtype: DTypeLike
+) -> int:
+    return _nectarml.less_than_or_equal(a_ptr, b_ptr, size, map_dtype(dtype))
+
+def greater_than(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
+    return _nectarml.greater_than(a_ptr, b_ptr, size, map_dtype(dtype))
+
+def greater_than_or_equal(
+    a_ptr: int,
+    b_ptr: int, 
+    size: int, 
+    dtype: DTypeLike
+) -> int:
+    return _nectarml.greater_than_or_equal(
+        a_ptr, b_ptr, size, map_dtype(dtype))
+
 ### BASE ###
 
 def add(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:

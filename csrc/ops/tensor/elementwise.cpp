@@ -4,6 +4,21 @@
 /* KERNELS */
 
 template<typename T>
+void launch_equal(T* a, T* b, bool* out, size_t n_elements);
+
+template<typename T>
+void launch_less_than(T* a, T* b, bool* out, size_t n_elements);
+
+template<typename T>
+void launch_less_than_or_equal(T* a, T* b, bool* out, size_t n_elements);
+
+template<typename T>
+void launch_greater_than(T* a, T* b, bool* out, size_t n_elements);
+
+template<typename T>
+void launch_greater_than_or_equal(T* a, T* b, bool* out, size_t n_elements);
+
+template<typename T>
 void launch_add(T* a, T* b, T* out, size_t n_elements);
 
 template<typename T>
@@ -106,6 +121,78 @@ template<typename T>
 void launch_trunc(T* x, T* out, size_t n_elements);
 
 namespace nectar {
+
+    /* COMPARISON */
+
+    uintptr_t equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            bool* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_equal<T>(
+                reinterpret_cast<T*>(a_ptr),
+                reinterpret_cast<T*>(b_ptr),
+                d_out,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t less_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            bool* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_less_than<T>(
+                reinterpret_cast<T*>(a_ptr),
+                reinterpret_cast<T*>(b_ptr),
+                d_out,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            bool* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_less_than_or_equal<T>(
+                reinterpret_cast<T*>(a_ptr),
+                reinterpret_cast<T*>(b_ptr),
+                d_out,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            bool* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_greater_than<T>(
+                reinterpret_cast<T*>(a_ptr),
+                reinterpret_cast<T*>(b_ptr),
+                d_out,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            bool* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_greater_than_or_equal<T>(
+                reinterpret_cast<T*>(a_ptr),
+                reinterpret_cast<T*>(b_ptr),
+                d_out,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
 
     /* ADDITION */
 

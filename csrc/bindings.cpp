@@ -21,6 +21,11 @@ py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype);
 /* ELEMENTWISE */
 
 namespace nectar {
+    uintptr_t equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t less_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t add(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t subtract(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t multiply(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
@@ -70,7 +75,8 @@ PYBIND11_MODULE(_nectarml, m) {
         .value("Float32", DType::Float32)
         .value("Float16", DType::Float16)
         .value("UInt8",   DType::UInt8)
-        .value("Int32",   DType::Int32);
+        .value("Int32",   DType::Int32)
+        .value("Bool",    DType::Bool);
 
     /* MEMORY MANAGEMENT */
 
@@ -119,6 +125,41 @@ PYBIND11_MODULE(_nectarml, m) {
         "Moves tensor data from GPU memory to system memory.");
 
     /* ELEMENTWISE */
+
+    m.def("equal", &nectar::equal, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise eq (a==b). Returns boolean tensor data.");
+
+    m.def("less_than", &nectar::less_than, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise lt (a<b). Returns boolean tensor data.");
+
+    m.def("less_than_or_equal", &nectar::less_than_or_equal, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise le (a<=b). Returns boolean tensor data.");
+
+    m.def("greater_than", &nectar::greater_than, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise gt (a>b). Returns boolean tensor data.");
+
+    m.def("greater_than_or_equal", &nectar::greater_than_or_equal, 
+        py::arg("a_ptr"),
+        py::arg("b_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise ge (a>=b). Returns boolean tensor data.");
 
     m.def("add", &nectar::add, 
         py::arg("a_ptr"),

@@ -24,7 +24,7 @@ uint16 = np.uint16
 uint32 = np.uint32
 uint64 = np.uint64
 
-
+bool_ = np.bool_
 
 
 

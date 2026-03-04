@@ -1,5 +1,102 @@
 #include "common.h"
 
+/* COMPARISON */
+
+template<typename T>
+__global__ void equal_kernel(T* a, T* b, bool* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = a[idx] == b[idx];
+}
+
+template<typename T>
+void launch_equal(T* a, T* b, bool* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    equal_kernel<T><<<grid, block>>>(a, b, out, n_elements);
+}
+
+template void launch_equal<float>(float*, float*, bool*, size_t);
+template void launch_equal<half>(half*, half*, bool*, size_t);
+template void launch_equal<uint8_t>(uint8_t*, uint8_t*, bool*, size_t);
+template void launch_equal<int32_t>(int32_t*, int32_t*, bool*, size_t);
+
+template<typename T>
+__global__ void less_than_kernel(T* a, T* b, bool* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = a[idx] < b[idx];
+}
+
+template<typename T>
+void launch_less_than(T* a, T* b, bool* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    less_than_kernel<T><<<grid, block>>>(a, b, out, n_elements);
+}
+
+template void launch_less_than<float>(float*, float*, bool*, size_t);
+template void launch_less_than<half>(half*, half*, bool*, size_t);
+template void launch_less_than<uint8_t>(uint8_t*, uint8_t*, bool*, size_t);
+template void launch_less_than<int32_t>(int32_t*, int32_t*, bool*, size_t);
+
+template<typename T>
+__global__ void less_than_or_equal_kernel(T* a, T* b, bool* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = a[idx] <= b[idx];
+}
+
+template<typename T>
+void launch_less_than_or_equal(T* a, T* b, bool* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    less_than_or_equal_kernel<T><<<grid, block>>>(a, b, out, n_elements);
+}
+
+template void launch_less_than_or_equal<float>(float*, float*, bool*, size_t);
+template void launch_less_than_or_equal<half>(half*, half*, bool*, size_t);
+template void launch_less_than_or_equal<uint8_t>(uint8_t*, uint8_t*, bool*, size_t);
+template void launch_less_than_or_equal<int32_t>(int32_t*, int32_t*, bool*, size_t);
+
+template<typename T>
+__global__ void greater_than_kernel(T* a, T* b, bool* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = a[idx] > b[idx];
+}
+
+template<typename T>
+void launch_greater_than(T* a, T* b, bool* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    greater_than_kernel<T><<<grid, block>>>(a, b, out, n_elements);
+}
+
+template void launch_greater_than<float>(float*, float*, bool*, size_t);
+template void launch_greater_than<half>(half*, half*, bool*, size_t);
+template void launch_greater_than<uint8_t>(uint8_t*, uint8_t*, bool*, size_t);
+template void launch_greater_than<int32_t>(int32_t*, int32_t*, bool*, size_t);
+
+template<typename T>
+__global__ void greater_than_or_equal_kernel(T* a, T* b, bool* out, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    out[idx] = a[idx] >= b[idx];
+}
+
+template<typename T>
+void launch_greater_than_or_equal(T* a, T* b, bool* out, size_t n_elements) {
+    int block = BLOCK_SIZE_1D;
+    int grid = (n_elements + block - 1) / block;
+    greater_than_or_equal_kernel<T><<<grid, block>>>(a, b, out, n_elements);
+}
+
+template void launch_greater_than_or_equal<float>(float*, float*, bool*, size_t);
+template void launch_greater_than_or_equal<half>(half*, half*, bool*, size_t);
+template void launch_greater_than_or_equal<uint8_t>(uint8_t*, uint8_t*, bool*, size_t);
+template void launch_greater_than_or_equal<int32_t>(int32_t*, int32_t*, bool*, size_t);
+
 /* ADDITION */
 
 template<typename T>

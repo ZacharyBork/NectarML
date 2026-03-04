@@ -5,7 +5,6 @@ from collections.abc import Sequence, Callable
 
 import numpy as np
 
-import _nectarml
 from nectarml import typing
 import nectarml.cuda as cuda
 import nectarml._core as _core
@@ -88,21 +87,28 @@ class Tensor():
             or self.device == 'cpu' and self.grad is None:
                 self._allocate_grad()
         else: self._deallocate_grad()
+    
+    ### DATA UTILS ###
+    
+    def numpy(self) -> np.ndarray:
+        if self.device == 'cuda':
+            return cuda.to_cpu(self._data_ptr, self.shape, self.dtype)
+        return self.data
         
     ### GRADIENTS ###
     
     def _deallocate_grad(self) -> None:
         if self.device == 'cuda':
             if self._grad_ptr is not None:
-                self._grad_ptr = _nectarml.free_cuda(self._grad_ptr)
+                self._grad_ptr = cuda.free_cuda(self._grad_ptr)
         else: self.grad = None
 
     def _allocate_grad(self) -> None:
         if self.device == 'cuda':
             self._deallocate_grad()
-            self._grad_ptr = _nectarml.alloc_cuda_full(
-                self.size, self.cuda_dtype, 0.0)
-        else: self.grad = np.zeros_like(self.data)
+            self._grad_ptr = cuda.alloc_cuda_full(
+                self.size, cuda.map_dtype(typing.float32), 0.0)
+        else: self.grad = np.zeros_like(self.data, dtype=typing.float32)
         
     def backward(self) -> None:
         assert self.ndim == 0 or self.size == 1, \
@@ -126,6 +132,10 @@ class Tensor():
     def zero_grad(self) -> None:
         if self.requires_grad:
             self._allocate_grad()
+            
+    def _bool_type_check(self, op_name: str) -> None:
+        if self.dtype == typing.bool_:
+            raise RuntimeError(f'Boolean tensors do not support {op_name}.')
     
     ### DEVICE / DTYPE ###
         
@@ -274,7 +284,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.abs(
+            out_data = cuda.math.abs(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.abs(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -290,7 +300,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.exp(
+            out_data = cuda.math.exp(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.exp(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -306,7 +316,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.log(
+            out_data = cuda.math.log(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.log(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -322,7 +332,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.sqrt(
+            out_data = cuda.math.sqrt(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.sqrt(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -338,7 +348,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.sin(
+            out_data = cuda.math.sin(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.sin(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -354,7 +364,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.cos(
+            out_data = cuda.math.cos(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.cos(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -370,7 +380,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.tanh(
+            out_data = cuda.math.tanh(
                 self._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.tanh(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -422,26 +432,23 @@ class Tensor():
     ### GETTERS / SETTERS ###
         
     def __getitem__(self, key: Any) -> int | float:
-        return self.data[key]
+        return self.numpy()[key]
     
     def __setitem__(self, key: Any, value: int | float) -> None:
         self.data[key] = value
         
     def __str__(self) -> str: 
-        if self.device == 'cuda':
-            return cuda.to_cpu(
-                self._data_ptr, self.shape, self.dtype).__str__()
-        else: return self.data.__str__()
+        return self.numpy().__str__()
     
     def __repr__(self) -> str:
         return (
             f'shape: {self.shape}\n'
-            f'data: {self.data}\n'
+            f'data: {self.numpy()}\n'
             f'grad: {self.grad}\n'
             f'requires_grad: {self.requires_grad}\n'
             f'_prev: {self._prev}')
     
-    def __len__(self) -> int: return self.data.__len__()
+    def __len__(self) -> int: return self.numpy().__len__()
     
     def __hash__(self) -> int: return id(self)
     
@@ -449,18 +456,44 @@ class Tensor():
     
     def __del__(self) -> None:
         if self.device == 'cuda' and self._data_ptr is not None:
-            _nectarml.free_cuda(self._data_ptr)
+            cuda.free_cuda(self._data_ptr)
         
     ### COMPARISON ###
     
-    def __eq__(self, other: Tensor) -> np.ndarray:
-        return self.data == other.data
+    def __eq__(self, other: Tensor) -> Tensor:
+        if self.device == 'cuda':
+            data = cuda.math.equal(
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        else: data = self.data == other.data
+        return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __lt__(self, other: Tensor) -> np.ndarray: 
-        return self.data < other.data
+    def __lt__(self, other: Tensor) -> np.ndarray:
+        if self.device == 'cuda':
+            data = cuda.math.less_than(
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        else: data = self.data < other.data
+        return Tensor(data, self.shape, typing.bool_, self.device)
+    
+    def __le__(self, other: Tensor) -> np.ndarray:
+        if self.device == 'cuda':
+            data = cuda.math.less_than_or_equal(
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        else: data = self.data <= other.data
+        return Tensor(data, self.shape, typing.bool_, self.device)
     
     def __gt__(self, other: Tensor) -> np.ndarray:
-        return self.data > other.data
+        if self.device == 'cuda':
+            data = cuda.math.greater_than(
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        else: data = self.data > other.data
+        return Tensor(data, self.shape, typing.bool_, self.device)
+    
+    def __gt__(self, other: Tensor) -> np.ndarray:
+        if self.device == 'cuda':
+            data = cuda.math.greater_than_or_equal(
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        else: data = self.data >= other.data
+        return Tensor(data, self.shape, typing.bool_, self.device)
     
     ### MATH OPS ###
     
@@ -471,7 +504,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.add(
+            out_data = cuda.math.add(
                 self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.add(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
@@ -494,7 +527,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = _nectarml.subtract(
+            out_data = cuda.math.subtract(
                 self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
@@ -525,7 +558,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad # NEEDS CUDA BACKPROP
-            out_data = _nectarml.multiply(
+            out_data = cuda.math.multiply(
                 self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
         else: out_data, _backward = _core.math.multiply(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
