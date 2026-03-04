@@ -4,7 +4,7 @@ import numpy as np
 
 import _nectarml
 from nectarml.cuda.mapping import DTYPE_MAP
-from nectarml.typing import DTypeLike
+from nectarml.typing import DTypeLike, float16, float32, half
 
 def map_dtype(dtype: DTypeLike) -> Any:
     return DTYPE_MAP[dtype]

@@ -12,3 +12,19 @@ def alloc_cuda_full(
 ) -> int:
     return _nectarml.alloc_cuda_full(n_elements, map_dtype(dtype), fill_value)
 
+def alloc_cuda_random(
+    n_elements: int, 
+    dtype: DTypeLike, 
+    seed: int = 12345,
+    min_value: float = 0.0,
+    max_value: float = 1.0
+) -> int:
+    return _nectarml.alloc_cuda_random(
+        n_elements, map_dtype(dtype), seed, min_value, max_value)
+
+def alloc_cuda_empty(
+    n_elements: int, 
+    dtype: DTypeLike
+) -> int:
+    return _nectarml.alloc_cuda_empty(n_elements, map_dtype(dtype))
+

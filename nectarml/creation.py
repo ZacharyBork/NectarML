@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 
 from nectarml import Tensor
+import nectarml.cuda as cuda
 
 _rng = np.random.default_rng()
 
@@ -12,12 +13,9 @@ _rng = np.random.default_rng()
 def _build_tensor(
     input: Tensor, 
     data: np.ndarray,
-    requires_grad: bool | None
+    requires_grad: bool
 ) -> Tensor:
-    return Tensor(
-        data=data, dtype=input.dtype, device=input.device, 
-        requires_grad=input.requires_grad if requires_grad is None \
-            else requires_grad)
+    return Tensor(data, None, input.dtype, input.device, requires_grad)
 
 # CREATION / DUPLICATION
 
@@ -25,25 +23,46 @@ def clone(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     return _build_tensor(input, input.data, requires_grad)
 
 def zeros_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
-    return _build_tensor(input, np.zeros_like(input.data), requires_grad)
+    _grad = input.requires_grad if requires_grad is None else requires_grad
+    if input.device == 'cuda': 
+        ptr = cuda.alloc_cuda_full(input.size, input.dtype, 0.0)
+        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
+    else: return _build_tensor(input, np.zeros_like(input.data), _grad)
     
 def ones_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
-    return _build_tensor(input, np.ones_like(input.data), requires_grad)
+    _grad = input.requires_grad if requires_grad is None else requires_grad
+    if input.device == 'cuda': 
+        ptr = cuda.alloc_cuda_full(input.size, input.dtype, 1.0)
+        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
+    else: return _build_tensor(input, np.ones_like(input.data), _grad)
 
-def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
-    return _build_tensor(
-        input, _rng.random(input.data.shape), requires_grad)
+def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
+    data = _rng.random(input.shape)
+    _grad = input.requires_grad if requires_grad is None else requires_grad 
+    if input.device == 'cuda':
+        ptr = cuda.to_cuda(data, dtype=input.dtype)
+        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
+    else: return _build_tensor(input, data, _grad)
 
 def full_like(
     input: Tensor, 
     fill_value: float | int,
     requires_grad: bool | None = None
 ) -> Tensor: 
-    return _build_tensor(
-        input, np.full_like(input.data, fill_value), requires_grad)
+    _grad = input.requires_grad if requires_grad is None else requires_grad
+    if input.device == 'cuda':
+        ptr = cuda.alloc_cuda_full(input.size, input.dtype, fill_value)
+        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
+    else: 
+        return _build_tensor(
+            input, np.full_like(input.data, fill_value), _grad)
 
 def empty_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
-    return _build_tensor(input, np.empty_like(input.data), requires_grad)
+    _grad = input.requires_grad if requires_grad is None else requires_grad
+    if input.device == 'cuda':
+        ptr = cuda.alloc_cuda_empty(input.size, input.dtype)
+        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
+    else: return _build_tensor(input, np.empty_like(input.data), _grad)
 
 # FIXED SHAPE
 

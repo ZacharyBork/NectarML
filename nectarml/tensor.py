@@ -45,9 +45,15 @@ class Tensor():
             self.data = np.array(data, dtype=self.dtype)
             self.shape = shape or self.data.shape
         elif self.device == 'cuda': 
-            if shape is None:
-                raise ValueError(
-                    'Unable to initialize CUDA Tensor without explicit shape.')
+            if isinstance(data, int):
+                if shape is None:
+                    raise ValueError(
+                        'Unable to init CUDA Tensor from device pointer '
+                        'without explicit shape.')
+            else: 
+                array = np.array(data, dtype=self.dtype)
+                shape = array.shape
+                data = cuda.to_cuda(array, self.dtype)
             self._data_ptr = data
             self.shape = shape
         else: raise ValueError(f'Invalid device type: {self.device}')
@@ -423,9 +429,8 @@ class Tensor():
         
     def __str__(self) -> str: 
         if self.device == 'cuda':
-            return _nectarml.to_cpu(
-                self._data_ptr, list(self.shape), self.cuda_dtype
-            ).__str__()
+            return cuda.to_cpu(
+                self._data_ptr, self.shape, self.dtype).__str__()
         else: return self.data.__str__()
     
     def __repr__(self) -> str:

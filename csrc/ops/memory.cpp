@@ -1,3 +1,5 @@
+#include <curand.h>
+#include <curand_kernel.h>
 #include <pybind11/numpy.h>
 #include "common.h"
 
@@ -5,6 +7,16 @@
 
 template<typename T>
 void launch_alloc_cuda_full(T* dst, size_t n_elements, T fill_value);
+
+template<typename T>
+void launch_alloc_cuda_random(
+    T* dst, 
+    size_t n_elements, 
+    curandState* random_state, 
+    unsigned long long seed,
+    T min_value, 
+    T max_value
+);
 
 /* FUNCTIONS */
 
@@ -19,5 +31,34 @@ uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value) {
         return reinterpret_cast<uintptr_t>(d_ptr);
     });
 }
+
+uintptr_t alloc_cuda_random(
+    size_t n_elements, 
+    DType dtype, 
+    unsigned long long seed,
+    float min_value, 
+    float max_value
+) {
+    DISPATCH_DTYPE(dtype, T, {
+        T* d_ptr;
+        curandState* d_state;
+
+        cudaMalloc(&d_ptr, n_elements * sizeof(T));
+        launch_alloc_cuda_random<T>(
+            d_ptr, n_elements, d_state, seed,
+            static_cast<T>(min_value), static_cast<T>(max_value));
+        return reinterpret_cast<uintptr_t>(d_ptr);
+    });
+}
+
+uintptr_t alloc_cuda_empty(size_t n_elements, DType dtype) {
+    DISPATCH_DTYPE(dtype, T, {
+        T* d_ptr;
+        cudaMalloc(&d_ptr, n_elements * sizeof(T));
+        return reinterpret_cast<uintptr_t>(d_ptr);
+    });
+}
+
+
 
 

@@ -38,10 +38,24 @@ py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype) {
     for (auto s : shape) n_elements *= s;
 
     DISPATCH_DTYPE(dtype, T, {
-        auto result = py::array_t<T>(shape);
-        auto buf = result.request();
-        cudaMemcpy(buf.ptr, reinterpret_cast<void*>(device_ptr),
-                   n_elements * sizeof(T), cudaMemcpyDeviceToHost);
-        return result;
+        if constexpr (std::is_same_v<T, half>) {
+            float* d_float;
+            cudaMalloc(&d_float, n_elements * sizeof(float));
+            launch_cast_kernel<half, float>(
+                reinterpret_cast<half*>(device_ptr), d_float, n_elements);
+
+            auto result = py::array_t<float>(shape);
+            auto buf = result.request();
+            cudaMemcpy(buf.ptr, d_float, 
+                       n_elements * sizeof(float), cudaMemcpyDeviceToHost);
+            cudaFree(d_float);
+            return result;
+        } else {
+            auto result = py::array_t<T>(shape);
+            auto buf = result.request();
+            cudaMemcpy(buf.ptr, reinterpret_cast<void*>(device_ptr),
+                       n_elements * sizeof(T), cudaMemcpyDeviceToHost);
+            return result;
+        }
     });
 }

@@ -4,6 +4,7 @@
 #include <cuda_fp16.h>
 #include <stdint.h>
 #include <stdexcept>
+#include <type_traits>
 
 constexpr int BLOCK_SIZE_1D = 256;
 constexpr int BLOCK_SIZE_2D = 16;
