@@ -27,3 +27,9 @@ switch (dtype) { \
     default: throw std::runtime_error("Unsupported dtype"); \
 }
 
+constexpr int nextPow2(int n) {
+    int p = 1;
+    while (p < n) p <<= 1;
+    return p;
+}
+

@@ -3,6 +3,7 @@
 #include "bindings/device.h"
 #include "bindings/elementwise.h"
 #include "bindings/vision.h"
+#include "bindings/reductions.h"
 
 namespace py = pybind11;
 
@@ -20,4 +21,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_device(m);
     register_elementwise(m);    
     register_vision(m);
+    register_reductions(m);
 }

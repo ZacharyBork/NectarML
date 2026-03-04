@@ -278,8 +278,15 @@ class Tensor():
         initial: int | float = 0
     ) -> Tensor:
         self._bool_type_check('Tensor.sum()')
-        return self._eval_core_function(
-            lambda x : _core.reductions.sum(x, dim, keepdims, initial))
+        if self.device == 'cuda':
+            _backward = lambda grad : grad 
+            data = cuda.reductions.sum(self._data_ptr, self.size, self.dtype)
+        else: data, _backward = _core.reductions.sum(
+            self.data, dim, keepdims, initial)
+        out = Tensor(
+            data, self.shape, self.dtype, self.device, self.requires_grad)
+        out._backward = _backward
+        return out
     
     def prod(
         self, 
