@@ -1,4 +1,5 @@
-from nectarml import Tensor, ArrayLike
+from nectarml.tensor import Tensor
+from nectarml.typing import ArrayLike
 from nectarml.functional.common import _eval_core_function
 from nectarml._core import reductions
 

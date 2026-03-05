@@ -1,6 +1,6 @@
 import math
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml.functional import activation, combination, reductions
 
 def scaled_dot_product_attention(

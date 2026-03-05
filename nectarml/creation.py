@@ -3,7 +3,7 @@ from typing import Literal
 import numpy as np
 from numpy.typing import DTypeLike
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 import nectarml.cuda as cuda
 
 _rng = np.random.default_rng()

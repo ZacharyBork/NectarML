@@ -1,6 +1,7 @@
 from typing import Literal
 
-from nectarml import Tensor, zeros_like, ones_like, zeros
+from nectarml.tensor import Tensor
+from nectarml.creation import zeros_like, ones_like, zeros
 from nectarml.functional.reductions import mean, sum
 from nectarml.functional.math import sqrt, log, exp, cosh
 from nectarml.functional.indexing import where, gather

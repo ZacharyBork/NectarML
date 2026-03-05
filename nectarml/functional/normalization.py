@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 
 ### BATCH ###
 

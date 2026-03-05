@@ -1,4 +1,4 @@
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml.functional.common import _eval_core_function
 from nectarml._core import math
   
@@ -26,7 +26,8 @@ def negate(a: Tensor) -> Tensor:
   
 def minimum(a: Tensor, b: Tensor) -> Tensor:
     out_data, _backward = math.minimum(a.data, b.data)
-    out = a._build_output_tensor(out_data, (a, b))
+    out = Tensor(out_data, out_data.shape, a.dtype, a.device,
+        a.requires_grad, _children=(a, b))
     def _backward_hook():
         a_grad, b_grad = _backward(out.grad)
         if a.requires_grad: a.grad += a_grad
@@ -36,7 +37,8 @@ def minimum(a: Tensor, b: Tensor) -> Tensor:
 
 def maximum(a: Tensor, b: Tensor) -> Tensor:
     out_data, _backward = math.maximum(a.data, b.data)
-    out = a._build_output_tensor(out_data, (a, b))
+    out = Tensor(out_data, out_data.shape, a.dtype, a.device,
+        a.requires_grad, _children=(a, b))
     def _backward_hook():
         a_grad, b_grad = _backward(out.grad)
         if a.requires_grad: a.grad += a_grad

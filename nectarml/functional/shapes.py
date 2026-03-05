@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml._core import shapes
 from nectarml.functional.common import _eval_core_function
 

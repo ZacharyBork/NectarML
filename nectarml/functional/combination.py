@@ -2,14 +2,14 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml._core import combination
 
 def concatenate(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
     out_data, _backward = combination.concatenate(
         [t.data for t in inputs], dim=dim)
-    out = inputs[0]._build_output_tensor(out_data, tuple(inputs))
-    
+    out = Tensor(out_data, out_data.shape, inputs[0].dtype, inputs[0].device,
+        inputs[0].requires_grad, tuple(inputs))
     def _backward_hook():
         grads = _backward(out.grad)
         for tensor, grad in zip(inputs, grads):
@@ -24,8 +24,8 @@ def cat(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
 
 def stack(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
     out_data, _backward = combination.stack([t.data for t in inputs], dim=dim)
-    out = inputs[0]._build_output_tensor(out_data, tuple(inputs))
-    
+    out = Tensor(out_data, out_data.shape, inputs[0].dtype, inputs[0].device,
+        inputs[0].requires_grad, tuple(inputs))
     def _backward_hook():
         grads = _backward(out.grad)
         for tensor, grad in zip(inputs, grads):
@@ -36,8 +36,11 @@ def stack(inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
     return out
 
 def unstack(input: Tensor, dim: int = 0) -> list[Tensor]:
-    out_data, _backward = combination.unstack(input.data, dim=dim)
-    outputs = [input._build_output_tensor(i, (input,)) for i in out_data]
+    out_data, _backward = combination.unstack(input.data, dim=dim)    
+    outputs = [
+        Tensor(i, i.shape, input.dtype, input.device,
+            input.requires_grad, _children=(input,))
+        for i in out_data]
     
     _backward_called = False
     def _backward_hook():
@@ -60,8 +63,11 @@ def split(
     sizes: int | Sequence[int], 
     dim: int = 0
 ) -> list[Tensor]:
-    out_data, _backward = combination.split(input.data, sizes=sizes, dim=dim)
-    outputs = [input._build_output_tensor(i, (input,)) for i in out_data]
+    out_data, _backward = combination.split(input.data, sizes=sizes, dim=dim)    
+    outputs = [
+        Tensor(i, i.shape, input.dtype, input.device,
+            input.requires_grad, _children=(input,))
+        for i in out_data]
 
     _backward_called = False
     def _backward_hook():

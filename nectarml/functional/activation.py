@@ -1,4 +1,4 @@
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml.functional.common import _eval_core_function
 from nectarml._core import activation 
 

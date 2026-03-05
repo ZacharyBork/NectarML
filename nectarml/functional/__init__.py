@@ -6,6 +6,8 @@ from .activation import (
 from .combination import (
     concatenate, cat, stack, unstack, unbind, split, chunk)
 
+from .conv import conv1d, conv2d, conv3d
+
 from .indexing import (
     gather, scatter, where, masked_fill, index_select)
 

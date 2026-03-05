@@ -1,6 +1,6 @@
 from typing import Literal
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 from nectarml._core import padding
 from nectarml.functional.common import _eval_core_function
 

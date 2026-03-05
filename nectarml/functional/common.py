@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-from nectarml import Tensor
+from nectarml.tensor import Tensor
 
 # ABSTRACTS
 
@@ -14,7 +14,8 @@ def _eval_core_function(
     **kwargs
 ) -> Tensor:
     out_data, _backward = func(input.data, **kwargs)
-    out = input._build_output_tensor(out_data, (input,))
+    out = Tensor(out_data, out_data.shape, input.dtype, input.device,
+        input.requires_grad, _children=(input,))
     def _backward_hook():
         if input.requires_grad:
             input.grad += _backward(out.grad)
