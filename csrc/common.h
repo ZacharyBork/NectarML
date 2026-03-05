@@ -106,3 +106,47 @@ __host__ __device__ T min_val() {
     else { return std::numeric_limits<T>::lowest(); }
 }
 
+template<typename T>
+__device__ void device_min(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hmin(a, b); } 
+    else { a = min(a, b); }
+}
+
+template<typename T>
+__device__ void device_max(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hmax(a, b); } 
+    else { a = max(a, b); }
+}
+
+template<typename T>
+__device__ void device_add(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hadd(a, b); } 
+    else { a += b; }
+}
+
+template<typename T>
+__device__ void device_sub(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hsub(a, b); } 
+    else { a -= b; }
+}
+
+/* OP POLICIES */
+
+template<typename T>
+struct SumOp {
+    __device__ static void combine(volatile T& a, volatile T b) { device_add(a, b); }
+    __device__ static T identity() { return static_cast<T>(0); }
+};
+
+template<typename T>
+struct MinOp {
+    __device__ static void combine(volatile T& a, volatile T b) { device_min(a, b); }
+    __device__ static T identity() { return max_val<T>(); }
+};
+
+template<typename T>
+struct MaxOp {
+    __device__ static void combine(volatile T& a, volatile T b) { device_max(a, b); }
+    __device__ static T identity() { return min_val<T>(); }
+};
+
