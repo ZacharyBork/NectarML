@@ -4,11 +4,14 @@ from nectarml.cuda.utils import map_dtype
 
 def min(
     in_ptr: int, 
-    size: tuple[int, ...],
+    size: int | tuple[int, ...],
     reduce_dim: int | None,
     dtype: DTypeLike
 ) -> int:
-    return _nectarml.reduce_min(in_ptr, size, reduce_dim, map_dtype(dtype))
+    _dtype = map_dtype(dtype)
+    if reduce_dim is None: 
+        return _nectarml.reduce_min(in_ptr, size, _dtype)
+    return _nectarml.reduce_min_dim(in_ptr, size, reduce_dim, _dtype)
 
 def sum(
     in_ptr: int, 

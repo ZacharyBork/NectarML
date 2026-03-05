@@ -231,12 +231,12 @@ class Tensor():
     def _get_reduce_shape(
         self, 
         dim: int | tuple[int, ...] | None, 
-        keepdims: bool
+        keepdim: bool
     ) -> tuple[int, ...]:
         if dim is None: return (1,)
         
         out_shape = list(self.shape)
-        if keepdims: out_shape[dim] = 1
+        if keepdim: out_shape[dim] = 1
         else: 
             if dim is not None:
                 if isinstance(dim, (tuple, list)):
@@ -247,18 +247,18 @@ class Tensor():
     def min(
         self, 
         dim: int | None = None,
-        keepdims: bool = False
+        keepdim: bool = False
     ) -> Tensor:
         self._bool_type_check('Tensor.min()')
         _backward = lambda grad: grad
         
         if self.device == 'cuda':
-            data = cuda.reductions.min(
-                self._data_ptr, list(self.shape), dim, self.dtype)
-            output_shape = self._get_reduce_shape(dim, keepdims)
+            s = list(self.shape) if dim is not None else self.size
+            data = cuda.reductions.min(self._data_ptr, s, dim, self.dtype)
+            output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.min(
-                self.data, dim, keepdims)
+                self.data, dim, keepdim)
             output_shape = data.shape
 
         out = Tensor(
@@ -267,50 +267,48 @@ class Tensor():
         return out
         
         
-        
-        
         # self._bool_type_check('Tensor.min()')
         # return self._eval_core_function(
-        #     lambda x : _core.reductions.min(x, dim=dim, keepdims=keepdims))
+        #     lambda x : _core.reductions.min(x, dim=dim, keepdim=keepdim))
     
     def max(
         self, 
         dim: int | tuple[int, ...] | None = None,
-        keepdims: bool = False
+        keepdim: bool = False
     ) -> Tensor:
         self._bool_type_check('Tensor.max()')
         return self._eval_core_function(
-            lambda x : _core.reductions.max(x, dim=dim, keepdims=keepdims))
+            lambda x : _core.reductions.max(x, dim=dim, keepdim=keepdim))
     
     def argmin(
         self, 
         dim: int | None = None, 
-        keepdims: bool = False
+        keepdim: bool = False
     ) -> typing.ArrayLike:
         self._bool_type_check('Tensor.argmin()')
-        return _core.reductions.argmin(self.data, dim=dim, keepdims=keepdims)
+        return _core.reductions.argmin(self.data, dim=dim, keepdim=keepdim)
         
     def argmax(
         self, 
         dim: int | None = None, 
-        keepdims: bool = False
+        keepdim: bool = False
     ) -> typing.ArrayLike:
         self._bool_type_check('Tensor.argmax()')
-        return _core.reductions.argmax(self.data, dim=dim, keepdims=keepdims)
+        return _core.reductions.argmax(self.data, dim=dim, keepdim=keepdim)
     
     def mean(
         self, 
         dim: int | tuple[int, ...] | None = None,
-        keepdims: bool = False,
+        keepdim: bool = False,
     ) -> Tensor:
         self._bool_type_check('Tensor.mean()')
         return self._eval_core_function(
-            lambda x : _core.reductions.mean(x, dim=dim, keepdims=keepdims))
+            lambda x : _core.reductions.mean(x, dim=dim, keepdim=keepdim))
         
     def sum(
         self, 
         dim: int | tuple[int, ...] | None = None,
-        keepdims: bool = False,
+        keepdim: bool = False,
         initial: int | float = 0
     ) -> Tensor:
         self._bool_type_check('Tensor.sum()')
@@ -320,18 +318,18 @@ class Tensor():
             if isinstance(dim, (tuple, list)):
                 result = self
                 for d in sorted(dim, reverse=True):
-                    result = result.sum(d, keepdims=True)
-                if not keepdims:
-                    result.shape = result._get_reduce_shape(dim, keepdims)
+                    result = result.sum(d, keepdim=True)
+                if not keepdim:
+                    result.shape = result._get_reduce_shape(dim, keepdim)
                 return result
             
             s = list(self.shape) if dim is not None else self.size
             data = cuda.reductions.sum(
                 self._data_ptr, s, dim, self.dtype)
-            output_shape = self._get_reduce_shape(dim, keepdims)
+            output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.sum(
-                self.data, dim, keepdims, initial)
+                self.data, dim, keepdim, initial)
             output_shape = data.shape
 
         out = Tensor(
@@ -342,12 +340,12 @@ class Tensor():
     def prod(
         self, 
         dim: int | tuple[int, ...] | None = None,
-        keepdims: bool = False,
+        keepdim: bool = False,
         initial: int | float = 1
     ) -> Tensor:
         self._bool_type_check('Tensor.prod()')
         return self._eval_core_function(
-            lambda x : _core.reductions.prod(x, dim, keepdims, initial))
+            lambda x : _core.reductions.prod(x, dim, keepdim, initial))
         
     ### MATH OPS ###
     
