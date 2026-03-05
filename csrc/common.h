@@ -119,6 +119,12 @@ __device__ void device_max(volatile T& a, volatile T b) {
 }
 
 template<typename T>
+__device__ void device_mean(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hdiv(__hadd(a, b), static_cast<T>(2)); } 
+    else { a = (a + b) / static_cast<T>(2); }
+}
+
+template<typename T>
 __device__ void device_add(volatile T& a, volatile T b) {
     if constexpr (std::is_same_v<T, half>) { a = __hadd(a, b); } 
     else { a += b; }
@@ -148,5 +154,11 @@ template<typename T>
 struct MaxOp {
     __device__ static void combine(volatile T& a, volatile T b) { device_max(a, b); }
     __device__ static T identity() { return min_val<T>(); }
+};
+
+template<typename T>
+struct MeanOp {
+    __device__ static void combine(volatile T& a, volatile T b) { device_mean(a, b); }
+    __device__ static T identity() { return static_cast<T>(0); }
 };
 

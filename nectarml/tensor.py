@@ -310,9 +310,31 @@ class Tensor():
         keepdim: bool = False,
     ) -> Tensor:
         self._bool_type_check('Tensor.mean()')
-        return self._eval_core_function(
-            lambda x : _core.reductions.mean(x, dim=dim, keepdim=keepdim))
+        _backward = lambda grad: grad
         
+        if self.device == 'cuda':
+            if isinstance(dim, (tuple, list)):
+                result = self
+                for d in sorted(dim, reverse=True):
+                    result = result.mean(d, keepdim=True)
+                if not keepdim:
+                    result.shape = result._get_reduce_shape(dim, keepdim)
+                return result
+            
+            s = list(self.shape) if dim is not None else self.size
+            data = cuda.reductions.mean(
+                self._data_ptr, s, dim, self.dtype)
+            output_shape = self._get_reduce_shape(dim, keepdim)
+        else:
+            data, _backward = _core.reductions.mean(
+                self.data, dim, keepdim)
+            output_shape = data.shape
+
+        out = Tensor(
+            data, output_shape, self.dtype, self.device, self.requires_grad)
+        out._backward = _backward
+        return out
+    
     def sum(
         self, 
         dim: int | tuple[int, ...] | None = None,
@@ -364,7 +386,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.abs(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.abs(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -381,7 +403,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.exp(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.exp(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -398,7 +420,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.log(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.log(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -415,7 +437,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.sqrt(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.sqrt(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -432,7 +454,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.sin(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.sin(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -449,7 +471,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.cos(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.cos(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -466,7 +488,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.tanh(
-                self._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.tanh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
@@ -607,7 +629,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.add(
-                self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.add(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 
@@ -632,7 +654,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad
             out_data = cuda.math.subtract(
-                self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 
@@ -665,7 +687,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad: grad # NEEDS CUDA BACKPROP
             out_data = cuda.math.multiply(
-                self._data_ptr, other._data_ptr, self.size, self.cuda_dtype)
+                self._data_ptr, other._data_ptr, self.size, self.dtype)
         else: out_data, _backward = _core.math.multiply(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 

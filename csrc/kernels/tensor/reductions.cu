@@ -98,18 +98,22 @@ void launch_reduce(T* in_data, T* out_data, size_t n_elements) {
 template void launch_reduce<float, SumOp>(float*, float*, size_t);
 template void launch_reduce<float, MinOp>(float*, float*, size_t);
 template void launch_reduce<float, MaxOp>(float*, float*, size_t);
+template void launch_reduce<float, MeanOp>(float*, float*, size_t);
 
 template void launch_reduce<half, SumOp>(half*, half*, size_t);
 template void launch_reduce<half, MinOp>(half*, half*, size_t);
 template void launch_reduce<half, MaxOp>(half*, half*, size_t);
+template void launch_reduce<half, MeanOp>(half*, half*, size_t);
 
 template void launch_reduce<uint8_t, SumOp>(uint8_t*, uint8_t*, size_t);
 template void launch_reduce<uint8_t, MinOp>(uint8_t*, uint8_t*, size_t);
 template void launch_reduce<uint8_t, MaxOp>(uint8_t*, uint8_t*, size_t);
+template void launch_reduce<uint8_t, MeanOp>(uint8_t*, uint8_t*, size_t);
 
 template void launch_reduce<int32_t, SumOp>(int32_t*, int32_t*, size_t);
 template void launch_reduce<int32_t, MinOp>(int32_t*, int32_t*, size_t);
 template void launch_reduce<int32_t, MaxOp>(int32_t*, int32_t*, size_t);
+template void launch_reduce<int32_t, MeanOp>(int32_t*, int32_t*, size_t);
 
 template<typename T, template<typename> class Op>
 void launch_reduce_dim(
@@ -140,16 +144,20 @@ void launch_reduce_dim(
 template void launch_reduce_dim<float, SumOp>(float*, float*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<float, MinOp>(float*, float*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<float, MaxOp>(float*, float*, TensorIndex, TensorIndex, int);
+template void launch_reduce_dim<float, MeanOp>(float*, float*, TensorIndex, TensorIndex, int);
 
 template void launch_reduce_dim<half, SumOp>(half*, half*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<half, MinOp>(half*, half*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<half, MaxOp>(half*, half*, TensorIndex, TensorIndex, int);
+template void launch_reduce_dim<half, MeanOp>(half*, half*, TensorIndex, TensorIndex, int);
 
 template void launch_reduce_dim<uint8_t, SumOp>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<uint8_t, MinOp>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<uint8_t, MaxOp>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, int);
+template void launch_reduce_dim<uint8_t, MeanOp>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, int);
 
 template void launch_reduce_dim<int32_t, SumOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<int32_t, MinOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int);
 template void launch_reduce_dim<int32_t, MaxOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int);
+template void launch_reduce_dim<int32_t, MeanOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int);
 

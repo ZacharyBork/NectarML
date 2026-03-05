@@ -1,124 +1,20 @@
 #include <pybind11/numpy.h>
 #include "common.h"
+#include "ops/policies/elementwise.h"
 
 /* KERNELS */
 
-template<typename T>
-void launch_equal(T* a, T* b, bool* out, size_t n_elements);
+template<typename T, template<typename> class Op>
+void launch_elementwise_compare(T* x, T* y, bool* out, size_t n_elements);
 
-template<typename T>
-void launch_less_than(T* a, T* b, bool* out, size_t n_elements);
+template<typename T, template<typename> class Op>
+void launch_elementwise_math_2tensor(T* x, T* y, T* out, size_t n_elements);
 
-template<typename T>
-void launch_less_than_or_equal(T* a, T* b, bool* out, size_t n_elements);
+template<typename T, template<typename> class Op>
+void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements);
 
-template<typename T>
-void launch_greater_than(T* a, T* b, bool* out, size_t n_elements);
-
-template<typename T>
-void launch_greater_than_or_equal(T* a, T* b, bool* out, size_t n_elements);
-
-template<typename T>
-void launch_add(T* a, T* b, T* out, size_t n_elements);
-
-template<typename T>
-void launch_subtract(T* a, T* b, T* out, size_t n_elements);
-
-template<typename T>
-void launch_multiply(T* a, T* b, T* out, size_t n_elements);
-
-template<typename T>
-void launch_divide(T* a, T* b, T* out, size_t n_elements);
-
-template<typename T>
-void launch_sqrt(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_rsqrt(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_exp(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_log(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_log2(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_log10(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_sin(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_asin(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_sinh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_asinh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_cos(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_acos(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_cosh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_acosh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_tan(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_tanh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_atan(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_atanh(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_atan2(T* y, T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_pow(T* base, T* out, float exponent, size_t n_elements);
-
-template<typename T>
-void launch_abs(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_floor(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_ceil(T* x, T* out, size_t n_elements);
-
-template<typename T>
-void launch_round(T* x, T* out, size_t n_elements);
-
-// template<typename T>
-// void launch_mod(T* x, T* y, T* out, size_t n_elements);
-
-template<typename T>
-void launch_fmod(T* x, T* y, T* out, size_t n_elements);
-
-template<typename T>
-void launch_min(T* x, T* y, T* out, size_t n_elements);
-
-template<typename T>
-void launch_max(T* x, T* y, T* out, size_t n_elements);
-
-template<typename T>
-void launch_copysign(T* x, T* y, T* out, size_t n_elements);
-
-template<typename T>
-void launch_trunc(T* x, T* out, size_t n_elements);
+template<typename T, template<typename> class Op>
+void launch_elementwise_math_tensorfloat(T* x, T* out, float value, size_t n_elements);
 
 namespace nectar {
 
@@ -127,8 +23,8 @@ namespace nectar {
     uintptr_t equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             bool* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_equal<T>(
+            cudaMalloc(&d_out, n_elements * sizeof(bool));
+            launch_elementwise_compare<T, ElemWiseEqOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -141,8 +37,8 @@ namespace nectar {
     uintptr_t less_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             bool* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_less_than<T>(
+            cudaMalloc(&d_out, n_elements * sizeof(bool));
+            launch_elementwise_compare<T, ElemWiseLtOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -155,8 +51,8 @@ namespace nectar {
     uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             bool* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_less_than_or_equal<T>(
+            cudaMalloc(&d_out, n_elements * sizeof(bool));
+            launch_elementwise_compare<T, ElemWiseLeOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -169,8 +65,8 @@ namespace nectar {
     uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             bool* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_greater_than<T>(
+            cudaMalloc(&d_out, n_elements * sizeof(bool));
+            launch_elementwise_compare<T, ElemWiseGtOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -183,8 +79,8 @@ namespace nectar {
     uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             bool* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_greater_than_or_equal<T>(
+            cudaMalloc(&d_out, n_elements * sizeof(bool));
+            launch_elementwise_compare<T, ElemWiseGeOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -200,7 +96,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_add<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseAddOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -216,7 +112,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_subtract<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseSubOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -232,7 +128,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_multiply<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseMulOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -248,7 +144,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_divide<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseDivOp>(
                 reinterpret_cast<T*>(a_ptr),
                 reinterpret_cast<T*>(b_ptr),
                 d_out,
@@ -264,7 +160,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_sqrt<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseSqrtOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -273,7 +170,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_rsqrt<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseRSqrtOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -284,7 +182,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_exp<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseExpOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -295,7 +194,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_log<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseLogOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -304,7 +204,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_log2<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseLog2Op>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -313,7 +214,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_log10<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseLog10Op>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -324,7 +226,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_sin<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseSinOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -333,7 +236,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_asin<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAsinOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -342,7 +246,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_sinh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseSinhOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -351,7 +256,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_asinh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAsinhOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -360,7 +266,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_cos<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseCosOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -369,7 +276,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_acos<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAcosOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -378,7 +286,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_cosh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseCoshOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -387,7 +296,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_acosh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAcoshOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -398,7 +308,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_tan<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseTanOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -407,7 +318,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_tanh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseTahnOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -416,7 +328,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_atan<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAtanOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -425,7 +338,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_atanh<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAtanhOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -434,7 +348,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_atan2<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseAtan2Op>(
                 reinterpret_cast<T*>(y_ptr),
                 reinterpret_cast<T*>(x_ptr),
                 d_out, 
@@ -449,7 +363,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_pow<T>(
+            launch_elementwise_math_tensorfloat<T, ElemWisePowOp>(
                 reinterpret_cast<T*>(base_ptr),
                 d_out,
                 exponent,
@@ -465,7 +379,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_abs<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseAbsOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -476,7 +391,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_floor<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseFloorOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -485,7 +401,8 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_ceil<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseCeilOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -494,31 +411,19 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_round<T>(reinterpret_cast<T*>(x_ptr), d_out, n_elements);
+            launch_elementwise_math_1tensor<T, ElemWiseRoundOp>(
+                reinterpret_cast<T*>(x_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
 
     /* MODULO */
 
-    // uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-    //     DISPATCH_DTYPE(dtype, T, {
-    //         T* d_out;
-    //         cudaMalloc(&d_out, n_elements * sizeof(T));
-    //         launch_mod<T>(
-    //             reinterpret_cast<T*>(x_ptr),
-    //             reinterpret_cast<T*>(y_ptr),
-    //             d_out, 
-    //             n_elements);
-    //         return reinterpret_cast<uintptr_t>(d_out);
-    //     });
-    // }
-
     uintptr_t fmod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_fmod<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseFModOp>(
                 reinterpret_cast<T*>(x_ptr),
                 reinterpret_cast<T*>(y_ptr),
                 d_out, 
@@ -533,7 +438,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_min<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseMinOp>(
                 reinterpret_cast<T*>(x_ptr),
                 reinterpret_cast<T*>(y_ptr),
                 d_out, 
@@ -546,7 +451,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_max<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseMaxOp>(
                 reinterpret_cast<T*>(x_ptr),
                 reinterpret_cast<T*>(y_ptr),
                 d_out, 
@@ -561,7 +466,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_copysign<T>(
+            launch_elementwise_math_2tensor<T, ElemWiseCopysignOp>(
                 reinterpret_cast<T*>(x_ptr),
                 reinterpret_cast<T*>(y_ptr),
                 d_out, 
@@ -576,7 +481,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_trunc<T>(
+            launch_elementwise_math_1tensor<T, ElemWiseTruncOp>(
                 reinterpret_cast<T*>(x_ptr),
                 d_out, 
                 n_elements);
