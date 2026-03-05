@@ -13,6 +13,14 @@ namespace nectar {
         DType dtype
     );
 
+    uintptr_t reduce_max(uintptr_t in_ptr, size_t n_elements, DType dtype);
+    uintptr_t reduce_max_dim(
+        uintptr_t in_ptr, 
+        std::vector<int> shape,
+        int reduce_dim,
+        DType dtype
+    );
+
     uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, DType dtype);
     uintptr_t reduce_sum_dim(
         uintptr_t in_ptr, 
@@ -36,6 +44,19 @@ void register_reductions(py::module_& m) {
         py::arg("reduce_dim"),
         py::arg("dtype"),
         "Performs a dimension-wise min reduction on a CUDA tensor.");
+
+    m.def("reduce_max", &nectar::reduce_max, 
+        py::arg("in_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Performs a global max reduction on a CUDA tensor.");
+
+    m.def("reduce_max_dim", &nectar::reduce_max_dim, 
+        py::arg("in_ptr"),
+        py::arg("shape"),
+        py::arg("reduce_dim"),
+        py::arg("dtype"),
+        "Performs a dimension-wise max reduction on a CUDA tensor.");
 
     m.def("reduce_sum", &nectar::reduce_sum, 
         py::arg("in_ptr"),

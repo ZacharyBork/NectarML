@@ -265,21 +265,29 @@ class Tensor():
             data, output_shape, self.dtype, self.device, self.requires_grad)
         out._backward = _backward
         return out
-        
-        
-        # self._bool_type_check('Tensor.min()')
-        # return self._eval_core_function(
-        #     lambda x : _core.reductions.min(x, dim=dim, keepdim=keepdim))
     
     def max(
         self, 
-        dim: int | tuple[int, ...] | None = None,
+        dim: int | None = None,
         keepdim: bool = False
     ) -> Tensor:
         self._bool_type_check('Tensor.max()')
-        return self._eval_core_function(
-            lambda x : _core.reductions.max(x, dim=dim, keepdim=keepdim))
-    
+        _backward = lambda grad: grad
+        
+        if self.device == 'cuda':
+            s = list(self.shape) if dim is not None else self.size
+            data = cuda.reductions.max(self._data_ptr, s, dim, self.dtype)
+            output_shape = self._get_reduce_shape(dim, keepdim)
+        else:
+            data, _backward = _core.reductions.max(
+                self.data, dim, keepdim)
+            output_shape = data.shape
+
+        out = Tensor(
+            data, output_shape, self.dtype, self.device, self.requires_grad)
+        out._backward = _backward
+        return out
+
     def argmin(
         self, 
         dim: int | None = None, 
