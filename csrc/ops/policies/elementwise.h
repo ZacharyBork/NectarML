@@ -230,7 +230,7 @@ struct ElemWiseTruncOp {
     __device__ static T operation(T x) { return static_cast<T>(truncf(static_cast<float>(x))); }
 };
 
-/* MATH (TENSOR/FLOAT) */
+/* MATH (TENSOR/SCALAR) */
 
 template<typename T>
 struct ElemWisePowOp {
@@ -239,6 +239,33 @@ struct ElemWisePowOp {
     }
 };
 
+template<typename T>
+struct ElemWiseScalarAddOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) + value);
+    }
+};
+
+template<typename T>
+struct ElemWiseScalarSubOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) - value);
+    }
+};
+
+template<typename T>
+struct ElemWiseScalarMulOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) * value);
+    }
+};
+
+template<typename T>
+struct ElemWiseScalarDivOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) / value);
+    }
+};
 
 
 

@@ -234,24 +234,44 @@ template void launch_elementwise_math_1tensor<   half, ElemWiseTruncOp>(half*, h
 template void launch_elementwise_math_1tensor<uint8_t, ElemWiseTruncOp>(uint8_t*, uint8_t*, size_t);
 template void launch_elementwise_math_1tensor<int32_t, ElemWiseTruncOp>(int32_t*, int32_t*, size_t);
 
-/* MATH OPERATIONS (TENSOR/FLOAT) */
+/* MATH OPERATIONS (TENSOR/SCALAR) */
 
 template<typename T, template<typename> class Op>
-__global__ void elementwise_math_tensorfloat_kernel(T* x, T* out, float value, size_t n) {
+__global__ void elementwise_math_tensorscalar_kernel(T* x, T* out, float value, size_t n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
     out[idx] = Op<T>::operation(x[idx], value);
 }
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_math_tensorfloat(T* x, T* out, float value, size_t n_elements) {
+void launch_elementwise_math_tensorscalar(T* x, T* out, float value, size_t n_elements) {
     int block = BLOCK_SIZE_1D;
     int grid = (n_elements + block - 1) / block;
-    elementwise_math_tensorfloat_kernel<T, Op><<<grid, block>>>(x, out, value, n_elements);
+    elementwise_math_tensorscalar_kernel<T, Op><<<grid, block>>>(x, out, value, n_elements);
 }
 
-template void launch_elementwise_math_tensorfloat<  float, ElemWisePowOp>(float*, float*, float, size_t);
-template void launch_elementwise_math_tensorfloat<   half, ElemWisePowOp>(half*, half*, float, size_t);
-template void launch_elementwise_math_tensorfloat<uint8_t, ElemWisePowOp>(uint8_t*, uint8_t*, float, size_t);
-template void launch_elementwise_math_tensorfloat<int32_t, ElemWisePowOp>(int32_t*, int32_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<  float, ElemWisePowOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWisePowOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWisePowOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWisePowOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarAddOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarAddOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarAddOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarAddOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarSubOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarSubOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarSubOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarSubOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarMulOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarMulOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarMulOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarMulOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarDivOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarDivOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarDivOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarDivOp>(int32_t*, int32_t*, float, size_t);
 

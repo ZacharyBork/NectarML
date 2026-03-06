@@ -14,7 +14,7 @@ template<typename T, template<typename> class Op>
 void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements);
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_math_tensorfloat(T* x, T* out, float value, size_t n_elements);
+void launch_elementwise_math_tensorscalar(T* x, T* out, float value, size_t n_elements);
 
 namespace nectar {
 
@@ -363,7 +363,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_elementwise_math_tensorfloat<T, ElemWisePowOp>(
+            launch_elementwise_math_tensorscalar<T, ElemWisePowOp>(
                 reinterpret_cast<T*>(base_ptr),
                 d_out,
                 exponent,
@@ -488,7 +488,65 @@ namespace nectar {
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
+
+    /* TENSOR/SCALAR MATH */
     
+    uintptr_t scalaradd(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarAddOp>(
+                reinterpret_cast<T*>(base_ptr),
+                d_out,
+                value,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t scalarsub(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarSubOp>(
+                reinterpret_cast<T*>(base_ptr),
+                d_out,
+                value,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t scalarmul(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMulOp>(
+                reinterpret_cast<T*>(base_ptr),
+                d_out,
+                value,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t scalardiv(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
+                reinterpret_cast<T*>(base_ptr),
+                d_out,
+                value,
+                n_elements
+            );
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
 }
 
 

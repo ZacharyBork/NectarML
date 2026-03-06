@@ -1,9 +1,11 @@
 #include <pybind11/numpy.h>
 #include "common.h"
+#include "ops/policies/elementwise.h"
 
 /* KERNELS */
-template<typename T>
-void launch_divide(T* a, T* b, T* out, size_t n_elements);
+
+template<typename T, template<typename> class Op>
+void launch_elementwise_math_tensorscalar(T* x, T* out, float value, size_t n_elements);
 
 template<typename T, template<typename> class Op>
 void launch_reduce(T* in_data, T* out_data, size_t n_elements);
@@ -96,6 +98,9 @@ namespace nectar {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
+                reinterpret_cast<T*>(d_out), d_out,
+                static_cast<float>(n_elements), n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -116,9 +121,12 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
             cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
-            launch_reduce_dim<T, MeanOp>(
+            launch_reduce_dim<T, SumOp>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim);
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
+                reinterpret_cast<T*>(d_out), d_out,
+                static_cast<float>(shape[reduce_dim]), shape[reduce_dim]);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }

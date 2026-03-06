@@ -44,6 +44,11 @@ namespace nectar {
     uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t copysign(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t trunc(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
+    uintptr_t scalaradd(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t scalarsub(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t scalarmul(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t scalardiv(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 }
 
 void register_elementwise(py::module_& m) {

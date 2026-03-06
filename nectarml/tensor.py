@@ -542,8 +542,7 @@ class Tensor():
     
     def concatenate(self, inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
         inputs = [self] + inputs
-        print(len(inputs))
-        
+                
         if self.device == 'cuda':
             _backward = lambda grad : grad
             data = cuda.combinations.concatenate(
