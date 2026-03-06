@@ -3,8 +3,29 @@ from PIL import Image, ImageEnhance
 import numpy as np
 
 import _nectarml
+from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
 from nectarml.benchmark import benchmark_time
+
+def random_hue_shift(input: Tensor) -> Tensor:
+    if input.device == 'cuda':
+        pass
+    else: pass
+    
+def random_brightness(input: Tensor) -> Tensor:
+    if input.device == 'cuda':
+        pass
+    else: pass
+    
+def random_contrast(input: Tensor) -> Tensor:
+    if input.device == 'cuda':
+        pass
+    else: pass
+    
+def random_color(input: Tensor) -> Tensor:
+    if input.device == 'cuda':
+        pass
+    else: pass
 
 class ColorJitter(Transform):
     def __init__(
@@ -46,7 +67,7 @@ class ColorJitter(Transform):
         
         # return Image.fromarray(result)
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         if not self.brightness == (1.0, 1.0):
             input = ImageEnhance.Brightness(input).enhance(
                 self._random_in_range(self.brightness))
@@ -64,132 +85,132 @@ class RandomBrightness(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RandomContrast(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RandomSaturation(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
     
 class RandomHue(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RandomGamma(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class Grayscale(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RandomGrayscale(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class ToSepia(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class Equalize(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class AutoContrast(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class Solarize(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class Posterize(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class Invert(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class CLAHE(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class ChannelShuffle(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class ChannelDropout(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RGBShift(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class HueSaturationValue(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 
 class TonemapHDR(Transform):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    def forward(self, input: Tensor) -> Tensor:
         pass
 

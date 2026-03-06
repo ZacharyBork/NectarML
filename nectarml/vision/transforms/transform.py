@@ -1,12 +1,22 @@
+from typing import Literal
+
 from PIL import Image
 import numpy as np
 
-from nectarml import Tensor, DTypeLike, float32
-import nectarml.functional as F
+from nectarml.tensor import Tensor
+from nectarml.vision import utils
+from nectarml.typing import uint8
 
 class Transform():
-    def __init__(self) -> None:
+    def __init__(
+        self, 
+        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+    ) -> None:
+        self.device = device
+        self.original_type: Literal['image', 'ndarray', 'tensor'] = None
         self.rng = np.random.default_rng()
+    
+    ### UTILS ###
     
     def _random_in_range(
         self, 
@@ -17,10 +27,47 @@ class Transform():
         value = _min + (_max - _min) * self.rng.random() 
         return value
     
-    def forward(self, input: Image.Image) -> Image.Image:
+    ### CONVERSION ###
+    
+    def _to_tensor(
+        self, 
+        input: Image.Image | np.ndarray | Tensor
+    ) -> Tensor:
+        if isinstance(input, Image.Image):
+            self.original_type = 'image'
+            input = utils.PIL_to_tensor(input, dtype=uint8,device='cpu')
+        elif isinstance(input, np.ndarray):
+            self.original_type = 'ndarray'
+            input = Tensor(input.data, input.shape, input.dtype, device='cpu')
+        elif isinstance(input, Tensor): self.original_type ='tensor'
+        else: raise ValueError(
+            f'Invalid input type for transform: {type(input)}')
+        
+        if self.device == 'auto': self.device = input.device
+        else: input = input.to(self.device)
+        
+        return input
+    
+    def _from_tensor(
+        self, 
+        tensor: Tensor
+    ) -> Image.Image | np.ndarray | Tensor:
+        match self.original_type:
+            case 'image': return Image.fromarray(tensor.numpy())
+            case 'ndarray': return tensor.numpy()
+            case 'tensor': return tensor
+    
+    ### FORWARD ###
+    
+    def forward(self, input: Tensor) -> Tensor:
         raise NotImplementedError
     
-    def __call__(self, input: Image.Image) -> Image.Image:
-        return self.forward(input)
+    def __call__(
+        self, 
+        input: Image.Image | np.ndarray | Tensor
+    ) -> Image.Image:
+        tensor = self._to_tensor(input)
+        output = self.forward(tensor)
+        return self._from_tensor(output)
     
 
