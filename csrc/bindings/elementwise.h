@@ -49,6 +49,8 @@ namespace nectar {
     uintptr_t scalarsub(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t scalarmul(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t scalardiv(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t scalarmin(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 }
 
 void register_elementwise(py::module_& m) {
@@ -330,5 +332,51 @@ void register_elementwise(py::module_& m) {
         py::arg("n_elements"),
         py::arg("dtype"),
         "Truncates data x and returns as new tensor data.");
+
+    /* TENSOR/SCALAR OPS */
+
+    m.def("scalaradd", &nectar::scalaradd, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Adds scalar value from all elements of tensor data.");
+
+    m.def("scalarsub", &nectar::scalarsub, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Subtracts scalar value from all elements of tensor data.");
+
+    m.def("scalarmul", &nectar::scalarmul, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Multiplies all elements of tensor data by scalar value.");
+
+    m.def("scalardiv", &nectar::scalardiv, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Divides all elements of tensor data by scalar value.");
+
+    m.def("scalarmin", &nectar::scalarmin, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Takes the minimum value of all elements of tensor data and a given scalar value.");
+
+    m.def("scalarmax", &nectar::scalarmax, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Takes the maximum value of all elements of tensor data and a given scalar value.");
+
+
 }
 

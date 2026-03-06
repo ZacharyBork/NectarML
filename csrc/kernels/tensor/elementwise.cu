@@ -275,3 +275,13 @@ template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarDivOp>
 template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarDivOp>(uint8_t*, uint8_t*, float, size_t);
 template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarDivOp>(int32_t*, int32_t*, float, size_t);
 
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarMinOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarMinOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarMinOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarMinOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarMaxOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarMaxOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarMaxOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarMaxOp>(int32_t*, int32_t*, float, size_t);
+

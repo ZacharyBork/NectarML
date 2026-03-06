@@ -496,11 +496,7 @@ namespace nectar {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarAddOp>(
-                reinterpret_cast<T*>(base_ptr),
-                d_out,
-                value,
-                n_elements
-            );
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -510,11 +506,7 @@ namespace nectar {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarSubOp>(
-                reinterpret_cast<T*>(base_ptr),
-                d_out,
-                value,
-                n_elements
-            );
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -524,11 +516,7 @@ namespace nectar {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarMulOp>(
-                reinterpret_cast<T*>(base_ptr),
-                d_out,
-                value,
-                n_elements
-            );
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }
@@ -538,11 +526,27 @@ namespace nectar {
             T* d_out;
             cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
-                reinterpret_cast<T*>(base_ptr),
-                d_out,
-                value,
-                n_elements
-            );
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t scalarmin(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMinOp>(
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMaxOp>(
+                reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
     }

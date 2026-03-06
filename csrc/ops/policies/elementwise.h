@@ -267,5 +267,19 @@ struct ElemWiseScalarDivOp {
     }
 };
 
+template<typename T>
+struct ElemWiseScalarMinOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(fmin(static_cast<float>(x), value));
+    }
+};
+
+template<typename T>
+struct ElemWiseScalarMaxOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(fmax(static_cast<float>(x), value));
+    }
+};
+
 
 

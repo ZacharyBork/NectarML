@@ -1,4 +1,4 @@
-from . import cuda, functional, _core
+from . import _core, cuda, functional 
 from .tensor import Tensor
 from .autocast import autocast
 from .creation import (
