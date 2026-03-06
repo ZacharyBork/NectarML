@@ -86,6 +86,17 @@ inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
     return TensorIndex(shape.data(), shape.size());
 }
 
+/* COMBINATION */
+
+#define MAX_CONCAT_INPUTS 32
+
+struct ConcatInputs {
+    uintptr_t ptrs[MAX_CONCAT_INPUTS];
+    TensorIndex indices[MAX_CONCAT_INPUTS];
+    int offsets[MAX_CONCAT_INPUTS];
+    int n_inputs;
+};
+
 /* GLOBAL FUNCTIONS */
 
 constexpr int nextPow2(int n) {

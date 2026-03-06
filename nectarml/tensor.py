@@ -537,6 +537,41 @@ class Tensor():
 
     def broadcast_to(self, shape: tuple[int, ...]) -> Tensor:
         return self.expand(shape)
+    
+    ### COMBINATION ###
+    
+    def concatenate(self, inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
+        inputs = [self] + inputs
+        print(len(inputs))
+        
+        if self.device == 'cuda':
+            _backward = lambda grad : grad
+            data = cuda.combinations.concatenate(
+                in_ptrs=[i._data_ptr for i in inputs],
+                shapes=[list(i.shape) for i in inputs],
+                dim=dim, dtype=self.dtype)
+            shape = list(self.shape)
+            requires_grad = self.requires_grad
+            for i in inputs[1:]: 
+                shape[dim] += list(i.shape)[dim]
+                if i.requires_grad: requires_grad = True
+        else:
+            data, _backward = _core.combination.concatenate(
+                [t.data for t in inputs], dim=dim)
+            shape = data.shape
+            requires_grad = self.requires_grad
+        
+        out = Tensor(data, shape, self.dtype, self.device, 
+            requires_grad, tuple(inputs))
+
+        def _backward_hook():
+            grads = _backward(out.grad)
+            for tensor, grad in zip(inputs, grads):
+                if tensor.requires_grad:
+                    tensor.grad += grad
+        
+        out._backward = _backward_hook
+        return out
         
     ### GETTERS / SETTERS ###
         
