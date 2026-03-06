@@ -14,7 +14,7 @@
 
     ✅ 1. Activation
     ✅ 2. Combinations
-    ❌ 3. Conv
+    🟡 3. Conv
     ✅ 4. Indexing
     ✅ 5. Math
     ❌ 6. Normalization
@@ -27,7 +27,7 @@
     ✅ 1.  Activation
     ✅ 2.  Attention
     ✅ 3.  Combination
-    ❌ 4.  Conv
+    🟡 4.  Conv
     ✅ 5.  Indexing
     ✅ 6.  Loss
     ✅ 7.  Math
@@ -114,27 +114,29 @@
         ❌ 1.  Activation
         ❌ 2.  Conv
         ❌ 3.  Dispatch
-        🟡 4.  Elementwise
+        ✅ 4.  Elementwise
         ❌ 5.  Indexing
         ❌ 6.  Interpolation
         ❌ 7.  Matmul
         🟡 8.  Memory
         ❌ 9.  Normalization
         ❌ 10. Padding
-        ❌ 11. Reductions
-        ❌ 12. Vision
+        🟡 11. Reductions
+        🟡 12. Combination
+        🟡 13. Vision
     🟡 2. Kernels
         ❌ 1.  Activation
         ❌ 2.  Conv
-        🟡 3.  Elementwise
+        ✅ 3.  Elementwise
         ❌ 4.  Indexing
         ❌ 5.  Interpolation
         ❌ 6.  Matmul
         🟡 7.  Memory
         ❌ 8.  Normalization
         ❌ 9.  Padding
-        ❌ 10. Reductions
-        ❌ 11. Vision
+        🟡 10. Reductions
+        🟡 11. Combination
+        🟡 12. Vision
     🟡 3. Bindings
     ✅ 4. CMakeLists
 

@@ -571,6 +571,9 @@ class Tensor():
         
         out._backward = _backward_hook
         return out
+    
+    def cat(self, inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
+        return self.concatenate(inputs, dim)
         
     ### GETTERS / SETTERS ###
         
