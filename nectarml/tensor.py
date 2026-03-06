@@ -49,12 +49,12 @@ class Tensor():
                     raise ValueError(
                         'Unable to init CUDA Tensor from device pointer '
                         'without explicit shape.')
+                self._data_ptr = data
+                self.shape = shape
             else: 
-                array = np.array(data, dtype=self.dtype)
-                shape = array.shape
-                data = cuda.to_cuda(array, self.dtype)
-            self._data_ptr = data
-            self.shape = shape
+                self.data = np.array(data, dtype=self.dtype)
+                self.shape = self.data.shape
+                self._data_ptr = cuda.to_cuda(self)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
     ### PROPERTIES ###
@@ -62,10 +62,6 @@ class Tensor():
     @property
     def dtype(self) -> int:
         return self._dtype
-        
-    @property
-    def cuda_dtype(self) -> int:
-        return cuda.map_dtype(self.dtype)
     
     @property
     def ndim(self) -> int:
@@ -93,8 +89,7 @@ class Tensor():
     ### DATA UTILS ###
     
     def numpy(self) -> np.ndarray:
-        if self.device == 'cuda':
-            return cuda.to_cpu(self._data_ptr, self.shape, self.dtype)
+        if self.device == 'cuda': return cuda.to_cpu(self)
         return self.data
         
     ### GRADIENTS ###
@@ -149,14 +144,12 @@ class Tensor():
         dtype = dtype or self.dtype
         if device == 'cuda':
             shape = self.shape
-            if self.device == 'cpu': data = cuda.to_cuda(self.data, dtype)
-            else: data = cuda.cast_tensor(
-                self._data_ptr, self.size, self.dtype, dtype)
+            if self.device == 'cpu': data = cuda.to_cuda(self)
+            else: data = cuda.cast_tensor(self, dtype)
         elif device == 'cpu':
             shape = None
             if self.device == 'cpu': data = self.data
-            else: data = cuda.to_cpu(
-                self._data_ptr, self.shape, self.dtype, dtype)
+            else: data = cuda.to_cpu(self, dtype)
         else: raise ValueError(f'Invalid device type: {device}')
         
         new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
@@ -253,8 +246,7 @@ class Tensor():
         _backward = lambda grad: grad
         
         if self.device == 'cuda':
-            s = list(self.shape) if dim is not None else self.size
-            data = cuda.reductions.min(self._data_ptr, s, dim, self.dtype)
+            data = cuda.reductions.min(self, dim)
             output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.min(
@@ -275,8 +267,7 @@ class Tensor():
         _backward = lambda grad: grad
         
         if self.device == 'cuda':
-            s = list(self.shape) if dim is not None else self.size
-            data = cuda.reductions.max(self._data_ptr, s, dim, self.dtype)
+            data = cuda.reductions.max(self, dim)
             output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.max(
@@ -321,9 +312,7 @@ class Tensor():
                     result.shape = result._get_reduce_shape(dim, keepdim)
                 return result
             
-            s = list(self.shape) if dim is not None else self.size
-            data = cuda.reductions.mean(
-                self._data_ptr, s, dim, self.dtype)
+            data = cuda.reductions.mean(self, dim)
             output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.mean(
@@ -353,9 +342,7 @@ class Tensor():
                     result.shape = result._get_reduce_shape(dim, keepdim)
                 return result
             
-            s = list(self.shape) if dim is not None else self.size
-            data = cuda.reductions.sum(
-                self._data_ptr, s, dim, self.dtype)
+            data = cuda.reductions.sum(self, dim)
             output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.sum(
@@ -545,10 +532,7 @@ class Tensor():
                 
         if self.device == 'cuda':
             _backward = lambda grad : grad
-            data = cuda.combinations.concatenate(
-                in_ptrs=[i._data_ptr for i in inputs],
-                shapes=[list(i.shape) for i in inputs],
-                dim=dim, dtype=self.dtype)
+            data = cuda.combinations.concatenate(inputs, dim)
             shape = list(self.shape)
             requires_grad = self.requires_grad
             for i in inputs[1:]: 
@@ -612,9 +596,7 @@ class Tensor():
     def __eq__(self, other: Tensor) -> Tensor:
         self._bool_type_check('Tensor.__eq__()', other)
         self._validate_other(other)
-        if self.device == 'cuda':
-            data = cuda.math.equal(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+        if self.device == 'cuda': data = cuda.math.equal(self, other)
         else: data = self.data == other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
@@ -622,8 +604,7 @@ class Tensor():
         self._bool_type_check('Tensor.__lt__()', other)
         self._validate_other(other)
         if self.device == 'cuda':
-            data = cuda.math.less_than(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            data = cuda.math.less_than(self, other)
         else: data = self.data < other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
@@ -631,8 +612,7 @@ class Tensor():
         self._bool_type_check('Tensor.__le__()', other)
         self._validate_other(other)
         if self.device == 'cuda':
-            data = cuda.math.less_than_or_equal(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            data = cuda.math.less_than_or_equal(self, other)
         else: data = self.data <= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
@@ -640,8 +620,7 @@ class Tensor():
         self._bool_type_check('Tensor.__gt__()', other)
         self._validate_other(other)
         if self.device == 'cuda':
-            data = cuda.math.greater_than(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            data = cuda.math.greater_than(self, other)
         else: data = self.data > other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
@@ -649,8 +628,7 @@ class Tensor():
         self._bool_type_check('Tensor.__ge__()', other)
         self._validate_other(other)
         if self.device == 'cuda':
-            data = cuda.math.greater_than_or_equal(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            data = cuda.math.greater_than_or_equal(self, other)
         else: data = self.data >= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
@@ -665,8 +643,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = cuda.math.add(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            out_data = cuda.math.add(self, other)
         else: out_data, _backward = _core.math.add(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 
@@ -690,8 +667,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad
-            out_data = cuda.math.subtract(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            out_data = cuda.math.subtract(self, other)
         else: out_data, _backward = _core.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 
@@ -723,8 +699,7 @@ class Tensor():
         
         if self.device == 'cuda':
             _backward = lambda grad: grad # NEEDS CUDA BACKPROP
-            out_data = cuda.math.multiply(
-                self._data_ptr, other._data_ptr, self.size, self.dtype)
+            out_data = cuda.math.multiply(self, other)
         else: out_data, _backward = _core.math.multiply(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
 

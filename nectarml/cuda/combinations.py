@@ -1,13 +1,18 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+
 import _nectarml
-from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import map_dtype
 
 def concatenate(
-    in_ptrs: list[int],
-    shapes: list[list[int]],
-    dim: int,
-    dtype: DTypeLike
+    inputs: list[Tensor],
+    dim: int
 ) -> int:
-    return _nectarml.concatenate(in_ptrs, shapes, dim, map_dtype(dtype))
+    _dtype = inputs[0].dtype
+    in_ptrs = [i._data_ptr for i in inputs]
+    shapes = [list(i.shape) for i in inputs]
+    return _nectarml.concatenate(in_ptrs, shapes, dim, map_dtype(_dtype))
     
 

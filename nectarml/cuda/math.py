@@ -1,157 +1,160 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+
 import _nectarml
-from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import map_dtype
 
 ### COMPARISON ###
 
-def equal(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.equal(a_ptr, b_ptr, size, map_dtype(dtype))
+def equal(a: Tensor, b: Tensor) -> int:
+    return _nectarml.equal(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def less_than(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.less_than(a_ptr, b_ptr, size, map_dtype(dtype))
+def less_than(a: Tensor, b: Tensor) -> int:
+    return _nectarml.less_than(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def less_than_or_equal(
-    a_ptr: int, 
-    b_ptr: int, 
-    size: int, 
-    dtype: DTypeLike
-) -> int:
-    return _nectarml.less_than_or_equal(a_ptr, b_ptr, size, map_dtype(dtype))
+def less_than_or_equal(a: Tensor, b: Tensor) -> int:
+    return _nectarml.less_than_or_equal(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def greater_than(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.greater_than(a_ptr, b_ptr, size, map_dtype(dtype))
+def greater_than(a: Tensor, b: Tensor) -> int:
+    return _nectarml.greater_than(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def greater_than_or_equal(
-    a_ptr: int,
-    b_ptr: int, 
-    size: int, 
-    dtype: DTypeLike
-) -> int:
+def greater_than_or_equal(a: Tensor, b: Tensor) -> int:
     return _nectarml.greater_than_or_equal(
-        a_ptr, b_ptr, size, map_dtype(dtype))
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
 ### BASE ###
 
-def add(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.add(a_ptr, b_ptr, size, map_dtype(dtype))
+def add(a: Tensor, b: Tensor) -> int:
+    return _nectarml.add(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def subtract(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.subtract(a_ptr, b_ptr, size, map_dtype(dtype))
+def subtract(a: Tensor, b: Tensor) -> int:
+    return _nectarml.subtract(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def multiply(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.multiply(a_ptr, b_ptr, size, map_dtype(dtype))
+def multiply(a: Tensor, b: Tensor) -> int:
+    return _nectarml.multiply(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
-def divide(a_ptr: int, b_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.divide(a_ptr, b_ptr, size, map_dtype(dtype))
+def divide(a: Tensor, b: Tensor) -> int:
+    return _nectarml.divide(
+        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
 ### SQRT ###
 
-def sqrt(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.sqrt(x_ptr, size, map_dtype(dtype))
+def sqrt(x: Tensor) -> int:
+    return _nectarml.sqrt(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def rsqrt(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.rsqrt(x_ptr, size, map_dtype(dtype))
+def rsqrt(x: Tensor) -> int:
+    return _nectarml.rsqrt(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### EXPONENT ###
 
-def exp(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.exp(x_ptr, size, map_dtype(dtype))
+def exp(x: Tensor) -> int:
+    return _nectarml.exp(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### LOG ###
 
-def log(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.log(x_ptr, size, map_dtype(dtype))
+def log(x: Tensor) -> int:
+    return _nectarml.log(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def log2(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.log2(x_ptr, size, map_dtype(dtype))
+def log2(x: Tensor) -> int:
+    return _nectarml.log2(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def log10(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.log10(x_ptr, size, map_dtype(dtype))
+def log10(x: Tensor) -> int:
+    return _nectarml.log10(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### SIN / COS ###
 
-def sin(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.sin(x_ptr, size, map_dtype(dtype))
+def sin(x: Tensor) -> int:
+    return _nectarml.sin(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def asin(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.asin(x_ptr, size, map_dtype(dtype))
+def asin(x: Tensor) -> int:
+    return _nectarml.asin(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def sinh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.sinh(x_ptr, size, map_dtype(dtype))
+def sinh(x: Tensor) -> int:
+    return _nectarml.sinh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def asinh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.asinh(x_ptr, size, map_dtype(dtype))
+def asinh(x: Tensor) -> int:
+    return _nectarml.asinh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def cos(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.cos(x_ptr, size, map_dtype(dtype))
+def cos(x: Tensor) -> int:
+    return _nectarml.cos(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def acos(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.acos(x_ptr, size, map_dtype(dtype))
+def acos(x: Tensor) -> int:
+    return _nectarml.acos(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def cosh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.cosh(x_ptr, size, map_dtype(dtype))
+def cosh(x: Tensor) -> int:
+    return _nectarml.cosh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def acosh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.acosh(x_ptr, size, map_dtype(dtype))
+def acosh(x: Tensor) -> int:
+    return _nectarml.acosh(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### TAN / ATAN ###
 
-def tan(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.tan(x_ptr, size, map_dtype(dtype))
+def tan(x: Tensor) -> int:
+    return _nectarml.tan(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def tanh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.tanh(x_ptr, size, map_dtype(dtype))
+def tanh(x: Tensor) -> int:
+    return _nectarml.tanh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def atan(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.atan(x_ptr, size, map_dtype(dtype))
+def atan(x: Tensor) -> int:
+    return _nectarml.atan(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def atanh(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.atanh(x_ptr, size, map_dtype(dtype))
+def atanh(x: Tensor) -> int:
+    return _nectarml.atanh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def atan2(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.atan2(x_ptr, size, map_dtype(dtype))
+def atan2(x: Tensor) -> int:
+    return _nectarml.atan2(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### POW ###
 
-def pow(x_ptr: int, exponent: float, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.pow(x_ptr, exponent, size, map_dtype(dtype))
+def pow(x: Tensor, exponent: float) -> int:
+    return _nectarml.pow(x._data_ptr, exponent, x.size, map_dtype(x.dtype))
 
 ### ABS ###
 
-def abs(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.abs(x_ptr, size, map_dtype(dtype))
+def abs(x: Tensor) -> int:
+    return _nectarml.abs(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### ROUNDING ###
 
-def floor(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.floor(x_ptr, size, map_dtype(dtype))
+def floor(x: Tensor) -> int:
+    return _nectarml.floor(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def ceil(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.ceil(x_ptr, size, map_dtype(dtype))
+def ceil(x: Tensor) -> int:
+    return _nectarml.ceil(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def round(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.round(x_ptr, size, map_dtype(dtype))
+def round(x: Tensor) -> int:
+    return _nectarml.round(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### MODULO ###
 
-def fmod(x_ptr: int, y_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.fmod(x_ptr, y_ptr, size, map_dtype(dtype))
+def fmod(x: Tensor, y: Tensor) -> int:
+    return _nectarml.fmod(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
 
 ### MIN / MAX ###
 
-def min(x_ptr: int, y_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.min(x_ptr, y_ptr, size, map_dtype(dtype))
+def min(x: Tensor, y: Tensor) -> int:
+    return _nectarml.min(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
 
-def max(x_ptr: int, y_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.max(x_ptr, y_ptr, size, map_dtype(dtype))
+def max(x: Tensor, y: Tensor) -> int:
+    return _nectarml.max(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
 
 ### COPYSIGN ###
 
-def copysign(x_ptr: int, y_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.copysign(x_ptr, y_ptr, size, map_dtype(dtype))
+def copysign(x: Tensor, y: Tensor) -> int:
+    return _nectarml.copysign(
+        x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
 
 ### TRUNCATE ###
 
-def trunc(x_ptr: int, size: int, dtype: DTypeLike) -> int:
-    return _nectarml.trunc(x_ptr, size, map_dtype(dtype))
+def trunc(x: Tensor) -> int:
+    return _nectarml.trunc(x._data_ptr, x.size, map_dtype(x.dtype))
 

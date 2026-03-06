@@ -106,7 +106,7 @@
     ❌ 4. Dropout / Erasing
     ❌ 5. Normalization
     ❌ 6. Format / Type
-    ❌ 7. Composition
+    ✅ 7. Composition
 
 ### ❌  CUDA:
 
