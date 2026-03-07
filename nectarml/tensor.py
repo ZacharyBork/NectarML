@@ -26,8 +26,7 @@ class Tensor():
         self._data_ptr: int | None = None
         self._init_tensor(data, shape)       
         
-        self.grad: np.ndarray | None = None
-        self._grad_ptr: int | None = None
+        self.grad: Tensor | None = None
         self.requires_grad = requires_grad
         
         self._backward = lambda : None
@@ -79,11 +78,6 @@ class Tensor():
     def requires_grad(self, value: bool) -> None:
         if self.dtype != typing.bool_: 
             self._requires_grad = value
-            if value:
-                if self.device == 'cuda' and self._grad_ptr is None \
-                or self.device == 'cpu' and self.grad is None:
-                    self._allocate_grad()
-            else: self._deallocate_grad()
         else: self._requires_grad = False
     
     ### DATA UTILS ###
@@ -95,17 +89,16 @@ class Tensor():
     ### GRADIENTS ###
     
     def _deallocate_grad(self) -> None:
-        if self.device == 'cuda':
-            if self._grad_ptr is not None:
-                self._grad_ptr = cuda.free_cuda(self._grad_ptr)
-        else: self.grad = None
+        self.grad = None
 
     def _allocate_grad(self) -> None:
+        grad = np.zeros_like(self.data, dtype=typing.float32)
         if self.device == 'cuda':
             self._deallocate_grad()
-            self._grad_ptr = cuda.alloc_cuda_full(
-                self.size, cuda.map_dtype(typing.float32), 0.0)
-        else: self.grad = np.zeros_like(self.data, dtype=typing.float32)
+            self.grad = Tensor(
+                grad, self.shape, typing.float32, requires_grad=False
+            ).to(self.device)
+        else: self.grad = grad
         
     def backward(self) -> None:
         assert self.ndim == 0 or self.size == 1, \
@@ -154,7 +147,7 @@ class Tensor():
         
         new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
             requires_grad=self.requires_grad)
-        new.grad = self.grad
+        new.grad = self.grad.to(self.device) if self.grad is not None else None
         new._prev = self._prev
         new._backward = self._backward
         return new
@@ -363,132 +356,7 @@ class Tensor():
         self._bool_type_check('Tensor.prod()')
         return self._eval_core_function(
             lambda x : _core.reductions.prod(x, dim, keepdim, initial))
-        
-    ### MATH OPS ###
-    
-    def abs(self) -> Tensor: 
-        self._bool_type_check('Tensor.abs()')
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.abs(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.abs(self.data)
-        out = self._build_output_tensor(out_data, (self,))
 
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-            
-    def exp(self) -> Tensor:
-        self._bool_type_check('Tensor.exp()') 
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.exp(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.exp(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-            
-    def log(self) -> Tensor:
-        self._bool_type_check('Tensor.log()') 
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.log(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.log(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-            
-    def sqrt(self) -> Tensor:
-        self._bool_type_check('Tensor.sqrt()')
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.sqrt(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.sqrt(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-            
-    def sin(self) -> Tensor:
-        self._bool_type_check('Tensor.sin()') 
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.sin(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.sin(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-        
-    def cos(self) -> Tensor: 
-        self._bool_type_check('Tensor.cos()')
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.cos(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.cos(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-        
-    def tanh(self) -> Tensor:
-        self._bool_type_check('Tensor.tanh()') 
-        self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda':
-            _backward = lambda grad: grad
-            out_data = cuda.math.tanh(
-                self._data_ptr, self.size, self.dtype)
-        else: out_data, _backward = _core.math.tanh(self.data)
-        out = self._build_output_tensor(out_data, (self,))
-
-        def _backward_hook():
-            if self_requires_grad: self.grad += _backward(out.grad)
-
-        out._backward = _backward_hook
-        return out
-        
-    def sigmoid(self) -> Tensor: 
-        self._bool_type_check('Tensor.sigmoid()')
-        return ((-self).exp() + 1) ** -1
-    
     ### RESHAPING ###
     
     def reshape(self, shape: tuple[int, ...]) -> Tensor:
@@ -632,7 +500,15 @@ class Tensor():
         else: data = self.data >= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    ### MATH OPS ###
+    ### MATH DUNDERS ###
+    
+    def __iadd__(self, other: Tensor | int | float) -> Tensor:
+        other, _ = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__add__()', other)
+
+        if self.device == 'cuda': self._data_ptr = cuda.math.add(self, other)
+        else: self.data += other.data
+        return self
     
     def __add__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)
@@ -642,17 +518,16 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda':
-            _backward = lambda grad: grad
             out_data = cuda.math.add(self, other)
-        else: out_data, _backward = _core.math.add(self.data, other.data)
+            _backward = lambda grad: grad
+        else: 
+            out_data = _core.math.add(self.data, other.data)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad: self.grad += out_grad
+                if other_requires_grad: other.grad += out_grad
+                
         out = self._build_output_tensor(out_data, children)
-
-        def _backward_hook():
-            grad = _backward(out.grad)
-            if self_requires_grad: self.grad += grad
-            if other_requires_grad: other.grad += grad
-
-        out._backward = _backward_hook
+        out._backward = lambda : _backward(out.grad)
         return out
     
     def __radd__(self, other: Tensor | int | float) -> Tensor:
@@ -666,17 +541,16 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda':
-            _backward = lambda grad: grad
             out_data = cuda.math.subtract(self, other)
-        else: out_data, _backward = _core.math.subtract(self.data, other.data)
+            _backward = lambda grad: grad
+        else: 
+            out_data = _core.math.subtract(self.data, other.data)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad: self.grad += out_grad
+                if other_requires_grad: other.grad += out_grad
+
         out = self._build_output_tensor(out_data, children)
-
-        def _backward_hook():
-            grad = _backward(out.grad)
-            if self_requires_grad: self.grad += grad
-            if other_requires_grad: other.grad += grad
-
-        out._backward = _backward_hook
+        out._backward = lambda : _backward(out.grad)
         return out
     
     def __rsub__(self, other: Tensor | int | float) -> Tensor:
@@ -698,17 +572,16 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda':
-            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
             out_data = cuda.math.multiply(self, other)
-        else: out_data, _backward = _core.math.multiply(self.data, other.data)
+            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
+        else: 
+            out_data = _core.math.multiply(self.data, other.data)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad: self.grad += other.grad * out_grad
+                if other_requires_grad: other.grad += self.grad * out_grad
+        
         out = self._build_output_tensor(out_data, children)
-
-        def _backward_hook():
-            grad = _backward(out.grad)
-            if self_requires_grad: self.grad += grad
-            if other_requires_grad: other.grad += grad
-
-        out._backward = _backward_hook
+        out._backward = lambda : _backward(out.grad)
         return out
     
     def __rmul__(self, other: Tensor | int | float) -> Tensor:
@@ -736,8 +609,20 @@ class Tensor():
     
     def __pow__(self, exponent: float | int) -> Tensor: 
         self._bool_type_check('Tensor.__pow__()')
-        return self._eval_core_function(
-            lambda x : _core.math.pow(x, exponent))
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            out_data = cuda.math.pow(self, exponent)
+            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
+        else: 
+            out_data = _core.math.pow(self.data, exponent)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad: 
+                    self.grad += exponent * (self**(exponent-1)) * out_grad
+        
+        out = self._build_output_tensor(out_data, (self,))
+        out._backward = lambda : _backward(out.grad)
+        return out
     
     def __rpow__(self, exponent: float | int) -> Tensor: 
         raise NotImplementedError
@@ -752,7 +637,188 @@ class Tensor():
     
     def __abs__(self) -> Tensor:
         self._bool_type_check('Tensor.__abs__()')
-        return self._eval_core_function(_core.math.abs)
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            out_data = cuda.math.abs(self)
+            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
+        else: 
+            out_data = _core.math.abs(self.data)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad: 
+                    self.grad += np.sign(input) * out_grad # NEEDS Tensor.sign
+        
+        out = self._build_output_tensor(out_data, (self,))
+        out._backward = lambda : _backward(out.grad)
+        return out
     
+    ### MATH OPS ###
     
+    def clamp(
+        self, 
+        min_value: float | None = None, 
+        max_value: float | None = None
+    ) -> Tensor:
+        self._bool_type_check('Tensor.clamp()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': 
+            out_data = None # Needs CUDA clamp
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad:
+                    mask = cuda.masking.ge_mask(self, min_value) \
+                         * cuda.masking.le_mask(self, max_value)                    
+                    self.grad += mask * out_grad
+        else: 
+            out_data = _core.math.clamp(self.data, min_value, max_value)
+            def _backward(out_grad: Tensor) -> None:
+                if self_requires_grad:
+                    mask = (self >= min_value) * (self <= max_value)
+                    self.grad += mask * out.grad
+        
+        out = self._build_output_tensor(out_data, (self,))
+        out._backward = lambda : _backward(out.grad)
+        return out
+    
+    def abs(self) -> Tensor: return self.__abs__()
+            
+    def exp(self) -> Tensor:
+        self._bool_type_check('Tensor.exp()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.exp(self)
+        else:  out_data = _core.math.exp(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out * out.grad
+
+        out._backward = _backward
+        return out
+            
+    def log(self) -> Tensor:
+        self._bool_type_check('Tensor.log()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.log(self)
+        else: out_data = _core.math.log(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += (1 / self) * out.grad
+
+        out._backward = _backward
+        return out
+    
+    def log2(self) -> Tensor:
+        self._bool_type_check('Tensor.log2()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.log2(self)
+        else: out_data = _core.math.log2(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out.grad / (self * np.log(2))
+
+        out._backward = _backward
+        return out
+    
+    def log10(self) -> Tensor:
+        self._bool_type_check('Tensor.log10()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.log10(self)
+        else: out_data = _core.math.log10(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out.grad / (self * np.log(10))
+
+        out._backward = _backward
+        return out
+            
+    def sqrt(self) -> Tensor:
+        self._bool_type_check('Tensor.sqrt()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':out_data = cuda.math.sqrt(self)
+        else: out_data = _core.math.sqrt(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += (1 / (2 * out)) * out.grad
+
+        out._backward = _backward
+        return out
+            
+    def sin(self) -> Tensor:
+        self._bool_type_check('Tensor.sin()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.sin(self)
+        else: out_data = _core.math.sin(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            # NOTE: This builds unneeded graph nodes. Eventually, this should
+            # be replaced with something akin to torch.no_grad()
+            if self_requires_grad: self.grad += self.cos() * out.grad
+
+        out._backward = _backward
+        return out
+    
+    def asin(self) -> Tensor:
+        self._bool_type_check('Tensor.asin()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': 
+            out_data = cuda.math.asin(self)
+            _backward = lambda grad : grad
+        else: 
+            out_data = _core.math.asin(self.data)
+            def _backward(out_grad: Tensor) -> None:
+                # NOTE: Needs Tensor.clamp()
+                pass
+        
+        out = self._build_output_tensor(out_data, (self,))
+        out._backward = lambda : _backward(out.grad)
+        return out
+        
+    def cos(self) -> Tensor: 
+        self._bool_type_check('Tensor.cos()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.cos(self)
+        else: out_data = _core.math.cos(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None:
+            # NOTE: This builds unneeded graph nodes. Eventually, this should
+            # be replaced with something akin to torch.no_grad()
+            if self_requires_grad: self.grad += -self.sin() * out.grad
+
+        out._backward = _backward
+        return out
+        
+    def tanh(self) -> Tensor:
+        self._bool_type_check('Tensor.tanh()') 
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            _backward = lambda grad: grad
+            out_data = cuda.math.tanh(
+                self._data_ptr, self.size, self.dtype)
+        else: out_data, _backward = _core.math.tanh(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward_hook():
+            if self_requires_grad: self.grad += _backward(out.grad)
+
+        out._backward = _backward_hook
+        return out
+        
+    def sigmoid(self) -> Tensor: 
+        self._bool_type_check('Tensor.sigmoid()')
+        return ((-self).exp() + 1) ** -1
     

@@ -4,39 +4,16 @@ import numpy as np
 
 ### BASIC ###
 
-def add(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = a + b
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out_grad
-    return out, _backward
+def add(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return a + b
 
-def subtract(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = a - b
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out_grad
-    return out, _backward
+def subtract(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return a - b
 
-def multiply(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
-    out = a * b
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        a_grad = b * out_grad
-        b_grad = a * out_grad
-        return a_grad, b_grad
-    return out, _backward
+def multiply(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return  a * b
 
-def pow(
-    a: np.ndarray, 
-    exponent: float | int
-) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
+def pow(a: np.ndarray, exponent: float | int) -> np.ndarray:
     out = a ** exponent
     def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         return exponent * (a**(exponent-1)) * out_grad
@@ -63,6 +40,15 @@ def negate(
 
 ### OTHER ###
 
+def clamp(
+    a: np.ndarray, 
+    min_value: float | None = None, 
+    max_value: float | None = None
+) -> np.ndarray:
+    if min_value is not None: a = np.maximum(a, min_value)
+    if max_value is not None: a = np.minimum(a, max_value)
+    return a
+
 def minimum(
     a: np.ndarray, 
     b: np.ndarray
@@ -85,61 +71,26 @@ def maximum(
         return a_grad, b_grad
     return out, _backward
     
-def abs(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.abs(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return np.sign(input) * out_grad
-    return out, _backward
+def abs(input: np.ndarray) -> np.ndarray:
+    return np.abs(input)
 
-def exp(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.exp(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out * out_grad
-    return out, _backward
+def exp(input: np.ndarray) -> np.ndarray:
+    return np.exp(input)
 
-def log(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.log(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return (1 / input) * out_grad
-    return out, _backward
+def log(input: np.ndarray) -> np.ndarray:
+    return np.log(input)
 
-def log2(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.log2(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out_grad / (input * np.log(2))
-    return out, _backward
+def log2(input: np.ndarray) -> np.ndarray:
+    return np.log2(input)
 
-def log2(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.log2(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return out_grad / (input * np.log(10))
-    return out, _backward
+def log10(input: np.ndarray) -> np.ndarray:
+    return np.log10(input)
 
-def sqrt(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.sqrt(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return (1 / (2 * out)) * out_grad
-    return out, _backward
+def sqrt(input: np.ndarray) -> np.ndarray:
+    return np.sqrt(input)
 
-def sin(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.sin(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return np.cos(input) * out_grad
-    return out, _backward
+def sin(input: np.ndarray) -> np.ndarray:
+    return np.sin(input)
 
 def asin(
     input: np.ndarray
@@ -165,13 +116,8 @@ def asinh(
         return out_grad / np.sqrt(input**2 + 1)
     return out, _backward
 
-def cos(
-    input: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.cos(input)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return -np.sin(input) * out_grad
-    return out, _backward
+def cos(input: np.ndarray) -> np.ndarray:
+    return np.cos(input)
 
 def acos(
     input: np.ndarray
