@@ -1,4 +1,4 @@
-from . import utils, math, reductions, combinations
+from . import utils, math, masking, reductions, combinations, activation
 from .mapping import DTYPE_MAP
 from .utils import map_dtype, to_cuda, to_cpu, cast_tensor
 from .memory import (

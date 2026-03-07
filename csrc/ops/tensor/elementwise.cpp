@@ -8,10 +8,10 @@ template<typename T, template<typename> class Op>
 void launch_elementwise_compare(T* x, T* y, bool* out, size_t n_elements);
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_math_2tensor(T* x, T* y, T* out, size_t n_elements);
+void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements);
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements);
+void launch_elementwise_math_2tensor(T* x, T* y, T* out, size_t n_elements);
 
 template<typename T, template<typename> class Op>
 void launch_elementwise_math_tensorscalar(T* x, T* out, float value, size_t n_elements);
@@ -31,9 +31,7 @@ uintptr_t call_elemwise_compare(
         launch_elementwise_compare<T, Op>(
             reinterpret_cast<T*>(a_ptr),
             reinterpret_cast<T*>(b_ptr),
-            d_out,
-            n_elements
-        );
+            d_out, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
     });
 }
@@ -66,9 +64,7 @@ uintptr_t call_elemwise_2tensor(
         launch_elementwise_math_2tensor<T, Op>(
             reinterpret_cast<T*>(a_ptr),
             reinterpret_cast<T*>(b_ptr),
-            d_out,
-            n_elements
-        );
+            d_out, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
     });
 }
@@ -84,11 +80,7 @@ uintptr_t call_elemwise_tensorscalar(
         T* d_out;
         cudaMalloc(&d_out, n_elements * sizeof(T));
         launch_elementwise_math_tensorscalar<T, Op>(
-            reinterpret_cast<T*>(base_ptr),
-            d_out,
-            value,
-            n_elements
-        );
+            reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
     });
 }
@@ -298,6 +290,28 @@ namespace nectar {
 
     uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
         return call_elemwise_tensorscalar<ElemWiseScalarMaxOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    /* MASKING */
+
+    uintptr_t equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseEqMaskkOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    uintptr_t less_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseLtMaskOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    uintptr_t less_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseLeMaskOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    uintptr_t greater_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseGtMaskOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    uintptr_t greater_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseGeMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
 }

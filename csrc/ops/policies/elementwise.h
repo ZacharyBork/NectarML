@@ -281,5 +281,40 @@ struct ElemWiseScalarMaxOp {
     }
 };
 
+/* MASKING */
 
+template<typename T>
+struct ElemWiseEqMaskkOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) == value ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseLtMaskOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) < value ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseLeMaskOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) <= value ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseGtMaskOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) > value ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseGeMaskOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) >= value ? 1.0 : 0.0);
+    }
+};
 

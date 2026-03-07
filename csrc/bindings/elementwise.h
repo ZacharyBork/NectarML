@@ -10,16 +10,21 @@ namespace nectar {
     uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    
     uintptr_t add(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t subtract(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t multiply(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t divide(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+
     uintptr_t sqrt(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t rsqrt(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t exp(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t log(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t log2(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t log10(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t sin(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t asin(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t sinh(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -28,21 +33,28 @@ namespace nectar {
     uintptr_t acos(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t cosh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t acosh(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t tan(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t tanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atan(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atan2(uintptr_t y_ptr, uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t pow(uintptr_t base_ptr, float exponent, size_t n_elements, DType dtype);
+
     uintptr_t abs(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t floor(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t ceil(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t round(uintptr_t x_ptr, size_t n_elements, DType dtype);
-    // uintptr_t mod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+
     uintptr_t fmod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+
     uintptr_t min(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+
     uintptr_t copysign(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+
     uintptr_t trunc(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
     uintptr_t scalaradd(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
@@ -51,6 +63,12 @@ namespace nectar {
     uintptr_t scalardiv(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t scalarmin(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+
+    uintptr_t equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t less_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t less_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t greater_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t greater_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 }
 
 void register_elementwise(py::module_& m) {
@@ -377,6 +395,42 @@ void register_elementwise(py::module_& m) {
         py::arg("dtype"),
         "Takes the maximum value of all elements of tensor data and a given scalar value.");
 
+    /* MASKING */
+
+    m.def("equal_mask", &nectar::equal_mask, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data == value, otherwise 0.0.");
+
+    m.def("less_than_mask", &nectar::less_than_mask, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data < value, otherwise 0.0.");
+
+    m.def("less_than_or_equal_mask", &nectar::less_than_or_equal_mask, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data <= value, otherwise 0.0.");
+
+    m.def("greater_than_mask", &nectar::greater_than_mask, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data > value, otherwise 0.0.");
+
+    m.def("greater_than_or_equal_mask", &nectar::greater_than_or_equal_mask, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data >= value, otherwise 0.0.");
 
 }
 
