@@ -314,6 +314,27 @@ namespace nectar {
         return call_elemwise_tensorscalar<ElemWiseGeMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
+    /* CLAMP */
+
+    template<template<typename> class Op>
+    uintptr_t clamp(
+        uintptr_t base_ptr,
+        float min_value, 
+        float max_value,
+        size_t n_elements, 
+        DType dtype
+    ) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMaxOp>(
+                reinterpret_cast<T*>(base_ptr), d_out, min_value, n_elements);
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMinOp>(
+                d_out, d_out, max_value, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
 }
 
 

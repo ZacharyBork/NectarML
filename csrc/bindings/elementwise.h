@@ -69,6 +69,8 @@ namespace nectar {
     uintptr_t less_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t greater_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t greater_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+
+    uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
 }
 
 void register_elementwise(py::module_& m) {
@@ -431,6 +433,16 @@ void register_elementwise(py::module_& m) {
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data >= value, otherwise 0.0.");
+
+    /* CLAMP */
+
+    m.def("clamp", &nectar::clamp, 
+        py::arg("base_ptr"),
+        py::arg("min_value"),
+        py::arg("max_value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Clamps tensor values between given min and max value.");
 
 }
 

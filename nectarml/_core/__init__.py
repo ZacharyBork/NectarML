@@ -1,3 +1,4 @@
 from . import (
-    activation, combination, conv, indexing, math, padding, reductions, shapes)
+    activation, combination, conv, indexing, masking, math, padding, 
+    reductions, shapes)
 
