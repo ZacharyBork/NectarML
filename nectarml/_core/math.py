@@ -14,10 +14,7 @@ def multiply(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return  a * b
 
 def pow(a: np.ndarray, exponent: float | int) -> np.ndarray:
-    out = a ** exponent
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        return exponent * (a**(exponent-1)) * out_grad
-    return out, _backward
+    return a ** exponent
 
 def matmul(
     a: np.ndarray, 
@@ -30,13 +27,8 @@ def matmul(
         return a_grad, b_grad
     return out, _backward
 
-def negate(
-    a: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = -a
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        return -out_grad
-    return out, _backward
+def negate(a: np.ndarray) -> np.ndarray:
+    return -a
 
 ### OTHER ###
 
@@ -49,27 +41,11 @@ def clamp(
     if max_value is not None: a = np.minimum(a, max_value)
     return a
 
-def minimum(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
-    out = np.minimum(a, b)
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        a_grad = (a <= b).astype(a.dtype) * out_grad
-        b_grad = (b < a).astype(b.dtype) * out_grad
-        return a_grad, b_grad
-    return out, _backward
+def minimum(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.minimum(a, b)
 
-def maximum(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
-    out = np.maximum(a, b)
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        a_grad = (a >= b).astype(a.dtype) * out_grad
-        b_grad = (b > a).astype(b.dtype) * out_grad
-        return a_grad, b_grad
-    return out, _backward
+def maximum(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.maximum(a, b)
     
 def abs(input: np.ndarray) -> np.ndarray:
     return np.abs(input)

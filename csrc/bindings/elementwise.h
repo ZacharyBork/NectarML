@@ -15,6 +15,7 @@ namespace nectar {
     uintptr_t subtract(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t multiply(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t divide(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t negate(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
     uintptr_t sqrt(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t rsqrt(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -52,6 +53,7 @@ namespace nectar {
 
     uintptr_t min(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
 
     uintptr_t copysign(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
 
@@ -64,13 +66,17 @@ namespace nectar {
     uintptr_t scalarmin(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 
-    uintptr_t equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
-    uintptr_t less_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
-    uintptr_t less_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
-    uintptr_t greater_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
-    uintptr_t greater_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t eq_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t lt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t le_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t gt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t ge_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 
-    uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
+    uintptr_t eq_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t lt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t le_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t gt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t ge_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
 }
 
 void register_elementwise(py::module_& m) {
@@ -141,6 +147,12 @@ void register_elementwise(py::module_& m) {
         py::arg("n_elements"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
+
+    m.def("negate", &nectar::negate, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Negates tensor data x and returns as new tensor data.");
 
     /* SQRT */
 
@@ -399,40 +411,75 @@ void register_elementwise(py::module_& m) {
 
     /* MASKING */
 
-    m.def("equal_mask", &nectar::equal_mask, 
+    m.def("eq_mask_scalar", &nectar::eq_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data == value, otherwise 0.0.");
 
-    m.def("less_than_mask", &nectar::less_than_mask, 
+    m.def("lt_mask_scalar", &nectar::lt_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data < value, otherwise 0.0.");
 
-    m.def("less_than_or_equal_mask", &nectar::less_than_or_equal_mask, 
+    m.def("le_mask_scalar", &nectar::le_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data <= value, otherwise 0.0.");
 
-    m.def("greater_than_mask", &nectar::greater_than_mask, 
+    m.def("gt_mask_scalar", &nectar::gt_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data > value, otherwise 0.0.");
 
-    m.def("greater_than_or_equal_mask", &nectar::greater_than_or_equal_mask, 
+    m.def("ge_mask_scalar", &nectar::ge_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data >= value, otherwise 0.0.");
+
+    m.def("eq_mask_tensor", &nectar::eq_mask_tensor, 
+        py::arg("x_ptr"),
+        py::arg("y_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x == tensor data y, otherwise 0.0.");
+
+    m.def("lt_mask_tensor", &nectar::lt_mask_tensor, 
+        py::arg("x_ptr"),
+        py::arg("y_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x < tensor data y, otherwise 0.0.");
+
+    m.def("le_mask_tensor", &nectar::le_mask_tensor, 
+        py::arg("x_ptr"),
+        py::arg("y_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x <= tensor data y, otherwise 0.0.");
+
+    m.def("gt_mask_tensor", &nectar::gt_mask_tensor, 
+        py::arg("x_ptr"),
+        py::arg("y_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x > tensor data y, otherwise 0.0.");
+
+    m.def("ge_mask_tensor", &nectar::ge_mask_tensor, 
+        py::arg("x_ptr"),
+        py::arg("y_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x >= tensor data y, otherwise 0.0.");
 
     /* CLAMP */
 

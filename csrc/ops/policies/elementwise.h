@@ -114,6 +114,11 @@ struct ElemWiseCopysignOp {
 /* MATH (1 TENSOR) */
 
 template<typename T>
+struct ElemWiseNegateOp {
+    __device__ static T operation(T x) { return static_cast<T>(-static_cast<float>(x)); }
+};
+
+template<typename T>
 struct ElemWiseSqrtOp {
     __device__ static T operation(T x) { return static_cast<T>(sqrtf(static_cast<float>(x))); }
 };
@@ -284,37 +289,72 @@ struct ElemWiseScalarMaxOp {
 /* MASKING */
 
 template<typename T>
-struct ElemWiseEqMaskkOp {
+struct ElemWiseScalarEqMaskkOp {
     __device__ static T operation(T x, float value) {
         return static_cast<T>(static_cast<float>(x) == value ? 1.0 : 0.0);
     }
 };
 
 template<typename T>
-struct ElemWiseLtMaskOp {
+struct ElemWiseScalarLtMaskOp {
     __device__ static T operation(T x, float value) {
         return static_cast<T>(static_cast<float>(x) < value ? 1.0 : 0.0);
     }
 };
 
 template<typename T>
-struct ElemWiseLeMaskOp {
+struct ElemWiseScalarLeMaskOp {
     __device__ static T operation(T x, float value) {
         return static_cast<T>(static_cast<float>(x) <= value ? 1.0 : 0.0);
     }
 };
 
 template<typename T>
-struct ElemWiseGtMaskOp {
+struct ElemWiseScalarGtMaskOp {
     __device__ static T operation(T x, float value) {
         return static_cast<T>(static_cast<float>(x) > value ? 1.0 : 0.0);
     }
 };
 
 template<typename T>
-struct ElemWiseGeMaskOp {
+struct ElemWiseScalarGeMaskOp {
     __device__ static T operation(T x, float value) {
         return static_cast<T>(static_cast<float>(x) >= value ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseTensorEqMaskkOp {
+    __device__ static T operation(T x, T y) {
+        return static_cast<T>(static_cast<float>(x) == static_cast<float>(y) ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseTensorLtMaskOp {
+    __device__ static T operation(T x, T y) {
+        return static_cast<T>(static_cast<float>(x) < static_cast<float>(y) ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseTensorLeMaskOp {
+    __device__ static T operation(T x, T y) {
+        return static_cast<T>(static_cast<float>(x) <= static_cast<float>(y) ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseTensorGtMaskOp {
+    __device__ static T operation(T x, T y) {
+        return static_cast<T>(static_cast<float>(x) > static_cast<float>(y) ? 1.0 : 0.0);
+    }
+};
+
+template<typename T>
+struct ElemWiseTensorGeMaskOp {
+    __device__ static T operation(T x, T y) {
+        return static_cast<T>(static_cast<float>(x) >= static_cast<float>(y) ? 1.0 : 0.0);
     }
 };
 

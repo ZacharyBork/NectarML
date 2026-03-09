@@ -127,6 +127,10 @@ namespace nectar {
         return call_elemwise_2tensor<ElemWiseDivOp>(a_ptr, b_ptr, n_elements, dtype);
     }
 
+    uintptr_t negate(uintptr_t a_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_1tensor<ElemWiseNegateOp>(a_ptr, n_elements, dtype);
+    }
+
     /* SQRT */
 
     uintptr_t sqrt(uintptr_t x_ptr, size_t n_elements, DType dtype) {
@@ -254,6 +258,24 @@ namespace nectar {
         return call_elemwise_2tensor<ElemWiseMaxOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
+    uintptr_t clamp(
+        uintptr_t base_ptr,
+        float min_value, 
+        float max_value,
+        size_t n_elements, 
+        DType dtype
+    ) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, n_elements * sizeof(T));
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMaxOp>(
+                reinterpret_cast<T*>(base_ptr), d_out, min_value, n_elements);
+            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMinOp>(
+                d_out, d_out, max_value, n_elements);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
     /* COPYSIGN */
 
     uintptr_t copysign(uintptr_t y_ptr, uintptr_t x_ptr, size_t n_elements, DType dtype) {
@@ -294,47 +316,46 @@ namespace nectar {
 
     /* MASKING */
 
-    uintptr_t equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseEqMaskkOp>(base_ptr, value, n_elements, dtype);
+    uintptr_t eq_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarEqMaskkOp>(base_ptr, value, n_elements, dtype);
     }
 
-    uintptr_t less_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseLtMaskOp>(base_ptr, value, n_elements, dtype);
+    uintptr_t lt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarLtMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
-    uintptr_t less_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseLeMaskOp>(base_ptr, value, n_elements, dtype);
+    uintptr_t le_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarLeMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
-    uintptr_t greater_than_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseGtMaskOp>(base_ptr, value, n_elements, dtype);
+    uintptr_t gt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarGtMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
-    uintptr_t greater_than_or_equal_mask(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseGeMaskOp>(base_ptr, value, n_elements, dtype);
+    uintptr_t ge_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarGeMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
-    /* CLAMP */
-
-    template<template<typename> class Op>
-    uintptr_t clamp(
-        uintptr_t base_ptr,
-        float min_value, 
-        float max_value,
-        size_t n_elements, 
-        DType dtype
-    ) {
-        DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMaxOp>(
-                reinterpret_cast<T*>(base_ptr), d_out, min_value, n_elements);
-            launch_elementwise_math_tensorscalar<T, ElemWiseScalarMinOp>(
-                d_out, d_out, max_value, n_elements);
-            return reinterpret_cast<uintptr_t>(d_out);
-        });
+    uintptr_t eq_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseTensorEqMaskkOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
+    uintptr_t lt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseTensorLtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+    }
+
+    uintptr_t le_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseTensorLeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+    }
+
+    uintptr_t gt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseTensorGtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+    }
+
+    uintptr_t ge_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseTensorGeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+    }
+    
 }
 
 

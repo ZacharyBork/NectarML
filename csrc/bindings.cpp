@@ -6,6 +6,7 @@
 #include "bindings/vision.h"
 #include "bindings/reductions.h"
 #include "bindings/combination.h"
+#include "bindings/shapes.h"
 
 namespace py = pybind11;
 
@@ -26,4 +27,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_vision(m);
     register_reductions(m);
     register_combination(m);
+    register_shapes(m);
 }

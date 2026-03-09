@@ -97,6 +97,31 @@ struct ConcatInputs {
     int n_inputs;
 };
 
+/* PERMUTATION */
+
+#define MAX_PERMUTE_DIMS 6
+
+struct Permutation {
+    int dims[MAX_PERMUTE_DIMS];
+    int ndim;
+    
+    __host__ __device__ Permutation() : ndim(0) {
+        for (int i = 0; i < MAX_PERMUTE_DIMS; i++) dims[i] = 0;
+    }
+    
+    __host__ __device__ Permutation(const int* dims_, int ndim_) : ndim(ndim_) {
+        for (int i = 0; i < ndim; i++) dims[i] = dims_[i];
+    }
+    
+    __host__ __device__ Permutation inverse() const {
+        Permutation inv;
+        inv.ndim = ndim;
+        for (int i = 0; i < ndim; i++)
+            inv.dims[dims[i]] = i;
+        return inv;
+    }
+};
+
 /* GLOBAL FUNCTIONS */
 
 constexpr int nextPow2(int n) {

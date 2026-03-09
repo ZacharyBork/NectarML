@@ -9,6 +9,21 @@ from nectarml import typing
 import nectarml.cuda as cuda
 import nectarml._core as _core
 
+class CudaBuffer():
+    def __init__(self, ptr: int, dtype: typing.DTypeLike) -> None:
+        self.ptr = ptr
+        self.dtype = dtype
+        self._ref_count = 1
+        
+    def increment(self) -> CudaBuffer:
+        self._ref_count += 1
+        return self
+        
+    def decrement(self) -> None:
+        self._ref_count -= 1
+        if self._ref_count == 0:
+            cuda.free_cuda(self.ptr)
+
 class Tensor():
     def __init__(
         self,
@@ -23,7 +38,7 @@ class Tensor():
         self._dtype = dtype
         
         self.data: np.ndarray | None = None
-        self._data_ptr: int | None = None
+        self._buffer: CudaBuffer | None = None
         self._init_tensor(data, shape)       
         
         self.grad: Tensor | None = None
@@ -48,15 +63,19 @@ class Tensor():
                     raise ValueError(
                         'Unable to init CUDA Tensor from device pointer '
                         'without explicit shape.')
-                self._data_ptr = data
+                self._buffer = CudaBuffer(data, self.dtype)
                 self.shape = shape
             else: 
                 self.data = np.array(data, dtype=self.dtype)
                 self.shape = self.data.shape
-                self._data_ptr = cuda.to_cuda(self)
+                self._buffer = CudaBuffer(cuda.to_cuda(self), self.dtype)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
     ### PROPERTIES ###
+      
+    @property
+    def _data_ptr(self) -> int:
+        return self._buffer.ptr
       
     @property
     def dtype(self) -> int:
@@ -241,18 +260,21 @@ class Tensor():
     ### GARBAGE COLLECTION ###
     
     def __del__(self) -> None:
-        if self.device == 'cuda' and self._data_ptr is not None:
-            cuda.free_cuda(self._data_ptr)
+        if self.device == 'cuda' and self._buffer is not None:
+            self._buffer.decrement()
     
     ### MASKING ###
     
-    def scalar_mask(
+    def mask(
         self, 
-        value: float, 
+        value: Tensor | float, 
         op: Literal['eq', 'lt', 'le', 'gt', 'ge']
     ) -> Tensor:
         mod = cuda if self.device == 'cuda' else _core
         input = self if self.device == 'cuda' else self.data
+        value = value.data if isinstance(value, Tensor) and not \
+            self.device == 'cuda' else value
+        
         match op:
             case 'eq': fn = mod.masking.eq_mask
             case 'lt': fn = mod.masking.lt_mask
@@ -260,6 +282,7 @@ class Tensor():
             case 'gt': fn = mod.masking.gt_mask
             case 'ge': fn = mod.masking.ge_mask
             case _: raise ValueError(f'Invalid masking operation: {op}')
+            
         return Tensor(fn(input, value), self.shape, self.dtype, self.device)
     
     ### COMPARISON ###
@@ -320,16 +343,14 @@ class Tensor():
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
-        if self.device == 'cuda':
-            out_data = cuda.math.add(self, other)
-            _backward = lambda grad: grad
-        else: 
-            out_data = _core.math.add(self.data, other.data)
-            def _backward(out_grad: Tensor) -> None:
-                if self_requires_grad: self.grad += out_grad
-                if other_requires_grad: other.grad += out_grad
-                
+        if self.device == 'cuda': out_data = cuda.math.add(self, other)
+        else: out_data = _core.math.add(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
+        
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out.grad
+            if other_requires_grad: other.grad += out.grad
+                
         out._backward = lambda : _backward(out.grad)
         return out
     
@@ -343,16 +364,14 @@ class Tensor():
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
-        if self.device == 'cuda':
-            out_data = cuda.math.subtract(self, other)
-            _backward = lambda grad: grad
-        else: 
-            out_data = _core.math.subtract(self.data, other.data)
-            def _backward(out_grad: Tensor) -> None:
-                if self_requires_grad: self.grad += out_grad
-                if other_requires_grad: other.grad += out_grad
-
+        if self.device == 'cuda': out_data = cuda.math.subtract(self, other)   
+        else: out_data = _core.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
+        
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out.grad
+            if other_requires_grad: other.grad += out.grad
+
         out._backward = lambda : _backward(out.grad)
         return out
     
@@ -361,11 +380,16 @@ class Tensor():
     
     def __neg__(self) -> Tensor:
         self._bool_type_check('Tensor.__neg__()')
-        out_data, _backward = _core.math.negate(self.data)
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':out_data = cuda.math.negate(self)
+        else: out_data = _core.math.negate(self.data)
         out = self._build_output_tensor(out_data, (self,))
-        def _backward_hook():
-            if self.requires_grad: self.grad += _backward(out.grad)
-        out._backward = _backward_hook
+
+        def _backward() -> None:
+            if self_requires_grad: self.grad += -out.grad
+
+        out._backward = _backward
         return out
 
     def __mul__(self, other: Tensor | int | float) -> Tensor:
@@ -374,16 +398,14 @@ class Tensor():
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
-        if self.device == 'cuda':
-            out_data = cuda.math.multiply(self, other)
-            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
-        else: 
-            out_data = _core.math.multiply(self.data, other.data)
-            def _backward(out_grad: Tensor) -> None:
-                if self_requires_grad: self.grad += other.grad * out_grad
-                if other_requires_grad: other.grad += self.grad * out_grad
-        
+        if self.device == 'cuda': out_data = cuda.math.multiply(self, other)
+        else: out_data = _core.math.multiply(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
+        
+        def _backward() -> None:
+            if self_requires_grad: self.grad += other.grad * out.grad
+            if other_requires_grad: other.grad += self.grad * out.grad
+        
         out._backward = lambda : _backward(out.grad)
         return out
     
@@ -414,16 +436,14 @@ class Tensor():
         self._bool_type_check('Tensor.__pow__()')
         self_requires_grad = self.requires_grad
         
-        if self.device == 'cuda':
-            out_data = cuda.math.pow(self, exponent)
-            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
-        else: 
-            out_data = _core.math.pow(self.data, exponent)
-            def _backward(out_grad: Tensor) -> None:
-                if self_requires_grad: 
-                    self.grad += exponent * (self**(exponent-1)) * out_grad
-        
+        if self.device == 'cuda': out_data = cuda.math.pow(self, exponent)
+        else: out_data = _core.math.pow(self.data, exponent)
         out = self._build_output_tensor(out_data, (self,))
+        
+        def _backward() -> None:
+            if self_requires_grad: 
+                self.grad += exponent * (self**(exponent-1)) * out.grad
+        
         out._backward = lambda : _backward(out.grad)
         return out
     
@@ -456,6 +476,47 @@ class Tensor():
         return out
     
     ### CLAMP ###
+    
+    def minimum(self, other: Tensor | float | int) -> Tensor:
+        other, children = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.minimum()', other)
+        
+        self_requires_grad = self.requires_grad
+        other_requires_grad = other.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.minimum(self, other)
+        else: out_data = _core.math.minimum(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
+        
+        def _backward() -> None:
+            if self_requires_grad: 
+                self.grad += self.mask(other, 'le') * out.grad
+            if other_requires_grad:
+                other.grad += other.mask(self, 'lt') * out.grad
+        
+        out._backward = _backward
+        return out
+        
+    
+    def maximum(self, other: Tensor | float | int) -> Tensor:
+        other, children = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.maximum()', other)
+        
+        self_requires_grad = self.requires_grad
+        other_requires_grad = other.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.maximum(self, other)
+        else: out_data = _core.math.maximum(self.data, other.data)
+        out = self._build_output_tensor(out_data, children)
+        
+        def _backward() -> None:
+            if self_requires_grad: 
+                self.grad += self.mask(other, 'ge') * out.grad
+            if other_requires_grad:
+                other.grad += other.mask(self, 'gt') * out.grad
+        
+        out._backward = _backward
+        return out
     
     def clamp(
         self, 
@@ -939,35 +1000,99 @@ class Tensor():
     ### RESHAPING ###
     
     def reshape(self, shape: tuple[int, ...]) -> Tensor:
-        return self._eval_core_function(
-            lambda x : _core.shapes.reshape(x, shape))
+        self_requires_grad = self.requires_grad
+        original_shape = self.shape
         
-    def flatten(self) -> Tensor:
-        return self._eval_core_function(_core.shapes.flatten)
-    
-    def squeeze(self, dim: int | tuple[int, ...] | None) -> Tensor: 
-        return self._eval_core_function(
-            lambda x : _core.shapes.squeeze(x, dim))
-    
-    def unsqueeze(self, dim: int | tuple[int, ...]) -> Tensor:
-        return self._eval_core_function(
-            lambda x : _core.shapes.unsqueeze(x, dim))
+        if self.device == 'cuda':
+            out = Tensor(
+                self._data_ptr, shape, self.dtype, 
+                self.device, self.requires_grad, _children=(self,))
+            self._buffer = out._buffer.increment()
+        else:
+            out = Tensor(
+                _core.shapes.reshape(self.data, shape), shape, self.dtype, 
+                self.device, self.requires_grad, _children=(self,))
         
-    def transpose(self, dims: Sequence[int] | None) -> Tensor:
-        return self._eval_core_function(
-            lambda x : _core.shapes.transpose(x, dims))
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad.reshape(original_shape)
+                
+        out._backward = _backward
+        return out
+        
+    def flatten(self, start_dim: int = 0, end_dim: int = -1) -> Tensor:
+        end_dim = end_dim if end_dim >= 0 else self.ndim + end_dim
+        new_shape = (
+            self.shape[:start_dim]
+          + (int(np.prod(self.shape[start_dim:end_dim+1])),)
+          + self.shape[end_dim+1:])
+        return self.reshape(new_shape)
+        
+    def squeeze(self, dim: int | None = None) -> Tensor:
+        if dim is None: new_shape = tuple(s for s in self.shape if s != 1)
+        else:
+            if self.shape[dim] != 1: return self 
+            new_shape = self.shape[:dim] + self.shape[dim+1:]
+        return self.reshape(new_shape)
+
+    def unsqueeze(self, dim: int) -> Tensor:
+        dim = dim if dim >= 0 else self.ndim + dim + 1
+        new_shape = self.shape[:dim] + (1,) + self.shape[dim:]
+        return self.reshape(new_shape)
+            
+    def permute(self, dims: tuple[int, ...] | None) -> Tensor:
+        self_requires_grad = self.requires_grad
+    
+        if self.device == 'cuda': out_data = cuda.shapes.permute(self, dims)
+        else: out_data = _core.shapes.permute(self.data, dims) 
+        out_shape = tuple(self.shape[d] for d in dims)
+        out = Tensor(out_data, out_shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+        
+        inv_dims = [0] * len(dims)
+        for i, d in enumerate(dims): inv_dims[d] = i
+        inv_dims = tuple(inv_dims)
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad.permute(inv_dims)
+        
+        out._backward = _backward
+        return out
+
+    def transpose(self, dim1: int, dim2: int) -> Tensor:
+        dims = list(range(self.ndim))
+        dims[dim1], dims[dim2] = dims[dim2], dims[dim1]
+        return self.permute(tuple(dims))
 
     def swapdims(self, dim1: int, dim2: int) -> Tensor: 
-        return self._eval_core_function(
-            lambda x : _core.shapes.swapdims(x, dim1, dim2))
-        
-    def permute(self, dims: Sequence[int] | None) -> Tensor:
-        return self._eval_core_function(
-            lambda x : _core.shapes.permute(x, dims))
+        return self.transpose(dim1, dim2)
 
     def expand(self, shape: tuple[int, ...]) -> Tensor:
-        return self._eval_core_function(
-            lambda x : _core.shapes.expand(x, shape))
+        assert len(shape) == self.ndim, \
+            f'expand target shape must have same ndim as input'
+        assert all(t == s or s == 1 for s, t in zip(self.shape, shape)), \
+            f'expand can only expand size-1 dimensions'
+        
+        self_requires_grad = self.requires_grad
+        original_shape = self.shape
+
+        if self.device == 'cuda': out_data = cuda.shape.expand(self, shape)
+        else: out_data = _core.shapes.expand(self.data, shape).copy()
+        out = Tensor(out_data, shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if self_requires_grad:
+                grad = out.grad
+                s = zip(original_shape, shape)
+                for i, (in_dim, out_dim) in enumerate(s):
+                    if in_dim == 1 and out_dim != 1:
+                        grad = grad.sum(dim=i, keepdims=True)
+                self.grad += grad
+
+        out._backward = _backward
+        return out
 
     def broadcast_to(self, shape: tuple[int, ...]) -> Tensor:
         return self.expand(shape)

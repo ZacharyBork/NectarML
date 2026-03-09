@@ -6,23 +6,38 @@ if TYPE_CHECKING:
 import _nectarml
 from nectarml.cuda.utils import map_dtype
 
-def eq_mask(a: Tensor, value: float) -> int:
-    return _nectarml.equal_mask(
-        a._data_ptr, value, a.size, map_dtype(a.dtype))
+def eq_mask(a: Tensor, b: Tensor | float) -> int:
+    _dtype = map_dtype(a.dtype)
+    if isinstance(b, Tensor):
+        return _nectarml.eq_mask_tensor(
+            a._data_ptr, b._data_ptr, a.size, _dtype)
+    return _nectarml.eq_mask_scalar(a._data_ptr, b, a.size, _dtype)
     
-def lt_mask(a: Tensor, value: float) -> int:
-    return _nectarml.less_than_mask(
-        a._data_ptr, value, a.size, map_dtype(a.dtype))
+def lt_mask(a: Tensor, b: Tensor | float) -> int:
+    _dtype = map_dtype(a.dtype)
+    if isinstance(b, Tensor):
+        return _nectarml.lt_mask_tensor(
+            a._data_ptr, b._data_ptr, a.size, _dtype)
+    return _nectarml.lt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def le_mask(a: Tensor, value: float) -> int:
-    return _nectarml.less_than_or_equal_mask(
-        a._data_ptr, value, a.size, map_dtype(a.dtype))
+def le_mask(a: Tensor, b: Tensor | float) -> int:
+    _dtype = map_dtype(a.dtype)
+    if isinstance(b, Tensor):
+        return _nectarml.le_mask_tensor(
+            a._data_ptr, b._data_ptr, a.size, _dtype)
+    return _nectarml.le_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def gt_mask(a: Tensor, value: float) -> int:
-    return _nectarml.greater_than_mask(
-        a._data_ptr, value, a.size, map_dtype(a.dtype))
+def gt_mask(a: Tensor, b: Tensor | float) -> int:
+    _dtype = map_dtype(a.dtype)
+    if isinstance(b, Tensor):
+        return _nectarml.gt_mask_tensor(
+            a._data_ptr, b._data_ptr, a.size, _dtype)
+    return _nectarml.gt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def ge_mask(a: Tensor, value: float) -> int:
-    return _nectarml.greater_than_or_equal_mask(
-        a._data_ptr, value, a.size, map_dtype(a.dtype))
+def ge_mask(a: Tensor, b: Tensor | float) -> int:
+    _dtype = map_dtype(a.dtype)
+    if isinstance(b, Tensor):
+        return _nectarml.ge_mask_tensor(
+            a._data_ptr, b._data_ptr, a.size, _dtype)
+    return _nectarml.ge_mask_scalar(a._data_ptr, b, a.size, _dtype)
 

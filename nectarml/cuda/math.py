@@ -47,6 +47,9 @@ def divide(a: Tensor, b: Tensor) -> int:
     return _nectarml.divide(
         a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
 
+def negate(x: Tensor) -> int:
+    return _nectarml.negate(x._data_ptr, x.size, map_dtype(x.dtype))
+
 ### SQRT ###
 
 def sqrt(x: Tensor) -> int:
@@ -143,11 +146,17 @@ def fmod(x: Tensor, y: Tensor) -> int:
 
 ### MIN / MAX ###
 
-def min(x: Tensor, y: Tensor) -> int:
+def minimum(x: Tensor, y: Tensor) -> int:
     return _nectarml.min(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
 
-def max(x: Tensor, y: Tensor) -> int:
+def maximum(x: Tensor, y: Tensor) -> int:
     return _nectarml.max(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
+
+def clamp(x: Tensor, min_value: float | None, max_value: float | None) -> int:
+    min_value = min_value or FLOAT_MIN
+    max_value = max_value or FLOAT_MAX
+    return _nectarml.clamp(
+        x._data_ptr, min_value, max_value, x.size, map_dtype(x.dtype))
 
 ### COPYSIGN ###
 
@@ -160,11 +169,4 @@ def copysign(x: Tensor, y: Tensor) -> int:
 def trunc(x: Tensor) -> int:
     return _nectarml.trunc(x._data_ptr, x.size, map_dtype(x.dtype))
 
-### CLAMP ###
-
-def clamp(x: Tensor, min_value: float | None, max_value: float | None) -> int:
-    min_value = min_value or FLOAT_MIN
-    max_value = max_value or FLOAT_MAX
-    return _nectarml.clamp(
-        x._data_ptr, min_value, max_value, x.size, map_dtype(x.dtype))
 
