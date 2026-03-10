@@ -1,6 +1,4 @@
 from nectarml.tensor import Tensor
-from nectarml.functional.common import _eval_core_function
-from nectarml._core import math
   
 ### BASIC ###
   
@@ -23,52 +21,79 @@ def negate(a: Tensor) -> Tensor:
     return -a
   
 ### OTHER ###
+
+def clamp(
+    a: Tensor, 
+    min_value: float | None = None, 
+    max_value: float | None = None
+) -> Tensor:
+    return a.clamp(min_value=min_value, max_value=max_value)
   
-def minimum(a: Tensor, b: Tensor) -> Tensor:
-    out_data, _backward = math.minimum(a.data, b.data)
-    out = Tensor(out_data, out_data.shape, a.dtype, a.device,
-        a.requires_grad, _children=(a, b))
-    def _backward_hook():
-        a_grad, b_grad = _backward(out.grad)
-        if a.requires_grad: a.grad += a_grad
-        if b.requires_grad: b.grad += b_grad
-    out._backward = _backward_hook
-    return out
+def minimum(a: Tensor, b: Tensor) -> Tensor: 
+    return a.minimum(b)
 
-def maximum(a: Tensor, b: Tensor) -> Tensor:
-    out_data, _backward = math.maximum(a.data, b.data)
-    out = Tensor(out_data, out_data.shape, a.dtype, a.device,
-        a.requires_grad, _children=(a, b))
-    def _backward_hook():
-        a_grad, b_grad = _backward(out.grad)
-        if a.requires_grad: a.grad += a_grad
-        if b.requires_grad: b.grad += b_grad
-    out._backward = _backward_hook
-    return out
+def maximum(a: Tensor, b: Tensor) -> Tensor: 
+    return a.maximum(b)
   
-def abs(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.abs)
+def abs(input: Tensor) -> Tensor: 
+    return input.abs()
 
-def exp(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.exp)
+def exp(input: Tensor) -> Tensor: 
+    return input.exp()
 
-def log(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.log)
+def log(input: Tensor) -> Tensor: 
+    return input.log()
 
-def sqrt(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.sqrt)
+def log2(input: Tensor) -> Tensor: 
+    return input.log2()
+
+def log10(input: Tensor) -> Tensor: 
+    return input.log10()
+
+def sqrt(input: Tensor) -> Tensor: 
+    return input.sqrt()
+
+def rsqrt(input: Tensor) -> Tensor: 
+    return input.rsqrt()
 
 def sin(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.sin)
+    return input.sin()
+
+def asin(input: Tensor) -> Tensor:
+    return input.asin()
+
+def sinh(input: Tensor) -> Tensor:
+    return input.sinh()
+
+def asinh(input: Tensor) -> Tensor:
+    return input.asinh()
 
 def cos(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.cos)
+    return input.cos()
+
+def acos(input: Tensor) -> Tensor:
+    return input.acos()
 
 def cosh(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.cosh)
+    return input.cosh()
+
+def acosh(input: Tensor) -> Tensor:
+    return input.acosh()
+
+def tan(input: Tensor) -> Tensor:
+    return input.tan()
 
 def tanh(input: Tensor) -> Tensor:
-    return _eval_core_function(input, math.tanh)
+    return input.tanh()
+
+def atan(input: Tensor) -> Tensor:
+    return input.atan()
+
+def atanh(input: Tensor) -> Tensor:
+    return input.atanh()
+
+def atan2(y: Tensor, x: Tensor) -> Tensor:
+    return x.atan2(y)
 
 def sigmoid(input: Tensor) -> Tensor:
     return (exp(-input) + 1) ** -1
