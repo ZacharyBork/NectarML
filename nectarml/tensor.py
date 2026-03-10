@@ -9,7 +9,7 @@ from nectarml import typing
 import nectarml.cuda as cuda
 import nectarml._core as _core
 
-class CudaBuffer():
+class CudaBuffer:
     def __init__(self, ptr: int, dtype: typing.DTypeLike) -> None:
         self.ptr = ptr
         self.dtype = dtype
@@ -29,7 +29,7 @@ class Tensor():
     def __init__(
         self,
         data: Any,
-        shape: tuple[int, ...] | None = None,
+        shape: typing.Size | tuple[int, ...] | None = None,
         dtype: typing.DTypeLike = typing.float32,
         device: Literal['cpu', 'cuda'] = 'cpu',
         requires_grad: bool = False,
@@ -37,38 +37,44 @@ class Tensor():
     ) -> None:
         self.device = device
         self._dtype = dtype
-        
-        self.data: np.ndarray | None = None
-        self._buffer: CudaBuffer | None = None
-        self._init_tensor(data, shape)       
-        
-        self.grad: Tensor | None = None
         self.requires_grad = requires_grad
         
-        self._backward = lambda : None
-        self._prev: set[Tensor] = set(_children)
-    
+        self.shape:         typing.Size = None
+        self._device_id:     int | None = None
+        self.data:    np.ndarray | None = None
+        self._buffer: CudaBuffer | None = None
+        self.grad:        Tensor | None = None
+        
+        self._backward: Callable = lambda : None
+        self._prev:  set[Tensor] = set(_children)
+        
+        self._init_tensor(data, shape)       
+        
     ### INIT ###
         
     def _init_tensor(
         self, 
         data: Any,
-        shape: tuple[int, ...] | None = None
+        shape: typing.Size | tuple[int, ...] | None = None
     ) -> None:
         if self.device == 'cpu':
             self.data = np.array(data, dtype=self.dtype)
-            self.shape = shape or self.data.shape
+            self.shape = shape if isinstance(shape, typing.Size) else \
+                typing.Size(shape or self.data.shape)
         elif self.device == 'cuda': 
+            self._device_id = 0 # NEEDS TO BE UPDATED FOR REAL MULTI-GPU ID
             if isinstance(data, int):
                 if shape is None:
                     raise ValueError(
                         'Unable to init CUDA Tensor from device pointer '
                         'without explicit shape.')
                 self._buffer = CudaBuffer(data, self.dtype)
-                self.shape = shape
+                self.shape = shape if isinstance(shape, typing.Size) \
+                    else typing.Size(shape)
             else: 
                 self.data = np.array(data, dtype=self.dtype)
-                self.shape = self.data.shape
+                self.shape = shape if isinstance(shape, typing.Size) else \
+                    typing.Size(shape or self.data.shape)
                 self._buffer = CudaBuffer(cuda.to_cuda(self), self.dtype)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
@@ -84,11 +90,11 @@ class Tensor():
     
     @property
     def ndim(self) -> int:
-        return len(self.shape)
+        return self.shape.ndim
     
     @property
     def size(self) -> int:
-        return np.prod(self.shape)
+        return self.shape.numel()
         
     @property
     def requires_grad(self) -> bool:
@@ -103,7 +109,9 @@ class Tensor():
     ### DATA UTILS ###
     
     def numpy(self) -> np.ndarray:
-        if self.device == 'cuda': return cuda.to_cpu(self)
+        if self.device == 'cuda': 
+            data = cuda.to_cpu(self)
+            return data[0] if len(data) == 1 else data
         return self.data
     
     ### UTILS ###
@@ -244,7 +252,10 @@ class Tensor():
         data_str = np.array2string(
             self.numpy(), separator=', ', precision=4)
         data_str = data_str.replace('\n', '\n' + ' ' * 7)
-        return f'Tensor({data_str}, device=\'{self.device}\')'
+        device_str = f'{self.device}' 
+        if self.device == 'cuda' and self._device_id is not None:
+            device_str = f'{device_str}:{self._device_id}'
+        return f'Tensor({data_str}, device=\'{device_str}\')'
     
     def __repr__(self) -> str:
         return (
@@ -855,8 +866,7 @@ class Tensor():
     
     def sign(self) -> Tensor:
         self._bool_type_check('Tensor.sign()')
-        self_requires_grad = self.requires_grad
-        
+                
         if self.device == 'cuda': out_data = cuda.math.sign(self)
         else: out_data = _core.math.sign(self.data)
         out = self._build_output_tensor(out_data, (self,))
@@ -873,22 +883,6 @@ class Tensor():
     
     ### REDUCTIONS ###
     
-    def _get_reduce_shape(
-        self, 
-        dim: int | tuple[int, ...] | None, 
-        keepdim: bool
-    ) -> tuple[int, ...]:
-        if dim is None: return (1,)
-        
-        out_shape = list(self.shape)
-        if keepdim: out_shape[dim] = 1
-        else: 
-            if dim is not None:
-                if isinstance(dim, (tuple, list)):
-                    for idx, i in enumerate(dim): out_shape.pop(i-idx)
-                else: out_shape.pop(dim)
-        return tuple(out_shape)
-    
     def min(
         self, 
         dim: int | None = None,
@@ -899,11 +893,11 @@ class Tensor():
         
         if self.device == 'cuda':
             data = cuda.reductions.min(self, dim)
-            output_shape = self._get_reduce_shape(dim, keepdim)
+            output_shape = self.shape.reduce(dim, keepdim)
         else:
             data, _backward = _core.reductions.min(
                 self.data, dim, keepdim)
-            output_shape = data.shape
+            output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
@@ -920,11 +914,11 @@ class Tensor():
         
         if self.device == 'cuda':
             data = cuda.reductions.max(self, dim)
-            output_shape = self._get_reduce_shape(dim, keepdim)
+            output_shape = self.shape.reduce(dim, keepdim)
         else:
             data, _backward = _core.reductions.max(
                 self.data, dim, keepdim)
-            output_shape = data.shape
+            output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
@@ -961,15 +955,15 @@ class Tensor():
                 for d in sorted(dim, reverse=True):
                     result = result.mean(d, keepdim=True)
                 if not keepdim:
-                    result.shape = result._get_reduce_shape(dim, keepdim)
+                    result.shape = result.shape.reduce(dim, keepdim)
                 return result
             
             data = cuda.reductions.mean(self, dim)
-            output_shape = self._get_reduce_shape(dim, keepdim)
+            output_shape = self.shape.reduce(dim, keepdim)
         else:
             data, _backward = _core.reductions.mean(
                 self.data, dim, keepdim)
-            output_shape = data.shape
+            output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
@@ -991,15 +985,15 @@ class Tensor():
                 for d in sorted(dim, reverse=True):
                     result = result.sum(d, keepdim=True)
                 if not keepdim:
-                    result.shape = result._get_reduce_shape(dim, keepdim)
+                    result.shape = result.shape.reduce(dim, keepdim)
                 return result
             
             data = cuda.reductions.sum(self, dim, initial)
-            output_shape = self._get_reduce_shape(dim, keepdim)
+            output_shape = self.shape.reduce(dim, keepdim)
         else:
             data, _backward = _core.reductions.sum(
                 self.data, dim, keepdim, initial)
-            output_shape = data.shape
+            output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
@@ -1021,15 +1015,15 @@ class Tensor():
                 for d in sorted(dim, reverse=True):
                     result = result.sum(d, keepdim=True)
                 if not keepdim:
-                    result.shape = result._get_reduce_shape(dim, keepdim)
+                    result.shape = result.shape.reduce(dim, keepdim)
                 return result
             
             data = cuda.reductions.prod(self, dim, initial)
-            output_shape = self._get_reduce_shape(dim, keepdim)
+            output_shape = self.shape.reduce(dim, keepdim)
         else:
             data, _backward = _core.reductions.prod(
                 self.data, dim, keepdim, initial)
-            output_shape = data.shape
+            output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
@@ -1040,7 +1034,7 @@ class Tensor():
     
     def reshape(self, shape: tuple[int, ...]) -> Tensor:
         self_requires_grad = self.requires_grad
-        original_shape = self.shape
+        orig_shape = self.shape
         
         if self.device == 'cuda':
             out = Tensor(
@@ -1054,7 +1048,7 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += out.grad.reshape(original_shape)
+                self.grad += out.grad.reshape(orig_shape)
                 
         out._backward = _backward
         return out
@@ -1110,12 +1104,12 @@ class Tensor():
     def expand(self, shape: tuple[int, ...]) -> Tensor:
         assert len(shape) == self.ndim, \
             f'expand target shape must have same ndim as input'
-        assert all(t == s or s == 1 for s, t in zip(self.shape, shape)), \
+        orig_shape = self.shape
+        assert all(t == s or s == 1 for s, t in zip(orig_shape, shape)), \
             f'expand can only expand size-1 dimensions'
         
         self_requires_grad = self.requires_grad
-        original_shape = self.shape
-
+        
         if self.device == 'cuda': out_data = cuda.shape.expand(self, shape)
         else: out_data = _core.shapes.expand(self.data, shape).copy()
         out = Tensor(out_data, shape, self.dtype, self.device,
@@ -1124,7 +1118,7 @@ class Tensor():
         def _backward() -> None:
             if self_requires_grad:
                 grad = out.grad
-                s = zip(original_shape, shape)
+                s = zip(orig_shape, shape)
                 for i, (in_dim, out_dim) in enumerate(s):
                     if in_dim == 1 and out_dim != 1:
                         grad = grad.sum(dim=i, keepdims=True)
@@ -1144,7 +1138,7 @@ class Tensor():
         if self.device == 'cuda':
             _backward = lambda grad : grad
             data = cuda.combinations.concatenate(inputs, dim)
-            shape = list(self.shape)
+            shape = self.shape
             requires_grad = self.requires_grad
             for i in inputs[1:]: 
                 shape[dim] += list(i.shape)[dim]
@@ -1152,7 +1146,7 @@ class Tensor():
         else:
             data, _backward = _core.combination.concatenate(
                 [t.data for t in inputs], dim=dim)
-            shape = data.shape
+            shape = typing.Size(data.shape)
             requires_grad = self.requires_grad
         
         out = Tensor(data, shape, self.dtype, self.device, 
