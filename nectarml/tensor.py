@@ -980,7 +980,7 @@ class Tensor():
         self, 
         dim: int | tuple[int, ...] | None = None,
         keepdim: bool = False,
-        initial: int | float = 0
+        initial: int | float = 0.0
     ) -> Tensor:
         self._bool_type_check('Tensor.sum()')
         _backward = lambda grad: grad
@@ -994,7 +994,7 @@ class Tensor():
                     result.shape = result._get_reduce_shape(dim, keepdim)
                 return result
             
-            data = cuda.reductions.sum(self, dim)
+            data = cuda.reductions.sum(self, dim, initial)
             output_shape = self._get_reduce_shape(dim, keepdim)
         else:
             data, _backward = _core.reductions.sum(
@@ -1010,11 +1010,31 @@ class Tensor():
         self, 
         dim: int | tuple[int, ...] | None = None,
         keepdim: bool = False,
-        initial: int | float = 1
+        initial: int | float = 1.0
     ) -> Tensor:
         self._bool_type_check('Tensor.prod()')
-        return self._eval_core_function(
-            lambda x : _core.reductions.prod(x, dim, keepdim, initial))
+        _backward = lambda grad: grad
+        
+        if self.device == 'cuda':
+            if isinstance(dim, (tuple, list)):
+                result = self
+                for d in sorted(dim, reverse=True):
+                    result = result.sum(d, keepdim=True)
+                if not keepdim:
+                    result.shape = result._get_reduce_shape(dim, keepdim)
+                return result
+            
+            data = cuda.reductions.prod(self, dim, initial)
+            output_shape = self._get_reduce_shape(dim, keepdim)
+        else:
+            data, _backward = _core.reductions.prod(
+                self.data, dim, keepdim, initial)
+            output_shape = data.shape
+
+        out = Tensor(
+            data, output_shape, self.dtype, self.device, self.requires_grad)
+        out._backward = _backward
+        return out
 
     ### RESHAPING ###
     

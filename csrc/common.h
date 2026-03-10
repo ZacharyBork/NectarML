@@ -166,24 +166,10 @@ __device__ void device_sub(volatile T& a, volatile T b) {
     else { a -= b; }
 }
 
-/* OP POLICIES */
-
 template<typename T>
-struct SumOp {
-    __device__ static void combine(volatile T& a, volatile T b) { device_add(a, b); }
-    __device__ static T identity() { return static_cast<T>(0); }
-};
-
-template<typename T>
-struct MinOp {
-    __device__ static void combine(volatile T& a, volatile T b) { device_min(a, b); }
-    __device__ static T identity() { return max_val<T>(); }
-};
-
-template<typename T>
-struct MaxOp {
-    __device__ static void combine(volatile T& a, volatile T b) { device_max(a, b); }
-    __device__ static T identity() { return min_val<T>(); }
-};
+__device__ void device_prod(volatile T& a, volatile T b) {
+    if constexpr (std::is_same_v<T, half>) { a = __hmul(a, b); } 
+    else { a *= b; }
+}
 
 

@@ -1,12 +1,16 @@
 #include <pybind11/numpy.h>
 #include "common.h"
+#include "ops/policies/reductions.h"
 
 namespace py = pybind11;
 
 /* KERNELS */
 
 template<typename T, template<typename> class Op>
-void launch_reduce(T* in_data, T* out_data, size_t n_elements);
+void launch_reduce(
+    T* in_data, T* out_data, size_t n_elements, 
+    float initial = std::numeric_limits<float>::quiet_NaN()
+);
 
 template<typename SrcT, typename DstT>
 void launch_cast_kernel(SrcT* src, DstT* dst, size_t n_elements);

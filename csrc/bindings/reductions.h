@@ -29,11 +29,21 @@ namespace nectar {
         DType dtype
     );
 
-    uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, DType dtype);
+    uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, float initial, DType dtype);
     uintptr_t reduce_sum_dim(
         uintptr_t in_ptr, 
         std::vector<int> shape,
         int reduce_dim,
+        float initial,
+        DType dtype
+    );
+
+    uintptr_t reduce_prod(uintptr_t in_ptr, size_t n_elements, float initial, DType dtype);
+    uintptr_t reduce_prod_dim(
+        uintptr_t in_ptr, 
+        std::vector<int> shape,
+        int reduce_dim,
+        float initial,
         DType dtype
     );
 }
@@ -82,6 +92,7 @@ void register_reductions(py::module_& m) {
     m.def("reduce_sum", &nectar::reduce_sum, 
         py::arg("in_ptr"),
         py::arg("n_elements"),
+        py::arg("initial"),
         py::arg("dtype"),
         "Performs a global sum reduction on a CUDA tensor.");
 
@@ -89,8 +100,24 @@ void register_reductions(py::module_& m) {
         py::arg("in_ptr"),
         py::arg("shape"),
         py::arg("reduce_dim"),
+        py::arg("initial"),
         py::arg("dtype"),
         "Performs a dimension-wise sum reduction on a CUDA tensor.");
+
+    m.def("reduce_prod", &nectar::reduce_prod, 
+        py::arg("in_ptr"),
+        py::arg("n_elements"),
+        py::arg("initial"),
+        py::arg("dtype"),
+        "Performs a global sum reduction on a CUDA tensor.");
+
+    m.def("reduce_prod_dim", &nectar::reduce_prod_dim, 
+        py::arg("in_ptr"),
+        py::arg("shape"),
+        py::arg("reduce_dim"),
+        py::arg("initial"),
+        py::arg("dtype"),
+        "Performs a dimension-wise product reduction on a CUDA tensor.");
 
 }
 
