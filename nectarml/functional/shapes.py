@@ -1,34 +1,29 @@
-from collections.abc import Sequence
-
 from nectarml.tensor import Tensor
-from nectarml._core import shapes
-from nectarml.functional.common import _eval_core_function
 
 def reshape(input: Tensor, shape: tuple[int, ...]) -> Tensor:
-    return _eval_core_function(input, lambda x : shapes.reshape(x, shape))
+    return input.reshape(shape)
 
-def flatten(input: Tensor) -> Tensor:
-    return _eval_core_function(input, shapes.flatten)
+def flatten(input: Tensor, start_dim: int = 0, end_dim: int = -1) -> Tensor:
+    return input.flatten(start_dim, end_dim)
 
 def squeeze(input: Tensor, dim: int | tuple[int, ...] | None) -> Tensor: 
-    return _eval_core_function(input, lambda x : shapes.squeeze(x, dim))
+    return input.squeeze(dim)
     
 def unsqueeze(input: Tensor, dim: int | tuple[int, ...]) -> Tensor:
-    return _eval_core_function(input, lambda x : shapes.unsqueeze(x, dim))
+    return input.unsqueeze(dim)
 
-def transpose(input: Tensor, dims: Sequence[int] | None) -> Tensor:
-    return _eval_core_function(input, lambda x : shapes.transpose(x, dims))
+def transpose(input: Tensor, dim1: int, dim2: int) -> Tensor:
+    return input.transpose(dim1, dim2)
 
 def swapdims(input: Tensor, dim1: int, dim2: int) -> Tensor: 
-    return _eval_core_function(
-        input, lambda x : shapes.swapdims(x, dim1, dim2))
+    return input.transpose(dim1, dim2)
 
-def permute(input: Tensor, dims: Sequence[int] | None) -> Tensor:
-    return _eval_core_function(input, lambda x : shapes.permute(x, dims))
+def permute(input: Tensor, dims: tuple[int, ...] | None) -> Tensor:
+    return input.permute(dims)
 
 def expand(input: Tensor, shape: tuple[int, ...]) -> Tensor:
-    return _eval_core_function(input, lambda x : shapes.expand(x, shape))
+    return input.expand(shape)
 
 def broadcast_to(input: Tensor, shape: tuple[int, ...]) -> Tensor:
-    return expand(input, shape)
+    return input.expand(shape)
 
