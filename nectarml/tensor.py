@@ -6,6 +6,7 @@ from collections.abc import Sequence, Callable
 import numpy as np
 
 from nectarml import typing
+from nectarml.cuda.memory import CudaBuffer
 import nectarml.cuda as cuda
 import nectarml._core as _core
 
@@ -23,11 +24,11 @@ class Tensor():
         self._dtype = dtype
         self.requires_grad = requires_grad
         
-        self.shape:              typing.Size = None
-        self._device_id:          int | None = None
-        self.data:         np.ndarray | None = None
-        self._buffer: cuda.CudaBuffer | None = None
-        self.grad:             Tensor | None = None
+        self.shape:         typing.Size = None
+        self._device_id:     int | None = None
+        self.data:    np.ndarray | None = None
+        self._buffer: CudaBuffer | None = None
+        self.grad:        Tensor | None = None
         
         self._backward: Callable = lambda : None
         self._prev:  set[Tensor] = set(_children)
@@ -52,14 +53,14 @@ class Tensor():
                     raise ValueError(
                         'Unable to init CUDA Tensor from device pointer '
                         'without explicit shape.')
-                self._buffer = cuda.CudaBuffer(data, self.dtype)
+                self._buffer = CudaBuffer(data, self.dtype)
                 self.shape = shape if isinstance(shape, typing.Size) \
                     else typing.Size(shape)
             else: 
                 self.data = np.array(data, dtype=self.dtype)
                 self.shape = shape if isinstance(shape, typing.Size) else \
                     typing.Size(shape or self.data.shape)
-                self._buffer = cuda.CudaBuffer(cuda.to_cuda(self), self.dtype)
+                self._buffer = CudaBuffer(cuda.to_cuda(self), self.dtype)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
     ### PROPERTIES ###
@@ -160,13 +161,10 @@ class Tensor():
         self.grad = None
 
     def _allocate_grad(self) -> None:
-        grad = np.zeros_like(self.data, dtype=typing.float32)
-        if self.device == 'cuda':
-            self._deallocate_grad()
-            self.grad = Tensor(
-                grad, self.shape, typing.float32, requires_grad=False
-            ).to(self.device)
-        else: self.grad = grad
+        self._deallocate_grad()
+        self.grad = Tensor(np.zeros(self.shape, typing.float32), self.shape, 
+            typing.float32, self.device, requires_grad=False) 
+        if self.device == 'cuda': self.grad = self.grad.cuda()
         
     def backward(self) -> None:
         assert self.ndim == 0 or self.size == 1, \
@@ -879,12 +877,19 @@ class Tensor():
             data = cuda.reductions.min(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data, _backward = _core.reductions.min(
-                self.data, dim, keepdim)
+            data = _core.reductions.min(self.data, dim, keepdim)
             output_shape = typing.Size(data.shape)
-
+            
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
+            
+        def _backward() -> None:
+            min_vals = self.min(dim=dim, keepdim=True)
+            mask = self.mask(min_vals, 'eq')
+            if not keepdim and dim is not None:
+                out.grad = out.grad.expand(shape=dim)
+            self.grad += mask * out.grad.broadcast_to(self.shape)
+        
         out._backward = _backward
         return out
     

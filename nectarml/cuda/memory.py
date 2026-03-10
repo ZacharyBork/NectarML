@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import _nectarml
 from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import map_dtype
@@ -45,3 +47,21 @@ def alloc_cuda_empty(
 ) -> int:
     return _nectarml.alloc_cuda_empty(n_elements, map_dtype(dtype))
 
+### BUFFER ###
+
+class CudaBuffer:
+    def __init__(self, ptr: int, dtype: DTypeLike) -> None:
+        self.ptr = ptr
+        self.dtype = dtype
+        self._ref_count = 1
+        
+    def increment(self) -> CudaBuffer:
+        self._ref_count += 1
+        return self
+        
+    def decrement(self) -> None:
+        self._ref_count -= 1
+        if self._ref_count == 0:
+            if free_cuda is not None: free_cuda(self.ptr)
+            
+            

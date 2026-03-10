@@ -9,23 +9,7 @@ import numpy as np
 
 import _nectarml
 from nectarml.cuda.mapping import DTYPE_MAP
-from nectarml.cuda.memory import free_cuda
 from nectarml.typing import DTypeLike
-
-class CudaBuffer:
-    def __init__(self, ptr: int, dtype: DTypeLike) -> None:
-        self.ptr = ptr
-        self.dtype = dtype
-        self._ref_count = 1
-        
-    def increment(self) -> CudaBuffer:
-        self._ref_count += 1
-        return self
-        
-    def decrement(self) -> None:
-        self._ref_count -= 1
-        if self._ref_count == 0:
-            if free_cuda is not None: free_cuda(self.ptr)
 
 def map_dtype(dtype: DTypeLike) -> Any:
     return DTYPE_MAP[dtype]
