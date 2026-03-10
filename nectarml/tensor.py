@@ -9,22 +9,6 @@ from nectarml import typing
 import nectarml.cuda as cuda
 import nectarml._core as _core
 
-class CudaBuffer:
-    def __init__(self, ptr: int, dtype: typing.DTypeLike) -> None:
-        self.ptr = ptr
-        self.dtype = dtype
-        self._ref_count = 1
-        
-    def increment(self) -> CudaBuffer:
-        self._ref_count += 1
-        return self
-        
-    def decrement(self) -> None:
-        self._ref_count -= 1
-        if self._ref_count == 0:
-            free = cuda.free_cuda
-            if free is not None: free(self.ptr)
-
 class Tensor():
     def __init__(
         self,
@@ -39,11 +23,11 @@ class Tensor():
         self._dtype = dtype
         self.requires_grad = requires_grad
         
-        self.shape:         typing.Size = None
-        self._device_id:     int | None = None
-        self.data:    np.ndarray | None = None
-        self._buffer: CudaBuffer | None = None
-        self.grad:        Tensor | None = None
+        self.shape:              typing.Size = None
+        self._device_id:          int | None = None
+        self.data:         np.ndarray | None = None
+        self._buffer: cuda.CudaBuffer | None = None
+        self.grad:             Tensor | None = None
         
         self._backward: Callable = lambda : None
         self._prev:  set[Tensor] = set(_children)
@@ -68,14 +52,14 @@ class Tensor():
                     raise ValueError(
                         'Unable to init CUDA Tensor from device pointer '
                         'without explicit shape.')
-                self._buffer = CudaBuffer(data, self.dtype)
+                self._buffer = cuda.CudaBuffer(data, self.dtype)
                 self.shape = shape if isinstance(shape, typing.Size) \
                     else typing.Size(shape)
             else: 
                 self.data = np.array(data, dtype=self.dtype)
                 self.shape = shape if isinstance(shape, typing.Size) else \
                     typing.Size(shape or self.data.shape)
-                self._buffer = CudaBuffer(cuda.to_cuda(self), self.dtype)
+                self._buffer = cuda.CudaBuffer(cuda.to_cuda(self), self.dtype)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
     ### PROPERTIES ###
