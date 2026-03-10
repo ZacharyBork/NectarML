@@ -22,7 +22,8 @@ class CudaBuffer():
     def decrement(self) -> None:
         self._ref_count -= 1
         if self._ref_count == 0:
-            cuda.free_cuda(self.ptr)
+            free = cuda.free_cuda
+            if free is not None: free(self.ptr)
 
 class Tensor():
     def __init__(
@@ -415,19 +416,25 @@ class Tensor():
     def __matmul__(self, other: Tensor) -> Tensor:
         self._validate_other(other)
         self._bool_type_check('Tensor.__matmul__()', other)
-        assert other.data.shape == self.data.shape
         if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
         
-        out_data, _backward = _core.math.matmul(self.data, other.data)
+        self_requires_grad = self.requires_grad
+        other_requires_grad = other.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.matmul(self, other)
+        else: out_data = _core.math.matmul(self.data, other.data)
         out = self._build_output_tensor(out_data, (self, other))
         
-        def _backward_hook():
-            a_grad, b_grad = _backward(out.grad)
-            if self.requires_grad: self.grad += a_grad
-            if other.requires_grad: other.grad += b_grad
-            
-        out._backward = _backward_hook
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += cuda.math.matmul(
+                    out.grad, other.transpose(-2, -1))
+            if other_requires_grad:
+                other.grad += cuda.math.matmul(
+                    self.transpose(-2, -1), out.grad)
+        
+        out._backward = _backward
         return out
     
     def __rmatmul__(self, other: Tensor) -> Tensor: return other @ self
@@ -462,14 +469,12 @@ class Tensor():
         self._bool_type_check('Tensor.__abs__()')
         self_requires_grad = self.requires_grad
         
-        if self.device == 'cuda':
-            out_data = cuda.math.abs(self)
-            _backward = lambda grad: grad # NEEDS CUDA BACKPROP
-        else: 
-            out_data = _core.math.abs(self.data)
-            def _backward(out_grad: Tensor) -> None:
-                if self_requires_grad: 
-                    self.grad += np.sign(input) * out_grad # NEEDS Tensor.sign
+        if self.device == 'cuda': out_data = cuda.math.abs(self)
+        else: out_data = _core.math.abs(self.data)
+        
+        def _backward(out_grad: Tensor) -> None:
+            if self_requires_grad: 
+                self.grad += self.sign() * out_grad
         
         out = self._build_output_tensor(out_data, (self,))
         out._backward = lambda : _backward(out.grad)
@@ -843,6 +848,20 @@ class Tensor():
                 denom = denom or (self**2 + out**2).clamp(min_value=1e-7)
                 other.grad += out.grad * self / denom
                 
+        out._backward = _backward
+        return out
+    
+    ### SIGN ###
+    
+    def sign(self) -> Tensor:
+        self._bool_type_check('Tensor.sign()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.sign(self)
+        else: out_data = _core.math.sign(self.data)
+        out = self._build_output_tensor(out_data, (self,))
+
+        def _backward() -> None: pass
         out._backward = _backward
         return out
        

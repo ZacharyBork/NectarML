@@ -144,6 +144,11 @@ void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements) {
     elementwise_math_1tensor_kernel<T, Op><<<grid, block>>>(x, out, n_elements);
 }
 
+template void launch_elementwise_math_1tensor<  float, ElemWiseSignOp>(float*, float*, size_t);
+template void launch_elementwise_math_1tensor<   half, ElemWiseSignOp>(half*, half*, size_t);
+template void launch_elementwise_math_1tensor<uint8_t, ElemWiseSignOp>(uint8_t*, uint8_t*, size_t);
+template void launch_elementwise_math_1tensor<int32_t, ElemWiseSignOp>(int32_t*, int32_t*, size_t);
+
 template void launch_elementwise_math_1tensor<  float, ElemWiseNegateOp>(float*, float*, size_t);
 template void launch_elementwise_math_1tensor<   half, ElemWiseNegateOp>(half*, half*, size_t);
 template void launch_elementwise_math_1tensor<uint8_t, ElemWiseNegateOp>(uint8_t*, uint8_t*, size_t);

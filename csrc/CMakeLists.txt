@@ -18,18 +18,20 @@ find_package(pybind11 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
 # Gather sources
-file(GLOB_RECURSE CPP_SOURCES ops/*.cpp)
-file(GLOB_RECURSE CUDA_SOURCES kernels/*.cu)
+file(GLOB_RECURSE SOURCES "*.cpp" "*.cu")
 
 # Build extension module
 pybind11_add_module(_nectarml
     bindings.cpp
-    ${CPP_SOURCES}
-    ${CUDA_SOURCES}
+    ${SOURCES}
 )
 
 # Link CUDA runtime
 target_link_libraries(_nectarml PRIVATE CUDA::cudart)
+
+# cuBLAS
+find_package(CUDA REQUIRED)
+target_link_libraries(_nectarml PRIVATE cublas)
 
 # Include csrc/ as root for includes
 target_include_directories(_nectarml PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

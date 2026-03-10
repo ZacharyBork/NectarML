@@ -7,8 +7,11 @@
 #include "bindings/reductions.h"
 #include "bindings/combination.h"
 #include "bindings/shapes.h"
+#include "bindings/matmul.h"
 
 namespace py = pybind11;
+
+void destroy_cublas_handle();
 
 PYBIND11_MODULE(_nectarml, m) {
     m.doc() = "NectarML C++ extension module";
@@ -20,6 +23,9 @@ PYBIND11_MODULE(_nectarml, m) {
         .value("Int32",   DType::Int32)
         .value("Bool",    DType::Bool);
 
+    m.def("destroy_cublas_handle", &destroy_cublas_handle, 
+        "Destroys cuBLAS handle. Registered atexit for Python module.");
+
     register_memory(m);
     register_device(m);
     register_utils(m);
@@ -28,4 +34,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_reductions(m);
     register_combination(m);
     register_shapes(m);
+    register_matmul(m);
 }

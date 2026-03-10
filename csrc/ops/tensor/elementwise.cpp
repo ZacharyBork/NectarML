@@ -276,6 +276,12 @@ namespace nectar {
         });
     }
 
+    /* SIGN */
+
+    uintptr_t sign(uintptr_t x_ptr, size_t n_elements, DType dtype) {
+        return call_elemwise_1tensor<ElemWiseSignOp>(x_ptr, n_elements, dtype);
+    }
+
     /* COPYSIGN */
 
     uintptr_t copysign(uintptr_t y_ptr, uintptr_t x_ptr, size_t n_elements, DType dtype) {
@@ -337,23 +343,23 @@ namespace nectar {
     }
 
     uintptr_t eq_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseTensorEqMaskkOp>(x_ptr, y_ptr, n_elements, dtype);
+        return call_elemwise_2tensor<ElemWiseTensorEqMaskkOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
     uintptr_t lt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseTensorLtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+        return call_elemwise_2tensor<ElemWiseTensorLtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
     uintptr_t le_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseTensorLeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+        return call_elemwise_2tensor<ElemWiseTensorLeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
     uintptr_t gt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseTensorGtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+        return call_elemwise_2tensor<ElemWiseTensorGtMaskOp>(x_ptr, y_ptr, n_elements, dtype);
     }
 
     uintptr_t ge_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseTensorGeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
+        return call_elemwise_2tensor<ElemWiseTensorGeMaskOp>(x_ptr, y_ptr, n_elements, dtype);
     }
     
 }

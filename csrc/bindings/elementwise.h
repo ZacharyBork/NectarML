@@ -55,6 +55,8 @@ namespace nectar {
     uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
     uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
 
+    uintptr_t sign(uintptr_t x_ptr, size_t n_elements, DType dtype);
+
     uintptr_t copysign(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
 
     uintptr_t trunc(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -347,6 +349,14 @@ void register_elementwise(py::module_& m) {
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the maximum of x and y and returns as new tensor data.");
+
+    /* SIGN */
+
+    m.def("sign", &nectar::sign, 
+        py::arg("x_ptr"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns new tensor data with value -1 if x < 0.0, else 0.0 if x == 0.0, else 1.0.");
 
     /* COPYSIGN */
 

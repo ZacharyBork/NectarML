@@ -16,19 +16,14 @@ def multiply(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 def pow(a: np.ndarray, exponent: float | int) -> np.ndarray:
     return a ** exponent
 
-def matmul(
-    a: np.ndarray, 
-    b: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]]:
-    out = np.matmul(a, b)
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        a_grad = np.matmul(out_grad, np.swapaxes(b.data, -1, -2))
-        b_grad = np.matmul(np.swapaxes(a.data, -1, -2), out_grad)
-        return a_grad, b_grad
-    return out, _backward
+def matmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.matmul(a, b)
 
 def negate(a: np.ndarray) -> np.ndarray:
     return -a
+
+def sign(a: np.ndarray) -> np.ndarray:
+    return np.sign(a)
 
 ### OTHER ###
 

@@ -6,7 +6,7 @@
 namespace py = pybind11;
 
 namespace nectar {
-    uintptr_t permute(py::list ptrs, std::vector<std::vector<int>> shapes, int dim, DType dtype);
+    uintptr_t permute(uintptr_t in_ptr, std::vector<int> shape, std::vector<int> dims, DType dtype);
     uintptr_t expand(uintptr_t in_ptr, std::vector<int> in_shape, std::vector<int> target_shape, DType dtype);
 }
 

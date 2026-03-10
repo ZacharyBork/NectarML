@@ -7,6 +7,12 @@ import _nectarml
 from nectarml.cuda.utils import map_dtype
 from nectarml.constants import FLOAT_MIN, FLOAT_MAX
 
+### MATRIX MULTIPLICATION ###
+
+def matmul(a: Tensor, b: Tensor) -> int:
+    return _nectarml.matmul(
+        a._data_ptr, b._data_ptr, a.shape, b.shape, map_dtype(a.dtype))
+
 ### COMPARISON ###
 
 def equal(a: Tensor, b: Tensor) -> int:
@@ -157,6 +163,11 @@ def clamp(x: Tensor, min_value: float | None, max_value: float | None) -> int:
     max_value = max_value or FLOAT_MAX
     return _nectarml.clamp(
         x._data_ptr, min_value, max_value, x.size, map_dtype(x.dtype))
+
+### SIGN ###
+
+def sign(x: Tensor) -> int:
+    return _nectarml.sign(x._data_ptr, x.size, map_dtype(x.dtype))
 
 ### COPYSIGN ###
 
