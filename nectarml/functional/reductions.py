@@ -6,55 +6,50 @@ from nectarml._core import reductions
 def min(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False
+    keepdim: bool = False
 ) -> Tensor:
-    return _eval_core_function(
-        input, lambda x : reductions.min(x, dim=dim, keepdims=keepdims))
+    return input.min(dim, keepdim)
 
 def max(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False
+    keepdim: bool = False
 ) -> Tensor:
-    return _eval_core_function(
-        input, lambda x : reductions.max(x, dim=dim, keepdims=keepdims))
+    return input.max(dim, keepdim)
 
 def argmin(
     input: Tensor,
     dim: int | None = None, 
-    keepdims: bool = False
+    keepdim: bool = False
 ) -> ArrayLike:
-    return reductions.argmin(input.data, dim=dim, keepdims=keepdims)
+    return reductions.argmin(input.data, dim=dim, keepdims=keepdim)
     
 def argmax(
     input: Tensor,
     dim: int | None = None, 
-    keepdims: bool = False
+    keepdim: bool = False
 ) -> ArrayLike:
-    return reductions.argmax(input.data, dim=dim, keepdims=keepdims)
+    return reductions.argmax(input.data, dim=dim, keepdims=keepdim)
 
 def mean(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False
+    keepdim: bool = False
 ) -> Tensor:
-    return _eval_core_function(
-        input, lambda x : reductions.mean(x, dim=dim, keepdims=keepdims))
+    return input.mean(dim, keepdim)
 
 def sum(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False,
+    keepdim: bool = False,
     initial: int | float = 0
 ) -> Tensor:
-    return _eval_core_function(
-        input, lambda x : reductions.sum(x, dim, keepdims, initial))
+    return input.sum(dim, keepdim, initial)
 
 def prod(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
-    keepdims: bool = False,
+    keepdim: bool = False,
     initial: int | float = 0
 ) -> Tensor:
-    return _eval_core_function(
-        input, lambda x : reductions.prod(x, dim, keepdims, initial))
+    return input.prod(dim, keepdim, initial)
