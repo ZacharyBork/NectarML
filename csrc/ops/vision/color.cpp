@@ -1,4 +1,3 @@
-#include <pybind11/numpy.h>
 #include "common.h"
 
 namespace py = pybind11;

@@ -1,12 +1,17 @@
 #pragma once
 
-#include <cuda_runtime.h>
-#include <cuda_fp16.h>
 #include <stdint.h>
 #include <stdexcept>
 #include <vector>
 #include <limits>
 #include <type_traits>
+
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
+
+#include <cuda_runtime.h>
+#include <cuda_fp16.h>
 
 /* ALLOCATION CONSTANTS */
 

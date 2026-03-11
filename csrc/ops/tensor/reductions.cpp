@@ -1,4 +1,3 @@
-#include <pybind11/numpy.h>
 #include "common.h"
 #include "ops/policies/reductions.h"
 #include "ops/policies/elementwise.h"
