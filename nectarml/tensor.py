@@ -946,7 +946,7 @@ class Tensor():
         keepdim: bool = False,
     ) -> Tensor:
         self._bool_type_check('Tensor.mean()')
-        _backward = lambda grad: grad
+        self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
             if isinstance(dim, (tuple, list)):
@@ -960,12 +960,23 @@ class Tensor():
             data = cuda.reductions.mean(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data, _backward = _core.reductions.mean(
+            data = _core.reductions.mean(
                 self.data, dim, keepdim)
             output_shape = typing.Size(data.shape)
 
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad)
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                n = 1
+                if dim is None: n = self.size
+                else: n = self.shape[dim]
+                
+                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
+                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                self.grad += grad.expand(self.shape) / n
+        
         out._backward = _backward
         return out
     
@@ -976,7 +987,7 @@ class Tensor():
         initial: int | float = 0.0
     ) -> Tensor:
         self._bool_type_check('Tensor.sum()')
-        _backward = lambda grad: grad
+        self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
             if isinstance(dim, (tuple, list)):
@@ -988,14 +999,19 @@ class Tensor():
                 return result
             
             data = cuda.reductions.sum(self, dim, initial)
-            output_shape = self.shape.reduce(dim, keepdim)
-        else:
-            data, _backward = _core.reductions.sum(
-                self.data, dim, keepdim, initial)
-            output_shape = typing.Size(data.shape)
+        else: data = _core.reductions.sum(self.data, dim, keepdim, initial)
 
+        output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, 
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
+                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                self.grad += grad.expand(self.shape)
+                
         out._backward = _backward
         return out
     
@@ -1006,26 +1022,40 @@ class Tensor():
         initial: int | float = 1.0
     ) -> Tensor:
         self._bool_type_check('Tensor.prod()')
-        _backward = lambda grad: grad
+        self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
             if isinstance(dim, (tuple, list)):
                 result = self
                 for d in sorted(dim, reverse=True):
-                    result = result.sum(d, keepdim=True)
+                    result = result.prod(d, keepdim=True)
                 if not keepdim:
                     result.shape = result.shape.reduce(dim, keepdim)
                 return result
             
             data = cuda.reductions.prod(self, dim, initial)
-            output_shape = self.shape.reduce(dim, keepdim)
-        else:
-            data, _backward = _core.reductions.prod(
-                self.data, dim, keepdim, initial)
-            output_shape = typing.Size(data.shape)
-
+        else: data = _core.reductions.prod(self.data, dim, keepdim, initial)
+        
+        output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, 
+            self.requires_grad, _children=(self,))
+            
+        def _backward() -> None:
+            if self_requires_grad:
+                out_expanded = out if keepdim else out.unsqueeze(dim) \
+                    if dim is not None else out.reshape([1] * self.ndim)
+                grad_expanded = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
+                
+                out_full = out_expanded.expand(self.shape)
+                grad_full = grad_expanded.expand(self.shape)
+                
+                sign = self.mask(0.0, 'ge') - self.mask(0.0, 'lt')
+                safe_self = self.abs().clamp(min_value=1e-7) * sign
+                self.grad += (out_full / safe_self) * grad_full
+        
         out._backward = _backward
         return out
 
