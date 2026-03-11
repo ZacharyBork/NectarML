@@ -7,29 +7,15 @@ def min(
     input: np.ndarray, 
     dim: int | tuple[int, ...] | None = None, 
     keepdims: bool = False
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = input.min(axis=dim, keepdims=keepdims)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        min_vals = input.min(axis=dim, keepdims=True)
-        mask = (input == min_vals).astype(input.dtype)
-        if not keepdims and dim is not None:
-            out_grad = np.expand_dims(out_grad, axis=dim)
-        return mask * np.broadcast_to(out_grad, input.shape)
-    return out, _backward
+) -> np.ndarray:
+    return input.min(axis=dim, keepdims=keepdims)
 
 def max(
     input: np.ndarray, 
     dim: int | tuple[int, ...] | None = None,
     keepdims: bool = False
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = input.max(axis=dim, keepdims=keepdims)
-    def _backward(out_grad: np.ndarray) -> np.ndarray:
-        max_vals = input.max(axis=dim, keepdims=True)
-        mask = (input == max_vals).astype(input.dtype)
-        if not keepdims and dim is not None:
-            out_grad = np.expand_dims(out_grad, axis=dim)
-        return mask * np.broadcast_to(out_grad, input.shape)
-    return out, _backward
+) -> np.ndarray:
+    return input.max(axis=dim, keepdims=keepdims)
 
 def argmin(
     input: np.ndarray,

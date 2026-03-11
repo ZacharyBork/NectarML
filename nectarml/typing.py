@@ -44,7 +44,7 @@ class Size(tuple[int, ...]):
         dim: int | tuple[int, ...] | None, 
         keepdim: bool
     ) -> Size:
-        if dim is None: return Size((1))
+        if dim is None: return Size((1,))
         s = list(self)
         
         if not keepdim: 

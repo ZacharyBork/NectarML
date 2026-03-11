@@ -33,7 +33,8 @@ class Tensor():
         self._backward: Callable = lambda : None
         self._prev:  set[Tensor] = set(_children)
         
-        self._init_tensor(data, shape)       
+        self._init_tensor(data, shape) 
+        if requires_grad: self._allocate_grad()      
         
     ### INIT ###
         
@@ -160,10 +161,10 @@ class Tensor():
     def _deallocate_grad(self) -> None:
         self.grad = None
 
-    def _allocate_grad(self) -> None:
+    def _allocate_grad(self, fill_value: float = 0.0) -> None:
         self._deallocate_grad()
-        self.grad = Tensor(np.zeros(self.shape, typing.float32), self.shape, 
-            typing.float32, self.device, requires_grad=False) 
+        self.grad = Tensor(np.full(self.shape, fill_value, typing.float32), 
+            self.shape, typing.float32, self.device, requires_grad=False) 
         if self.device == 'cuda': self.grad = self.grad.cuda()
         
     def backward(self) -> None:
@@ -182,7 +183,7 @@ class Tensor():
         
         build_graph(self)
         graph.reverse()
-        self._allocate_grad()
+        self._allocate_grad(fill_value=1.0)
         for node in graph: node._backward()
     
     def zero_grad(self) -> None:
@@ -871,24 +872,23 @@ class Tensor():
         keepdim: bool = False
     ) -> Tensor:
         self._bool_type_check('Tensor.min()')
-        _backward = lambda grad: grad
+        self_requires_grad = self.requires_grad
         
-        if self.device == 'cuda':
-            data = cuda.reductions.min(self, dim)
-            output_shape = self.shape.reduce(dim, keepdim)
-        else:
-            data = _core.reductions.min(self.data, dim, keepdim)
-            output_shape = typing.Size(data.shape)
-            
+        if self.device == 'cuda': data = cuda.reductions.min(self, dim)
+        else: data = _core.reductions.min(self.data, dim, keepdim)
+        output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, self.requires_grad,
+            _children=(self,))
             
         def _backward() -> None:
-            min_vals = self.min(dim=dim, keepdim=True)
-            mask = self.mask(min_vals, 'eq')
-            if not keepdim and dim is not None:
-                out.grad = out.grad.expand(shape=dim)
-            self.grad += mask * out.grad.broadcast_to(self.shape)
+            if self_requires_grad:
+                min_vals = out if keepdim else out.unsqueeze(dim) \
+                    if dim is not None else out.reshape([1] * self.ndim)
+                mask = self.mask(min_vals.expand(self.shape), 'eq')
+                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
+                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                self.grad += mask * grad.expand(self.shape)
         
         out._backward = _backward
         return out
@@ -899,18 +899,28 @@ class Tensor():
         keepdim: bool = False
     ) -> Tensor:
         self._bool_type_check('Tensor.max()')
-        _backward = lambda grad: grad
+        self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':
             data = cuda.reductions.max(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data, _backward = _core.reductions.max(
+            data = _core.reductions.max(
                 self.data, dim, keepdim)
             output_shape = typing.Size(data.shape)
-
         out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, self.requires_grad,
+            _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                max_vals = out if keepdim else out.unsqueeze(dim) \
+                    if dim is not None else out.reshape([1] * self.ndim)
+                mask = self.mask(max_vals.expand(self.shape), 'eq')
+                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
+                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                self.grad += mask *  grad.expand(self.shape)
+        
         out._backward = _backward
         return out
 
