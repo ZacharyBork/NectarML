@@ -1,7 +1,5 @@
 from nectarml.tensor import Tensor
 from nectarml.typing import ArrayLike
-from nectarml.functional.common import _eval_core_function
-from nectarml._core import reductions
 
 def min(
     input: Tensor, 
@@ -22,14 +20,14 @@ def argmin(
     dim: int | None = None, 
     keepdim: bool = False
 ) -> ArrayLike:
-    return reductions.argmin(input.data, dim=dim, keepdims=keepdim)
+    return input.argmin(dim, keepdim)
     
 def argmax(
     input: Tensor,
     dim: int | None = None, 
     keepdim: bool = False
 ) -> ArrayLike:
-    return reductions.argmax(input.data, dim=dim, keepdims=keepdim)
+    return input.argmax(dim, keepdim)
 
 def mean(
     input: Tensor, 

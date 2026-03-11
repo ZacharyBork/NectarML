@@ -930,6 +930,9 @@ class Tensor():
         keepdim: bool = False
     ) -> typing.ArrayLike:
         self._bool_type_check('Tensor.argmin()')
+        if self.device == 'cuda':
+            raise RuntimeError(
+                'argmin currently not supported for CUDA tensors.')
         return _core.reductions.argmin(self.data, dim=dim, keepdim=keepdim)
         
     def argmax(
@@ -938,6 +941,9 @@ class Tensor():
         keepdim: bool = False
     ) -> typing.ArrayLike:
         self._bool_type_check('Tensor.argmax()')
+        if self.device == 'cuda':
+            raise RuntimeError(
+                'argmax currently not supported for CUDA tensors.')
         return _core.reductions.argmax(self.data, dim=dim, keepdim=keepdim)
     
     def mean(
