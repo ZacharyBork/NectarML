@@ -28,15 +28,6 @@ void launch_scatter_add(
     T* out_data, int dim
 ); 
 
-
-/*
-- scatter
-- scatter_add
-- where
-- masked_fill
-- index_select
-*/
-
 namespace nectar {
 
     uintptr_t gather(

@@ -1041,7 +1041,7 @@ class Tensor():
                 
                 out_full = out_expanded.expand(self.shape)
                 grad_full = grad_expanded.expand(self.shape)
-                
+
                 sign = (self >= 0.0).to(self.device, self.dtype) \
                      - (self <  0.0).to(self.device, self.dtype)
                 safe_self = self.abs().clamp(min_value=1e-7) * sign
@@ -1184,3 +1184,134 @@ class Tensor():
     def cat(self, inputs: Sequence[Tensor], dim: int = 0) -> Tensor:
         return self.concatenate(inputs, dim)
     
+    
+    ### INDEXING ###
+    
+    def gather(self, dim: int | None, index: Tensor) -> Tensor:
+        assert index.device == self.device, (
+            f'Gather expects input Tensor and index Tensor to be on same '
+            f'device, but found two devices, {self.device} and {index.device}')
+        if index.dtype != typing.int32:
+            index = index.to(index.device, dtype=typing.int32)
+        
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda':
+            out_data = cuda.indexing.gather(self, dim, index)
+        else: out_data = _core.indexing.gather(self.data, dim, index.data)
+        out = Tensor(out_data, index.shape, self.dtype, self.device, 
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                grad = Tensor(
+                    np.zeros(self.shape, typing.float32), 
+                    self.shape, typing.float32, self.device, 
+                    requires_grad=False)
+                self.grad += grad.scatter_add(dim, index, out.grad)
+        
+        out._backward = _backward
+        return out
+
+    def scatter(
+        self, 
+        dim: int, 
+        index: Tensor, 
+        source: Tensor | int | float
+    ) -> Tensor:
+        if not isinstance(source, Tensor):
+            source = Tensor(np.full(index.shape, fill_value=source), 
+                dtype=self.dtype, device=self.device)
+        
+        if not self.device == index.device or not self.device == source.device:
+            _devices = set([self.device, index.device, source.device])
+            raise ValueError(
+                f'Scatter expects all Tensors to be on same device, but found '
+                f'multiple devices: {list(_devices)}')
+        assert self.dtype == source.dtype, \
+            f'Input and source must have the same dtype.'
+        
+        if index.dtype != typing.int32:
+            index = index.to(index.device, dtype=typing.int32)
+            
+        self_requires_grad = self.requires_grad
+        source_requires_grad = source.requires_grad
+        
+        if self.device == 'cuda':
+            out_data = cuda.indexing.scatter(self, index, dim, source)
+        else: out_data = _core.indexing.scatter(
+            self.data, index.data, dim, source.data)
+        out = Tensor(out_data, self.shape, self.dtype, self.device, 
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if source_requires_grad:
+                source.grad += out.grad.gather(dim, index)
+            if self_requires_grad:
+                mask = Tensor(
+                    np.ones(self.shape, typing.float32),
+                    self.shape, typing.float32, self.device,
+                    requires_grad=False)
+                mask = mask.scatter(dim, index, 0.0)
+                self.grad += out.grad * mask             
+            
+        out._backward = _backward
+        return out
+    
+    def scatter_add(
+        self, 
+        dim: int, 
+        index: Tensor, 
+        source: Tensor | int | float
+    ) -> Tensor:
+        assert self.shape == index.shape, \
+            f'Shape of index tensor must match shape of input tensor.'
+        
+        if not isinstance(source, Tensor):
+            source = Tensor(
+                np.full(index.shape, fill_value=source, dtype=self.dtype), 
+                dtype=self.dtype, device=self.device)
+            
+        assert self.dtype == source.dtype, \
+            f'Input and source must have the same dtype.'
+        
+        if not self.device == index.device or not self.device == source.device:
+            _devices = set([self.device, index.device, source.device])
+            raise ValueError(
+                f'Scatter expects all Tensors to be on same device, but found '
+                f'multiple devices: {list(_devices)}')
+        
+        if index.dtype != typing.int32:
+            index = index.to(index.device, dtype=typing.int32)
+
+        self_requires_grad = self.requires_grad
+        source_requires_grad = source.requires_grad
+        
+        if self.device == 'cuda':
+            out_data = cuda.indexing.scatter_add(self, index, dim, source)
+        else: out_data = _core.indexing.scatter_add(
+            self.data, index.data, dim, source.data)
+        out = Tensor(out_data, self.shape, self.dtype, self.device, 
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad: self.grad += out.grad
+            if source_requires_grad: source.grad += out.grad.gather(dim, index)
+        
+        out._backward = _backward
+        return out
+
+    def masked_fill(self, mask: Tensor, value: float) -> Tensor:
+        x = self * 0 + value
+        return x * mask + self * (1 - mask)
+
+    def index_select(self, dim: int, index: Tensor) -> int:
+        idx_shape = [1] * self.ndim
+        idx_shape[dim] = len(index)
+        index = index.reshape(tuple(idx_shape))
+        
+        gather_shape = list(self.shape)
+        gather_shape[dim] = index.shape[dim]
+        index = index.expand(tuple(gather_shape))
+        
+        return self.gather(dim, index)

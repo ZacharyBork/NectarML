@@ -10,58 +10,35 @@ from nectarml import typing
 from nectarml.cuda.utils import map_dtype
 
 def gather(
-    input: Tensor, 
-    indices: Tensor,
-    dim: int | None = None
+    input: Tensor,
+    dim: int | None, 
+    index: Tensor
 ) -> int:
-    assert indices.device == input.device, (
-        f'Gather expects input Tensor and indices Tensor to be on same '
-        f'device, but found two devices, {input.device} and {indices.device}')
-    assert indices.dtype in [typing.int, typing.int32], \
-        f'Indices tensor must have [int | int32] dtype'
-                
     if dim is None: dim = -1
     dim = dim if dim >= 0 else input.ndim + dim
     return _nectarml.gather(
         input._data_ptr, input.shape, 
-        indices._data_ptr, indices.shape, 
+        index._data_ptr, index.shape, 
         dim, map_dtype(input.dtype))
     
 def scatter(
     input: Tensor, 
     dim: int,
-    indices: Tensor,
+    index: Tensor,
     source: Tensor | int | float
 ) -> int:
-    from nectarml import Tensor
-
-    if not isinstance(source, Tensor):
-        source = Tensor(np.full(input.shape, fill_value=source), 
-            dtype=input.dtype, device=input.device)
-    
-    if not input.device == indices.device or not input.device == source.device:
-        _devices = set([input.device, indices.device, source.device])
-        raise ValueError(
-            f'Scatter expects all Tensors to be on same device, but found '
-            f'multiple devices: {list(_devices)}')
-    assert input.dtype == source.dtype, \
-        f'Input and source must have the same dtype.'
-    
-    if indices.dtype != typing.int32:
-        indices = indices.to(indices.device, dtype=typing.int32)
-                
     if dim is None: dim = -1
     dim = dim if dim >= 0 else input.ndim + dim
     return _nectarml.scatter(
         input._data_ptr, input.shape, 
         source._data_ptr, source.shape, 
-        indices._data_ptr, indices.shape, 
+        index._data_ptr, index.shape, 
         dim, map_dtype(input.dtype))
     
 def scatter_add(
     input: Tensor, 
     dim: int,
-    indices: Tensor,
+    index: Tensor,
     source: Tensor | int | float
 ) -> int:
     '''
@@ -69,28 +46,6 @@ def scatter_add(
     atomic operations in CUDA. In this case, results will be cast back to, and 
     returned as uint8_t following the scatter_add operation.
     '''
-    from nectarml import Tensor
-    
-    assert input.shape == indices.shape, \
-        f'Shape of index tensor must match shape of input tensor.'
-    
-    if not isinstance(source, Tensor):
-        source = Tensor(
-            np.full(indices.shape, fill_value=source, dtype=input.dtype), 
-            dtype=input.dtype, device=input.device)
-        
-    assert input.dtype == source.dtype, \
-        f'Input and source must have the same dtype.'
-    
-    if not input.device == indices.device or not input.device == source.device:
-        _devices = set([input.device, indices.device, source.device])
-        raise ValueError(
-            f'Scatter expects all Tensors to be on same device, but found '
-            f'multiple devices: {list(_devices)}')
-    
-    if indices.dtype != typing.int32:
-        indices = indices.to(indices.device, dtype=typing.int32)
-                
     input_was_uint8 = False
     if input.dtype == typing.uint8: 
         input_was_uint8 = True
@@ -102,7 +57,7 @@ def scatter_add(
     output = _nectarml.scatter_add(
         input._data_ptr, input.shape, 
         source._data_ptr, source.shape, 
-        indices._data_ptr, indices.shape, 
+        index._data_ptr, index.shape, 
         dim, map_dtype(input.dtype))
     
     if input_was_uint8: 
@@ -111,5 +66,6 @@ def scatter_add(
     
     return output
 
-
-
+def where(condition: Tensor, x: Tensor, y: Tensor) -> int:
+    mask = condition.to(typing.float32)
+    return (x * mask + y * (1 - mask))._data_ptr
