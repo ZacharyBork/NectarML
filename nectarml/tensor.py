@@ -1470,6 +1470,50 @@ class Tensor():
     def broadcast_to(self: Tensor, shape: tuple[int, ...]) -> Tensor:
         return self.expand(shape)
     
+    ### COMBINATION ###
+    
+    def select(self: Tensor, dim: int, index: int) -> Tensor:
+        idx = tuple(index if i == dim else slice(None) for i in range(self.ndim))
+        return self[idx]
+
+    def unstack(self: Tensor, dim: int = 0) -> list[Tensor]:
+        return [self.select(dim, i) for i in range(self.shape[dim])]
+        
+    def unbind(self: Tensor, dim: int = 0) -> list[Tensor]:
+        return self.unstack(dim)
+        
+    def split(
+        self: Tensor, 
+        split_size: int | list[int], 
+        dim: int = 0
+    ) -> list[Tensor]:
+        if isinstance(split_size, int):
+            indices = range(0, self.shape[dim], split_size)
+            outputs = []
+            for start in indices:
+                idx = []
+                for i in range(self.ndim):
+                    if i != dim: idx.append(slice(None))
+                    else: idx.append(slice(start, start + split_size))
+                outputs.append(self[tuple(idx)])
+            return outputs
+        else:
+            chunks = []
+            start = 0
+            for size in split_size:
+                idx = []
+                for i in range(self.ndim):
+                    if i != dim: idx.append(slice(None))
+                    else: idx.append(slice(start, start + size))
+                chunks.append(self[tuple(idx)])
+                start += size
+            return chunks
+
+    def chunk(self: Tensor, size: int, dim: int = 0) -> list[Tensor]:
+        assert size >= 1
+        chunk_size = int(np.ceil(self.shape[dim] / size))
+        return self.split(chunk_size, dim)
+    
     ### INDEXING ###
     
     def gather(self: Tensor, dim: int | None, index: Tensor) -> Tensor:
