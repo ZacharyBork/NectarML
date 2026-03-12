@@ -66,11 +66,6 @@ def scatter_add(
     
     return output
 
-def where(condition: Tensor, x: Tensor, y: Tensor) -> int:
-    mask = condition.to(typing.float32)
-    return (x * mask + y * (1 - mask))._data_ptr
-
-
 def slice_tensor(input: Tensor, indices: slice | tuple[slice]) -> int:
     if not isinstance(indices, tuple): indices = (indices,)
     _indices = list(indices)

@@ -1473,8 +1473,8 @@ class Tensor():
     ### COMBINATION ###
     
     def select(self: Tensor, dim: int, index: int) -> Tensor:
-        idx = tuple(index if i == dim else slice(None) for i in range(self.ndim))
-        return self[idx]
+        idx = [index if i == dim else slice(None) for i in range(self.ndim)]
+        return self[tuple(idx)]
 
     def unstack(self: Tensor, dim: int = 0) -> list[Tensor]:
         return [self.select(dim, i) for i in range(self.shape[dim])]

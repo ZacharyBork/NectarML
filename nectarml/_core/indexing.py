@@ -28,18 +28,6 @@ def scatter_add(
         np.add.at(out, tuple(idx), src.take(i, axis=dim))
     return out
 
-def where(
-    condition: np.ndarray, 
-    x: np.ndarray, 
-    y: np.ndarray
-) -> tuple[np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    out = np.where(condition, x, y)
-    def _backward(out_grad: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        x_grad = np.where(condition, out_grad, 0)
-        y_grad = np.where(condition, 0, out_grad)
-        return x_grad, y_grad
-    return out, _backward
-
 def masked_fill(
     input: np.ndarray, 
     mask: np.ndarray, 
