@@ -2,7 +2,13 @@
 
 namespace py = pybind11;
 
-uintptr_t cast_tensor(uintptr_t device_ptr, size_t n_elements, DType src_dtype, DType dst_dtype);
+uintptr_t cast_tensor(
+    uintptr_t device_ptr, 
+    size_t n_elements, 
+    DType src_dtype,
+    DType dst_dtype
+);
+
 uintptr_t to_cuda(uintptr_t host_ptr, size_t n_elements, DType dtype);
 py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype);
 

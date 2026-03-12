@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import builtins
 from typing import Any, overload
 
 import numpy as np
@@ -61,7 +63,8 @@ class Size(tuple[int, ...]):
     def __getitem__(self: Size, key: slice) -> Size: ...
 
     def __getitem__(self: Size, key: Any) -> int | Size:
-        if isinstance(key, int): return super().__getitem__(key)
+        if isinstance(key, (builtins.int, np.integer)):
+            return super().__getitem__(key)
         elif isinstance(key, slice):
             x = slice(key.start, key.stop, key.step)
             return Size(super().__getitem__(x))

@@ -14,5 +14,4 @@ def concatenate(
     in_ptrs = [i._data_ptr for i in inputs]
     shapes = [list(i.shape) for i in inputs]
     return _nectarml.concatenate(in_ptrs, shapes, dim, map_dtype(_dtype))
-    
 

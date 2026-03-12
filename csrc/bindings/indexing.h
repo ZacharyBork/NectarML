@@ -25,6 +25,26 @@ namespace nectar {
         uintptr_t indices_ptr, std::vector<int> indices_shape,
         int dim, DType dtype
     );
+
+    uintptr_t slice(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        std::vector<int> start,
+        std::vector<int> stop,
+        std::vector<int> step,
+        DType dtype
+    );
+
+    uintptr_t index_put(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        uintptr_t src_ptr,
+        std::vector<int> src_shape,
+        std::vector<int> start,
+        std::vector<int> stop,
+        std::vector<int> step,
+        DType dtype
+    );
 }
 
 void register_indexing(py::module_& m) {
@@ -50,6 +70,19 @@ void register_indexing(py::module_& m) {
         py::arg("src_ptr"), py::arg("src_shape"),
         py::arg("indices_ptr"), py::arg("indices_shape"),
         py::arg("dim"), py::arg("dtype"),
+        "");
+
+    m.def("slice", &nectar::slice, 
+        py::arg("input_ptr"), py::arg("input_shape"),
+        py::arg("start"), py::arg("stop"), py::arg("step"),
+        py::arg("dtype"),
+        "");
+
+    m.def("index_put", &nectar::index_put, 
+        py::arg("input_ptr"), py::arg("input_shape"),
+        py::arg("src_ptr"), py::arg("src_shape"),
+        py::arg("start"), py::arg("stop"), py::arg("step"),
+        py::arg("dtype"),
         "");
 
 }

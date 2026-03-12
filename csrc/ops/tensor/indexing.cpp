@@ -28,6 +28,24 @@ void launch_scatter_add(
     T* out_data, int dim
 ); 
 
+template<typename T>
+void launch_slice(
+    T* in_data,
+    T* out_data,
+    TensorIndex in_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_index
+);
+
+template<typename T>
+void launch_index_put(
+    T* in_data,
+    T* out_data,
+    TensorIndex in_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_index
+);
+
 namespace nectar {
 
     uintptr_t gather(
@@ -135,6 +153,62 @@ namespace nectar {
                 "uint8 tensors are automatically promoted "
                 "to int32 on the Python side.");
         }
+    }
+
+    uintptr_t slice(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        std::vector<int> start,
+        std::vector<int> stop,
+        std::vector<int> step,
+        DType dtype
+    ) {
+        TensorIndex in_idx(input_shape.data(), input_shape.size());
+    
+        std::vector<int> out_shape(in_idx.ndim);
+        for (int i = 0; i < in_idx.ndim; i++)
+            out_shape[i] = (stop[i] - start[i] + step[i] - 1) / step[i];
+        
+        TensorIndex out_idx(out_shape.data(), out_shape.size());
+        SliceIndex slice_idx(
+            start.data(), stop.data(), step.data(), in_idx.ndim);
+
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            size_t memsize = out_idx.n_elements * sizeof(T);
+            cudaMalloc(&d_out, memsize);
+            launch_slice<T>(
+                reinterpret_cast<T*>(input_ptr), d_out,
+                in_idx, out_idx, slice_idx);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t index_put(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        uintptr_t src_ptr,
+        std::vector<int> src_shape,
+        std::vector<int> start,
+        std::vector<int> stop,
+        std::vector<int> step,
+        DType dtype
+    ) {
+        TensorIndex in_idx(input_shape.data(), input_shape.size());
+        TensorIndex src_idx(src_shape.data(), src_shape.size());
+        SliceIndex slice_idx(start.data(), stop.data(), step.data(), in_idx.ndim);
+
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            size_t memsize = in_idx.n_elements * sizeof(T);
+            cudaMalloc(&d_out, memsize);
+            cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), 
+                memsize, cudaMemcpyDeviceToDevice);
+            launch_index_put<T>(
+                reinterpret_cast<T*>(src_ptr), d_out,
+                src_idx, in_idx, slice_idx);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
     }
 
 }

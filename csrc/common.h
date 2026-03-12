@@ -13,6 +13,12 @@
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 
+/* OPERATION CONSTANTS */
+
+#define MAX_DIMS 6
+#define MAX_CONCAT_INPUTS 32
+#define MAX_PERMUTE_DIMS 6
+
 /* ALLOCATION CONSTANTS */
 
 constexpr int BLOCK_SIZE_1D = 256;
@@ -40,8 +46,6 @@ switch (dtype) { \
 
 /* TENSOR INDEX */
 
-#define MAX_DIMS 6
-
 struct TensorIndex {
     int shape[MAX_DIMS];
     int strides[MAX_DIMS];
@@ -55,7 +59,10 @@ struct TensorIndex {
         }
     }
 
-    __host__ __device__ TensorIndex(const int* shape_, int ndim_) : ndim(ndim_) {
+    __host__ __device__ TensorIndex(
+        const int* shape_, 
+        int ndim_
+    ) : ndim(ndim_) {
         n_elements = 1;
         for (int i = 0; i < ndim; i++) {
             shape[i] = shape_[i];
@@ -91,9 +98,31 @@ inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
     return TensorIndex(shape.data(), shape.size());
 }
 
-/* COMBINATION */
+/* SLICING */
 
-#define MAX_CONCAT_INPUTS 32
+struct SliceIndex {
+    int start[MAX_DIMS];
+    int stop[MAX_DIMS];
+    int step[MAX_DIMS];
+    int ndim;
+
+    __host__ __device__ SliceIndex() : ndim(0) { }
+
+    __host__ __device__ SliceIndex(
+        const int* start_,
+        const int* stop_,
+        const int* step_, 
+        int ndim_
+    ) : ndim(ndim_) {
+        for (int i = 0; i < ndim; i++) {
+            start[i] = start_[i];
+            stop[i] = stop_[i];
+            step[i] = step_[i];
+        }
+    }
+};
+
+/* COMBINATION */
 
 struct ConcatInputs {
     uintptr_t ptrs[MAX_CONCAT_INPUTS];
@@ -103,8 +132,6 @@ struct ConcatInputs {
 };
 
 /* PERMUTATION */
-
-#define MAX_PERMUTE_DIMS 6
 
 struct Permutation {
     int dims[MAX_PERMUTE_DIMS];

@@ -4,7 +4,7 @@ from .activation import (
     Softmin)
 
 from .combination import (
-    concatenate, cat, stack, unstack, unbind, split, chunk)
+    concatenate, cat, stack)#, unstack, unbind, split, chunk)
 
 from .conv import conv1d, conv2d, conv3d
 

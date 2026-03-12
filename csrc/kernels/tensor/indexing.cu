@@ -140,12 +140,89 @@ template void launch_scatter_add<float>(TensorIndex, float*, TensorIndex, int32_
 template void launch_scatter_add<half>(TensorIndex, half*, TensorIndex, int32_t*, TensorIndex, half*, int);
 template void launch_scatter_add<int32_t>(TensorIndex, int32_t*, TensorIndex, int32_t*, TensorIndex, int32_t*, int);
 
-/* WHERE */
+/* SLICE */
+
+template<typename T>
+__global__ void slice_kernel(
+    T* in_data,
+    T* out_data,
+    TensorIndex in_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_idx
+) {
+    int out_flat = blockIdx.x * blockDim.x + threadIdx.x;
+    if (out_flat >= out_idx.n_elements) return;
+
+    int out_coords[MAX_DIMS];
+    out_idx.to_index(out_flat, out_coords);
+
+    int in_coords[MAX_DIMS];
+    for (int i = 0; i < slice_idx.ndim; i++)
+        in_coords[i] = slice_idx.start[i] + out_coords[i] * slice_idx.step[i];
+
+    out_data[out_flat] = in_data[in_idx.to_flat(in_coords)];
+}
+
+template<typename T>
+void launch_slice(
+    T* in_data,
+    T* out_data,
+    TensorIndex in_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_index
+) {
+    int threads = BLOCK_SIZE_1D;
+    int blocks = (out_idx.n_elements + threads - 1) / threads;
+    slice_kernel<T><<<blocks, threads>>>(
+        in_data, out_data, in_idx, out_idx, slice_index);
+}
+
+template void launch_slice<float>(float*, float*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_slice<half>(half*, half*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_slice<uint8_t>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_slice<int32_t>(int32_t*, int32_t*, TensorIndex, TensorIndex, SliceIndex);
+
+/* INDEX PUT */
+
+template<typename T>
+__global__ void index_put_kernel(
+    T* src_data,
+    T* out_data,
+    TensorIndex src_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_idx
+) {
+    int src_flat = blockIdx.x * blockDim.x + threadIdx.x;
+    if (src_flat >= src_idx.n_elements) return;
+
+    int src_coords[MAX_DIMS];
+    src_idx.to_index(src_flat, src_coords);
+
+    int out_coords[MAX_DIMS];
+    for (int i = 0; i < slice_idx.ndim; i++)
+        out_coords[i] = slice_idx.start[i] + src_coords[i] * slice_idx.step[i];
+
+    out_data[out_idx.to_flat(out_coords)] = src_data[src_flat];
+}
+
+template<typename T>
+void launch_index_put(
+    T* src_data,
+    T* out_data,
+    TensorIndex src_idx,
+    TensorIndex out_idx,
+    SliceIndex slice_index
+) {
+    int threads = BLOCK_SIZE_1D;
+    int blocks = (out_idx.n_elements + threads - 1) / threads;
+    index_put_kernel<T><<<blocks, threads>>>(
+        src_data, out_data, src_idx, out_idx, slice_index);
+}
+
+template void launch_index_put<float>(float*, float*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_index_put<half>(half*, half*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_index_put<uint8_t>(uint8_t*, uint8_t*, TensorIndex, TensorIndex, SliceIndex);
+template void launch_index_put<int32_t>(int32_t*, int32_t*, TensorIndex, TensorIndex, SliceIndex);
 
 
 
-/* MASKED_FILL */
-
-
-
-/* INDEX SELECT */
