@@ -258,64 +258,42 @@ class Tensor():
         if self.device == 'cuda' and self._buffer is not None:
             self._buffer.decrement()
     
-    ### MASKING ###
-    
-    def mask(
-        self, 
-        value: Tensor | float, 
-        op: Literal['eq', 'lt', 'le', 'gt', 'ge']
-    ) -> Tensor:
-        mod = cuda if self.device == 'cuda' else _core
-        input = self if self.device == 'cuda' else self.data
-        value = value.data if isinstance(value, Tensor) and not \
-            self.device == 'cuda' else value
-        
-        match op:
-            case 'eq': fn = mod.masking.eq_mask
-            case 'lt': fn = mod.masking.lt_mask
-            case 'le': fn = mod.masking.le_mask
-            case 'gt': fn = mod.masking.gt_mask
-            case 'ge': fn = mod.masking.ge_mask
-            case _: raise ValueError(f'Invalid masking operation: {op}')
-            
-        return Tensor(fn(input, value), self.shape, self.dtype, self.device)
-    
     ### COMPARISON ###
     
-    def __eq__(self, other: Tensor) -> Tensor:
+    def __eq__(self, other: Tensor | int | float) -> Tensor:
         self._bool_type_check('Tensor.__eq__()', other)
-        self._validate_other(other)
+        other, _ = self._handle_tensor_or_numerical(other)
         if self.device == 'cuda': data = cuda.math.equal(self, other)
         else: data = self.data == other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __lt__(self, other: Tensor) -> Tensor:
+    def __lt__(self, other: Tensor | int | float) -> Tensor:
         self._bool_type_check('Tensor.__lt__()', other)
-        self._validate_other(other)
+        other, _ = self._handle_tensor_or_numerical(other)
         if self.device == 'cuda':
             data = cuda.math.less_than(self, other)
         else: data = self.data < other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __le__(self, other: Tensor) -> Tensor:
+    def __le__(self, other: Tensor | int | float) -> Tensor:
         self._bool_type_check('Tensor.__le__()', other)
-        self._validate_other(other)
+        other, _ = self._handle_tensor_or_numerical(other)
         if self.device == 'cuda':
             data = cuda.math.less_than_or_equal(self, other)
         else: data = self.data <= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __gt__(self, other: Tensor) -> Tensor:
+    def __gt__(self, other: Tensor | int | float) -> Tensor:
         self._bool_type_check('Tensor.__gt__()', other)
-        self._validate_other(other)
+        other, _ = self._handle_tensor_or_numerical(other)
         if self.device == 'cuda':
             data = cuda.math.greater_than(self, other)
         else: data = self.data > other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
-    def __ge__(self, other: Tensor) -> Tensor:
+    def __ge__(self, other: Tensor | int | float) -> Tensor:
         self._bool_type_check('Tensor.__ge__()', other)
-        self._validate_other(other)
+        other, _ = self._handle_tensor_or_numerical(other)
         if self.device == 'cuda':
             data = cuda.math.greater_than_or_equal(self, other)
         else: data = self.data >= other.data
@@ -488,10 +466,12 @@ class Tensor():
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
-            if self_requires_grad: 
-                self.grad += self.mask(other, 'le') * out.grad
+            if self_requires_grad:
+                grad = (self < other).to(self.device, self.dtype) 
+                self.grad += grad * out.grad
             if other_requires_grad:
-                other.grad += other.mask(self, 'lt') * out.grad
+                grad = (other < self).to(other.device, other.dtype)
+                other.grad += grad * out.grad
         
         out._backward = _backward
         return out
@@ -509,10 +489,12 @@ class Tensor():
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
-            if self_requires_grad: 
-                self.grad += self.mask(other, 'ge') * out.grad
+            if self_requires_grad:
+                grad = (self >= other).to(self.device, self.dtype) 
+                self.grad += grad * out.grad
             if other_requires_grad:
-                other.grad += other.mask(self, 'gt') * out.grad
+                grad = (other <= self).to(other.device, other.dtype)
+                other.grad += grad * out.grad
         
         out._backward = _backward
         return out
@@ -532,8 +514,8 @@ class Tensor():
                     
         def _backward() -> None:
             if self_requires_grad:
-                mask = self.scalar_mask(min_value, 'ge') \
-                     * self.scalar_mask(max_value, 'le')
+                mask = (self >= min_value).to(self.device, self.dtype) \
+                     * (self <= max_value).to(self.device, self.dtype)
                 self.grad += mask * out.grad
         
         out._backward = lambda : _backward(out.grad)
@@ -885,7 +867,8 @@ class Tensor():
             if self_requires_grad:
                 min_vals = out if keepdim else out.unsqueeze(dim) \
                     if dim is not None else out.reshape([1] * self.ndim)
-                mask = self.mask(min_vals.expand(self.shape), 'eq')
+                mask = (self == min_vals.expand(self.shape)).to(
+                    self.device, self.dtype)
                 grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
                     if dim is not None else out.grad.reshape([1] * self.ndim)
                 self.grad += mask * grad.expand(self.shape)
@@ -916,7 +899,8 @@ class Tensor():
             if self_requires_grad:
                 max_vals = out if keepdim else out.unsqueeze(dim) \
                     if dim is not None else out.reshape([1] * self.ndim)
-                mask = self.mask(max_vals.expand(self.shape), 'eq')
+                mask = (self == max_vals.expand(self.shape)).to(
+                    self.device, self.dtype)
                 grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
                     if dim is not None else out.grad.reshape([1] * self.ndim)
                 self.grad += mask *  grad.expand(self.shape)
@@ -1058,7 +1042,8 @@ class Tensor():
                 out_full = out_expanded.expand(self.shape)
                 grad_full = grad_expanded.expand(self.shape)
                 
-                sign = self.mask(0.0, 'ge') - self.mask(0.0, 'lt')
+                sign = (self >= 0.0).to(self.device, self.dtype) \
+                     - (self <  0.0).to(self.device, self.dtype)
                 safe_self = self.abs().clamp(min_value=1e-7) * sign
                 self.grad += (out_full / safe_self) * grad_full
         
