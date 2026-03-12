@@ -18,6 +18,13 @@ namespace nectar {
         uintptr_t indices_ptr, std::vector<int> indices_shape,
         int dim, DType dtype
     );
+
+    uintptr_t scatter_add(
+        uintptr_t input_ptr, std::vector<int> input_shape,
+        uintptr_t source_ptr, std::vector<int> source_shape,
+        uintptr_t indices_ptr, std::vector<int> indices_shape,
+        int dim, DType dtype
+    );
 }
 
 void register_indexing(py::module_& m) {
@@ -32,6 +39,13 @@ void register_indexing(py::module_& m) {
         "Takes values from input tensor by matching input indices.");
 
     m.def("scatter", &nectar::scatter, 
+        py::arg("input_ptr"), py::arg("input_shape"),
+        py::arg("src_ptr"), py::arg("src_shape"),
+        py::arg("indices_ptr"), py::arg("indices_shape"),
+        py::arg("dim"), py::arg("dtype"),
+        "");
+
+    m.def("scatter_add", &nectar::scatter_add, 
         py::arg("input_ptr"), py::arg("input_shape"),
         py::arg("src_ptr"), py::arg("src_shape"),
         py::arg("indices_ptr"), py::arg("indices_shape"),

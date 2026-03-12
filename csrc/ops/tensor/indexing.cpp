@@ -8,22 +8,24 @@ namespace py = pybind11;
 
 template<typename T>
 void launch_gather(
-    T* in_data,
-    TensorIndex in_idx,
-    int32_t* indices,
-    TensorIndex indices_idx,
-    T* out_data,
-    int dim
+    T* in_data, TensorIndex in_idx,
+    int32_t* indices, TensorIndex indices_idx,
+    T* out_data, int dim
 ); 
 
 template<typename T>
 void launch_scatter(
-    T* src_data,
-    TensorIndex src_idx,
-    int32_t* indices,
-    TensorIndex indices_idx,
-    T* out_data,
-    int dim
+    T* src_data, TensorIndex src_idx,
+    int32_t* indices, TensorIndex indices_idx,
+    T* out_data, int dim
+); 
+
+template<typename T>
+void launch_scatter_add(
+    TensorIndex in_idx,
+    T* src_data, TensorIndex src_idx,
+    int32_t* indices, TensorIndex indices_idx,
+    T* out_data, int dim
 ); 
 
 
@@ -84,6 +86,64 @@ namespace nectar {
                 d_out, dim);
             return reinterpret_cast<uintptr_t>(d_out);
         });
+    }
+
+    uintptr_t scatter_add(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        uintptr_t source_ptr,
+        std::vector<int> source_shape,
+        uintptr_t indices_ptr,
+        std::vector<int> indices_shape,
+        int dim,
+        DType dtype
+    ) {
+        TensorIndex in_idx(input_shape.data(), input_shape.size());
+        TensorIndex source_idx(source_shape.data(), source_shape.size());
+        TensorIndex indices_idx(indices_shape.data(), indices_shape.size());
+
+        if (dtype == DType::Float32) {
+            float* d_out;
+            size_t memsize = in_idx.n_elements * sizeof(float);
+            cudaMalloc(&d_out, memsize);
+            cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
+            launch_scatter_add<float>(
+                in_idx,
+                reinterpret_cast<float*>(source_ptr), source_idx,
+                reinterpret_cast<int32_t*>(indices_ptr), indices_idx, 
+                d_out, dim);
+            return reinterpret_cast<uintptr_t>(d_out);
+        }
+        else if (dtype == DType::Float16) {
+            half* d_out;
+            size_t memsize = in_idx.n_elements * sizeof(half);
+            cudaMalloc(&d_out, memsize);
+            cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
+            launch_scatter_add<half>(
+                in_idx,
+                reinterpret_cast<half*>(source_ptr), source_idx,
+                reinterpret_cast<int32_t*>(indices_ptr), indices_idx, 
+                d_out, dim);
+            return reinterpret_cast<uintptr_t>(d_out);
+        }
+        else if (dtype == DType::Int32) {
+            int32_t* d_out;
+            size_t memsize = in_idx.n_elements * sizeof(int32_t);
+            cudaMalloc(&d_out, memsize);
+            cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
+            launch_scatter_add<int32_t>(
+                in_idx,
+                reinterpret_cast<int32_t*>(source_ptr), source_idx,
+                reinterpret_cast<int32_t*>(indices_ptr), indices_idx, 
+                d_out, dim);
+            return reinterpret_cast<uintptr_t>(d_out);
+        }
+        else {
+            throw std::runtime_error(
+                "scatter_add does not support this dtype. "
+                "uint8 tensors are automatically promoted "
+                "to int32 on the Python side.");
+        }
     }
 
 }
