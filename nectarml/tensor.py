@@ -918,7 +918,7 @@ class Tensor():
                      * (self <= max_value).to(self.device, self.dtype)
                 self.grad += mask * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     ### ABS ###

@@ -1,4 +1,5 @@
 from nectarml.tensor import Tensor
+from nectarml.functional.indexing import where
 from nectarml.functional.common import _eval_core_function
 from nectarml._core import activation 
 
@@ -15,7 +16,7 @@ def ReLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.ReLU)
+    return input.maximum(0.0)
 
 def LeakyReLU(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     '''Leaky rectified linear unit activation function.
@@ -33,8 +34,7 @@ def LeakyReLU(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(
-        input, activation.LeakyReLU, negative_slope=negative_slope)
+    return where(input > 0.0, input, negative_slope * input)
 
 def ELU(input: Tensor, alpha: float = 1.0) -> Tensor:
     '''Exponential linear unit activation function.
@@ -52,8 +52,8 @@ def ELU(input: Tensor, alpha: float = 1.0) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.ELU, alpha=alpha)
-
+    return where(input > 0, input, alpha * (input.exp() - 1.0))
+    
 def SELU(input: Tensor) -> Tensor:
     '''Scaled exponential linear unit activation function.
         
@@ -68,7 +68,9 @@ def SELU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.SELU)
+    alpha = 1.6732632
+    scale = 1.0507009
+    return scale * where(input > 0, input, alpha * (input.exp() - 1.0))
 
 def Sigmoid(input: Tensor) -> Tensor:
     '''Sigmoid activation function.
@@ -84,7 +86,7 @@ def Sigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Sigmoid)
+    return 1 / (1 + (-input).exp())
 
 def Tanh(input: Tensor) -> Tensor:
     '''Tanh activation function.
@@ -99,8 +101,10 @@ def Tanh(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Tanh)
-
+    exp = input.exp()
+    inv_exp = (-input).exp()
+    return (exp - inv_exp) / (exp + inv_exp)
+    
 def Softmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Softmax activation function.
         
@@ -116,7 +120,23 @@ def Softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Softmax, dim=dim)
+    exp_x = (input - input.max(dim=dim, keepdim=True)).exp()
+    return exp_x / exp_x.sum(dim=dim, keepdim=True)
+
+def Softmin(input: Tensor) -> Tensor:
+    '''Softmin activation function.
+        
+    Equation: f(x) = exp(-x_i) / sum(exp(-x_j))
+    
+    Args:
+        input : The Tensor to apply the activation function to.
+        
+    Returns:
+        Tensor : The resulting Tensor from the activation function.
+    '''
+    _input = -input
+    exp_x = (_input - _input.max(dim=-1, keepdim=True)).exp()
+    return exp_x / exp_x.sum(dim=-1, keepdim=True)
 
 def LogSoftmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Log softmax activation function.
@@ -133,10 +153,12 @@ def LogSoftmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.LogSoftmax, dim=dim)
+    exp_x = (input - input.max(dim=dim, keepdim=True)).exp()
+    softmax_x = exp_x / exp_x.sum(dim=dim, keepdim=True)
+    return softmax_x.log()
 
 def GeLU(input: Tensor) -> Tensor:
-    '''Gaussian error linear unit activation function.
+    '''Approximate gaussian error linear unit activation function.
     
     Smooth approximation of ReLU which scales inputs by the cumulative 
     distribution function of a Gaussian distribution. Enables better gradient
@@ -153,7 +175,11 @@ def GeLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.GeLU)
+    inner = 0.7978845608 * (input + 0.044715 * input**3) 
+    exp = inner.exp()
+    inv_exp = (-inner).exp()
+    tanh_inner = (exp - inv_exp) / (exp + inv_exp)
+    return input * 0.5 * (1 + tanh_inner)
 
 def SiLU(input: Tensor) -> Tensor:
     '''Sigmoid-weighted linear unit activation function.
@@ -173,7 +199,8 @@ def SiLU(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.SiLU)
+    sigmoid = 1 / (1 + (-input).exp())
+    return input * sigmoid
 
 def Swish(input: Tensor) -> Tensor: 
     '''Sigmoid-weighted linear unit activation function.
@@ -193,7 +220,7 @@ def Swish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.SiLU)
+    return SiLU(input)
 
 def Softplus(input: Tensor) -> Tensor: 
     '''Softplus activation function.
@@ -206,10 +233,10 @@ def Softplus(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Softplus)
+    return (1 + input.exp()).log()
 
 def Mish(input: Tensor) -> Tensor:
-    '''Softplus activation function.
+    '''Mish activation function.
         
     Equation: f(x) = x * tanh(log(1 + exp(x)))
     
@@ -219,7 +246,12 @@ def Mish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Mish)
+    softplus = (1 + input.exp()).log()
+    
+    sp_exp = softplus.exp()
+    inv_sp_exp = (-softplus).exp()
+    tanh = (sp_exp - inv_sp_exp) / (sp_exp + inv_sp_exp)
+    return input * tanh
 
 def Hardtanh(
     input: Tensor, 
@@ -240,13 +272,12 @@ def Hardtanh(
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(
-        input, activation.Hardtanh, min_value=min_value, max_value=max_value)
+    return input.clamp(min_value, max_value)
 
 def Hardsigmoid(input: Tensor) -> Tensor:
     '''Hardsigmoid activation function.
         
-    Equation: f(x) = max(0, min(1, (x + 1) / 2))
+    Equation: f(x) = clamp((x + 1) / 2, 0, 1)
     
     Args:
         input : The Tensor to apply the activation function to.
@@ -254,7 +285,7 @@ def Hardsigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Hardsigmoid)
+    return ((input + 1) / 2).clamp(0.0, 1.0)
 
 def Hardswish(input: Tensor) -> Tensor:
     '''Hardswish activation function.
@@ -267,8 +298,8 @@ def Hardswish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Hardswish)
-
+    return input * ((input + 3) / 6).clamp(0.0, 1.0)
+     
 def Softsign(input: Tensor) -> Tensor:
     '''Softsign activation function.
         
@@ -280,18 +311,6 @@ def Softsign(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return _eval_core_function(input, activation.Softsign)
-
-def Softmin(input: Tensor) -> Tensor:
-    '''Softmin activation function.
-        
-    Equation: f(x) = exp(-x_i) / sum(exp(-x_j))
+    return input / (1 + input.abs())
     
-    Args:
-        input : The Tensor to apply the activation function to.
-        
-    Returns:
-        Tensor : The resulting Tensor from the activation function.
-    '''
-    return _eval_core_function(input, activation.Softmin)
 
