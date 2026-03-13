@@ -14,9 +14,18 @@ from nectarml.typing import DTypeLike
 def map_dtype(dtype: DTypeLike) -> Any:
     return DTYPE_MAP[dtype]
 
+def cast_tensor(input: Tensor, new_dtype: DTypeLike) -> int:
+    return _nectarml.cast_tensor(
+        input._data_ptr, input.size, 
+        map_dtype(input.dtype), map_dtype(new_dtype))
+
 def to_cuda(input: Tensor) -> int:
     ptr = _nectarml.to_cuda(
         input.data.ctypes.data, input.size, map_dtype(input.dtype))
+    return ptr
+
+def data_to_cuda(data: np.ndarray, size: int, dtype: DTypeLike) -> int:
+    ptr = _nectarml.to_cuda(data.ctypes.data, size, map_dtype(dtype))
     return ptr
 
 def to_cpu(input: Tensor, host_dtype: DTypeLike | None = None) -> np.ndarray:
@@ -25,10 +34,8 @@ def to_cpu(input: Tensor, host_dtype: DTypeLike | None = None) -> np.ndarray:
         input._data_ptr, list(input.shape), map_dtype(input.dtype))
     return data.astype(cast_dtype)
 
-def cast_tensor(input: Tensor, new_dtype: DTypeLike) -> int:
-    return _nectarml.cast_tensor(
-        input._data_ptr, input.size, 
-        map_dtype(input.dtype), map_dtype(new_dtype))
+def clone(input: Tensor) -> int:
+    return _nectarml.clone(input._data_ptr, input.size, map_dtype(input.dtype))
     
 def compute_tensor_min(input: Tensor) -> float:
     return _nectarml.compute_tensor_min(

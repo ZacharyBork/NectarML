@@ -64,4 +64,3 @@ class CudaBuffer:
         if self._ref_count == 0:
             if free_cuda is not None: free_cuda(self.ptr)
             
-            

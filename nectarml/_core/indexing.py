@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 import numpy as np
 
 def gather(input: np.ndarray, dim: int, index: np.ndarray) -> np.ndarray:

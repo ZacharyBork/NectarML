@@ -179,10 +179,90 @@ class Tensor():
             return data[0] if len(data) == 1 else data
         return self.data
     
-    def cuda_build_shape(self: Tensor) -> None:
-        self.shape = typing.Size(self.numpy().shape)
+    def tolist(self: Tensor) -> list[Any]:
+        return self.numpy().tolist()
+    
+    def item(self: Tensor) -> int | float:
+        return self.numpy().item()
+    
+    def is_floating_point(self: Tensor) -> bool:
+        return self.dtype in [typing.float, typing.float16, typing.float32]
+    
+    def is_cuda(self: Tensor) -> bool:
+        return self.device == 'cuda'
+    
+    def is_cpu(self: Tensor) -> bool:
+        return self.device == 'cpu'
+    
+    def dim(self: Tensor) -> int:
+        return self.shape.ndim
+    
+    def numel(self: Tensor) -> int:
+        return self.shape.numel()
     
     ### UTILS ###
+    
+    def detach(self: Tensor) -> Tensor:
+        if self.device == 'cuda':
+            out = Tensor(self._data_ptr, self.shape, self.dtype, self.device)
+            out._buffer = self._buffer.increment()
+        else: out = Tensor(self.data, self.shape, self.dtype, self.device)
+        return out
+    
+    def detach_(self: Tensor) -> None:
+        self.requires_grad = False
+        self._backward = None
+        self._prev.clear()
+    
+    def clone(self: Tensor) -> Tensor:
+        if self.device == 'cuda':
+            clone_ptr = cuda.clone(self)
+            out = Tensor(clone_ptr, self.shape, self.dtype, self.device,
+                self.requires_grad, _children=(self,))
+        else: out = Tensor(self.data.copy(), self.shape, self.dtype, 
+                self.device, self.requires_grad, _children=(self,))
+        
+        self_requires_grad = self.requires_grad
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad
+        
+        out._backward = _backward
+        return out
+    
+    def requires_grad_(self: Tensor, value: bool) -> Tensor:
+        self.requires_grad = value
+        return self
+    
+    def fill_(self: Tensor, fill_value: float | int) -> Tensor:
+        if self.device == 'cuda':
+            new_ptr = cuda.memory.alloc_cuda_full(
+                self.size, self.dtype, fill_value)
+            old_buffer = self._buffer
+            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            old_buffer.decrement()
+        else: self.data.fill(fill_value)
+        return self
+    
+    def zero_(self: Tensor) -> Tensor:
+        return self.fill_(0.0)
+    
+    def copy_(self: Tensor, other: Tensor) -> Tensor:
+        assert self.shape == other.shape, \
+            f'copy_ requires Tensors to have the same shape.'
+        assert self.dtype == other.dtype, \
+            f'copy_ requires Tensors to have the same dtype.'
+        if self.device == 'cuda':
+            if other.device == 'cuda': copy_ptr = cuda.utils.clone(other)
+            else: copy_ptr = cuda.data_to_cuda(
+                other.data, other.size, other.dtype)
+            self._buffer.decrement()
+            self._buffer = CudaBuffer(copy_ptr, self.dtype)
+        else: np.copyto(self.data, other.numpy())
+        return self
+    
+    def cuda_build_shape_(self: Tensor) -> None:
+        self.shape = typing.Size(self.numpy().shape)
     
     def _bool_type_check(
         self: Tensor, 

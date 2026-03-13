@@ -15,7 +15,10 @@ def scatter_add(
     return input.scatter_add(dim, index, source)
 
 def where(condition: Tensor, x: Tensor, y: Tensor) -> Tensor:
-    mask = condition.to(x.device, x.dtype)
+    if isinstance(x, Tensor):   template = x
+    elif isinstance(y, Tensor): template = y
+    else: raise ValueError('Either x or y input must be a Tensor.')
+    mask = condition.to(template.device, template.dtype)
     return (x * mask + y * (1 - mask))
 
 def masked_fill(input: Tensor, mask: Tensor, value: float) -> Tensor:
