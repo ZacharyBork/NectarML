@@ -392,8 +392,8 @@ class Tensor():
     
     def zero_grad(self: Tensor) -> None:
         '''Zeros values in the grad Tensor of the Tensor it is called on.'''
-        if self.requires_grad:
-            self._allocate_grad()
+        if self.requires_grad and self.grad is not None:
+            self.grad.zero_()
             
     ### DEVICE / DTYPE ###
         
@@ -703,9 +703,12 @@ class Tensor():
     
     def __iadd__(self: Tensor, other: Tensor | int | float) -> Tensor:
         other, _ = self._handle_tensor_or_numerical(other)
-        self._bool_type_check('Tensor.__add__()', other)
+        self._bool_type_check('Tensor.__iadd__()', other)
 
-        if self.device == 'cuda': self._data_ptr = cuda.math.add(self, other)
+        if self.device == 'cuda': 
+            new_ptr = cuda.math.add(self, other)
+            self._buffer.decrement()
+            self._buffer = CudaBuffer(new_ptr, self.dtype)
         else: self.data += other.data
         return self
     
@@ -729,6 +732,17 @@ class Tensor():
     
     def __radd__(self: Tensor, other: Tensor | int | float) -> Tensor:
         return self + other
+
+    def __isub__(self, other: Tensor | int | float) -> Tensor:
+        other, _ = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__isub__()', other)
+
+        if self.device == 'cuda': 
+            new_ptr = cuda.math.subtract(self, other)
+            self._buffer.decrement()
+            self._buffer = CudaBuffer(new_ptr, self.dtype)
+        else: self.data -= other.data
+        return self
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
         other, children = self._handle_tensor_or_numerical(other)

@@ -24,14 +24,16 @@ class Optimizer():
         ),
         defaults: dict[str, Any] | None = None
     ) -> None:
+        self.state:   dict[int, dict[str, Any]] = {}
+        self.param_groups: list[dict[str, Any]] = []
         self.defaults = defaults
-        self._state_dict: dict[str, Any] = { 'state': {}, 'param_groups': [] }
-        self.state: dict[str, Any] = self._state_dict['state']
-        self.param_groups: list[dict[str, Any]] = \
-            self._state_dict['param_groups']
           
         self._add_init_parameters(parameters)
-
+        for idx, param in enumerate(self._get_all_params()):
+            self.state[idx] = {}
+        self._param_to_idx = {
+            id(p): idx for idx, p in enumerate(self._get_all_params())}
+        
         self.state_dict_pre_hooks:  list[Callable] = []
         self.state_dict_post_hooks: list[Callable] = []
         
@@ -55,10 +57,11 @@ class Optimizer():
                        and isinstance(param[1], Tensor), (
                         'Parameter tuples must have a string at index 0 '
                         'and a Tensor at index 1 to be valid.')
-                    _group['params'].append(param)
+                    _group['params'].append(param[1])
                     _group['param_names'].append(param[0])
                 self.param_groups.append(_group)
             elif isinstance(parameters[0], dict):
+                
                 for group in parameters:
                     assert 'params' in group, \
                         'Parameter dicts must contain "params" key.'
@@ -75,6 +78,37 @@ class Optimizer():
         assert 'params' in param_group, \
             'param_group must contain "params" key.'
         self.param_groups.append(param_group)
+        start_idx = len(self._param_to_idx)
+        for i, param in enumerate(param_group['params']):
+            idx = start_idx + i
+            self.state[idx] = {}
+            self._param_to_idx[id(param)] = idx
+        
+    def _get_all_params(self: Optimizer) -> list[Tensor]:
+        return [
+            p for group in self.param_groups 
+            for p in group['params']]
+        
+    def _get_parameter_state_index(self: Optimizer, parameter: Tensor) -> int:
+        return self._param_to_idx[id(parameter)]
+    
+    ### HOOKS ###
+    
+    def hooks(self: Optimizer) -> dict[str, Any]:
+        return {
+            'state_dict': {
+                'pre_hooks':  self.state_dict_pre_hooks,
+                'post_hooks': self.state_dict_post_hooks
+            },
+            'load_state_dict': {
+                'pre_hooks':  self.load_state_dict_pre_hooks,
+                'post_hooks': self.load_state_dict_post_hooks
+            },
+            'step': {
+                'pre_hooks':  self.step_pre_hooks,
+                'post_hooks': self.step_post_hooks
+            }
+        }
     
     ### STATE DICT ###
     
@@ -99,7 +133,21 @@ class Optimizer():
         return HookHandle(hooks, hook)
     
     def _build_state_dict(self: Optimizer) -> dict[str, Any]:
-        pass
+        param_groups = []
+        idx = 0
+        for group in self.param_groups:
+            _group = {}
+            for key, value in group.items():
+                if key == 'params':
+                    _group['params'] = list(range(idx, idx + len(value)))
+                    idx += len(value)
+                else: _group[key] = value
+            param_groups.append(_group)
+
+        return {
+            'state': self.state.copy(),
+            'param_groups': param_groups
+        }
     
     def state_dict(self: Optimizer) -> dict[str, Any]:
         for hook in self.state_dict_pre_hooks: hook(self)
@@ -153,11 +201,7 @@ class Optimizer():
                     f'Found unmatched key in loaded parameter group: {key}'
                 group[key] = value
         
-        all_params = [
-            p for group in self.param_groups 
-            for p in group['params']]
-        
-        for idx, _ in enumerate(all_params):
+        for idx, _ in enumerate(self._get_all_params()):
             if idx in load_states: self.state[idx] = load_states[idx]
         
         for hook in self.load_state_dict_post_hooks: hook(self)
@@ -165,7 +209,9 @@ class Optimizer():
     ### GRADIENTS ###
 
     def zero_grad(self: Optimizer) -> None:
-        pass
+        params = self._get_all_params()
+        for param in params: 
+            if param.grad is not None: param.zero_grad()
     
     ### STEP ###
     
