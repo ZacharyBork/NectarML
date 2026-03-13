@@ -3,7 +3,7 @@ import _nectarml
 
 atexit.register(_nectarml.destroy_cublas_handle)
 
-from . import _core, cuda, nn, functional
+from . import _core, cuda, nn, optim, functional
 from .tensor import Tensor
 from .autocast import autocast
 from .creation import (

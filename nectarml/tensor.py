@@ -23,7 +23,6 @@ class Tensor():
     ) -> None:
         self.device = device
         self._dtype = dtype
-        self.requires_grad = requires_grad
         
         self.shape:         typing.Size = None
         self._device_id:     int | None = None
@@ -36,6 +35,7 @@ class Tensor():
         
         self._init_tensor(data, shape) 
         if requires_grad: self._allocate_grad()      
+        self.requires_grad = requires_grad
         
     ### INIT ###
         

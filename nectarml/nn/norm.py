@@ -5,7 +5,7 @@ from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
 from nectarml.creation import ones, zeros
 from nectarml.nn import Module
-from nectarml.functional import normalization as N
+import nectarml.functional as F
 
 ### BATCH ###
 
@@ -81,7 +81,7 @@ class BatchNorm1d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1), (0,), N.BatchNorm1d, eps, momentum, affine, 
+            (1, num_features, 1), (0,), F.BatchNorm1d, eps, momentum, affine, 
             track_running_stats, device, dtype)
 
 class BatchNorm2d(_BatchNorm):
@@ -96,7 +96,7 @@ class BatchNorm2d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1), (0, 2, 3), N.BatchNorm2d, eps, momentum, 
+            (1, num_features, 1, 1), (0, 2, 3), F.BatchNorm2d, eps, momentum, 
             affine, track_running_stats, device, dtype)
 
 class BatchNorm3d(_BatchNorm):
@@ -111,7 +111,7 @@ class BatchNorm3d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1, 1), (0, 2, 3, 4), N.BatchNorm3d, eps, 
+            (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.BatchNorm3d, eps, 
             momentum, affine, track_running_stats, device, dtype)
 
 ### INSTANCE ###
@@ -128,7 +128,7 @@ class InstanceNorm1d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1), (2,), N.InstanceNorm1d, eps, 
+            (1, num_features, 1), (2,), F.InstanceNorm1d, eps, 
             momentum, affine, track_running_stats, device, dtype)
         
 class InstanceNorm2d(_BatchNorm):
@@ -143,7 +143,7 @@ class InstanceNorm2d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1), (2, 3), N.InstanceNorm2d, eps, 
+            (1, num_features, 1, 1), (2, 3), F.InstanceNorm2d, eps, 
             momentum, affine, track_running_stats, device, dtype)
         
 class InstanceNorm3d(_BatchNorm):
@@ -158,7 +158,7 @@ class InstanceNorm3d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1, 1), (2, 3, 4), N.InstanceNorm3d, eps, 
+            (1, num_features, 1, 1, 1), (2, 3, 4), F.InstanceNorm3d, eps, 
             momentum, affine, track_running_stats, device, dtype)
         
 ### GROUP ###
@@ -187,7 +187,7 @@ class GroupNorm(Module):
         else: self.gamma = self.beta = None
         
     def forward(self, x: Tensor) -> Tensor:
-        x_norm, _ = N.GroupNorm(
+        x_norm, _ = F.GroupNorm(
             x, self.num_groups, self.gamma, self.beta, self.eps) 
         return x_norm
     
@@ -219,6 +219,6 @@ class LayerNorm(Module):
         else: self.gamma = self.beta = None
         
     def forward(self, x: Tensor) -> Tensor:
-        return N.LayerNorm(
+        return F.LayerNorm(
             x, self.normalized_shape, self.gamma, self.beta, self.eps)
 

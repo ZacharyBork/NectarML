@@ -21,7 +21,8 @@ class Linear(nn.Module):
         self.weights = empty(
             (self.out_features, self.in_features),
             dtype=self.dtype, device=self.device, requires_grad=True)
-        nn.init.kaiming_normal_(weights=self.weights, mode='linear')
+        nn.init.kaiming_normal_(
+            weights=self.weights, mode='fan_in', nonlinearity='linear')
         
         if bias:
             self.bias = zeros(
