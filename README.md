@@ -12,15 +12,14 @@
 
 ### ✅  Core Library (nectarml._core)
 
-    ✅ 1. Activation
-    ✅ 2. Combinations
-    🟡 3. Conv
-    ✅ 4. Indexing
+    ✅ 1. Combinations
+    🟡 2. Conv
+    ✅ 3. Indexing
+    ✅ 4. Masking
     ✅ 5. Math
-    ❌ 6. Normalization
-    ✅ 7. Padding
-    ✅ 8. Reductions
-    ✅ 9. Shapes
+    ✅ 6. Padding
+    ✅ 7. Reductions
+    ✅ 8. Shapes
 
 ### ✅  Functional Library
 
@@ -52,13 +51,13 @@
     ❌ 4. Attention
     ❌ 5. Convolutions
 
-### ❌  Optimizers
+### 🟡  Optimizers
 
-    ❌ Base Optimizer
+    ✅ Base Optimizer
 
     First-order:
-        ❌ 1. SGD
-        ❌ 2. SGD w/ Nesterov momentum
+        ✅ 1. SGD
+        ✅ 2. SGD w/ Nesterov momentum
         ❌ 3. Adagrad
         ❌ 4. RMSprop
         ❌ 5. Adam
@@ -108,41 +107,35 @@
     ❌ 6. Format / Type
     ✅ 7. Composition
 
-### ❌  CUDA:
+### 🟡  CUDA:
 
     🟡 1. Host
-        ❌ 1.  Activation
-        ❌ 2.  Conv
-        ❌ 3.  Dispatch
-        ✅ 4.  Elementwise
-        ❌ 5.  Indexing
-        ❌ 6.  Interpolation
-        ❌ 7.  Matmul
-        🟡 8.  Memory
-        ❌ 9.  Normalization
-        ❌ 10. Padding
-        🟡 11. Reductions
-        🟡 12. Combination
-        🟡 13. Vision
+        ❌ 1. Conv
+        ✅ 2. Elementwise
+        ✅ 3. Indexing
+        ✅ 4. Matmul
+        ✅ 5. Memory
+        ❌ 6. Padding
+        ✅ 7. Reductions
+        ✅ 8. Combination
+        🟡 9. Vision
     🟡 2. Kernels
-        ❌ 1.  Activation
-        ❌ 2.  Conv
-        ✅ 3.  Elementwise
-        ❌ 4.  Indexing
-        ❌ 5.  Interpolation
-        ❌ 6.  Matmul
-        🟡 7.  Memory
-        ❌ 8.  Normalization
-        ❌ 9.  Padding
-        🟡 10. Reductions
-        🟡 11. Combination
-        🟡 12. Vision
+        ❌ 1. Conv
+        ✅ 2. Elementwise
+        ✅ 3. Indexing
+        ✅ 4. Matmul
+        ✅ 5. Memory
+        ❌ 6. Padding
+        ✅ 7. Reductions
+        ✅ 8. Combination
+        🟡 9. Vision
     🟡 3. Bindings
     ✅ 4. CMakeLists
+    ❌ 5. Organization and Cleanup
 
 ### ❌  Documentation:
 
-    ❌ 1. Class/Function/Method Docstrings
+    🟡 1. Class/Function/Method Docstrings
     ❌ 2. Markdown Documentation
     ❌ 3. README.md
 
