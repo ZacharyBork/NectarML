@@ -39,6 +39,7 @@ def calculate_gain(
         case _: raise ValueError(f'Invalid nonlinearity: {nonlinearity}')
         
 def _set_weights(weights: Tensor, data: np.ndarray) -> None:
+    data = data.astype(weights.dtype)
     if weights.device == 'cuda':
         data_ptr = cuda.data_to_cuda(data, weights.size, weights.dtype)
         weights._buffer.decrement()
