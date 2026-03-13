@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from nectarml.tensor import Tensor
 
 ### BATCH ###
@@ -11,8 +9,8 @@ def _BatchNorm(
     beta: Tensor | None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
-    mean = x.mean(dim=dim, keepdims=True)
-    variance = ((x - mean) ** 2).mean(dim=dim, keepdims=True)
+    mean = x.mean(dim=dim, keepdim=True)
+    variance = ((x - mean)**2).mean(dim=dim, keepdim=True)
     x_norm = (x - mean) / (variance + eps).sqrt()
     if gamma is not None: x_norm = gamma * x_norm
     if not beta is None: x_norm = beta + x_norm
@@ -89,8 +87,8 @@ def GroupNorm(
     assert C % G == 0, 'Input channels must be evenly divisible by num_groups.'
     
     x_reshaped = x.reshape((B, G, C//G, H, W))
-    mean = x_reshaped.mean(dim=(2, 3, 4), keepdims=True)
-    variance = ((x_reshaped - mean) ** 2).mean(dim=(2, 3, 4), keepdims=True)
+    mean = x_reshaped.mean(dim=(2, 3, 4), keepdim=True)
+    variance = ((x_reshaped - mean) ** 2).mean(dim=(2, 3, 4), keepdim=True)
     x_norm = (x_reshaped - mean) / (variance + eps).sqrt()
     x_norm = x_norm.reshape(x.shape)
     if gamma is not None: x_norm = gamma * x_norm
@@ -102,15 +100,15 @@ def GroupNorm(
 
 def LayerNorm(
     x: Tensor,
-    normalized_shape: Sequence[int],
+    normalized_shape: list[int],
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.0001
 ) -> Tensor:
     dims = tuple(range(-len(normalized_shape), 0))
     
-    mean = x.mean(dim=dims, keepdims=True)
-    variance = ((x - mean) ** 2).mean(dim=dims, keepdims=True)
+    mean = x.mean(dim=dims, keepdim=True)
+    variance = ((x - mean) ** 2).mean(dim=dims, keepdim=True)
     x_norm = (x - mean) / (variance + eps).sqrt()
     
     if gamma is not None: x_norm = gamma * x_norm
