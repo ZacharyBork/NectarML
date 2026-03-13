@@ -1,7 +1,9 @@
 from typing import Literal
 from collections.abc import Sequence, Callable
 
-from nectarml import Tensor, DTypeLike, float32, ones, zeros
+from nectarml.tensor import Tensor
+from nectarml.typing import DTypeLike, float32
+from nectarml.creation import ones, zeros
 from nectarml.nn import Module
 from nectarml.functional import normalization as N
 

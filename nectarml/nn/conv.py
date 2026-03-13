@@ -1,6 +1,7 @@
 from typing import Literal
 
-from nectarml import Tensor, DTypeLike, float32
+from nectarml.tensor import Tensor
+from nectarml.typing import DTypeLike, float32
 import nectarml.nn as nn
 
 class _Conv(nn.Module):

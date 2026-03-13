@@ -4,15 +4,16 @@ from typing import Any, Literal
 
 import numpy as np
 
-from nectarml import Tensor, DTypeLike, float32
+from nectarml.tensor import Tensor
+from nectarml.typing import DTypeLike, float32
 
 class Module():
     _parameters: dict[str, Tensor]
     _submodules: dict[str, Module]
-    _buffers: dict[str, Tensor]
+    _buffers:    dict[str, Tensor]
     
     def __init__(
-        self,
+        self: Module,
         device: Literal['cpu', 'cuda'] = 'cpu',
         dtype: DTypeLike = float32
     ) -> None:
@@ -22,43 +23,44 @@ class Module():
         
         self.device = device
         self.dtype = dtype
-                
-        self.training: bool = True
+        
+        self.training:  bool = True
+        self._device_id: int | None = None
                 
     # PROPERTIES
     
     @property
-    def device(self) -> str:
+    def device(self: Module) -> str:
         return self._device
 
     @device.setter
-    def device(self, value: str) -> None:
+    def device(self: Module, value: str) -> None:
         self._device = value
         
     @property
-    def dtype(self) -> DTypeLike:
+    def dtype(self: Module) -> DTypeLike:
         return self._dtype
     
     @dtype.setter
-    def dtype(self, value: DTypeLike) -> None:
+    def dtype(self: Module, value: DTypeLike) -> None:
         self._dtype = value
         for parameter in self._parameters.values():
             parameter.dtype = value
             
     # REGISTRATION
     
-    def register_parameter(self, name: str, tensor: Tensor) -> None:
+    def register_parameter(self: Module, name: str, tensor: Tensor) -> None:
         self._parameters[name] = tensor
     
-    def register_submodule(self, name: str, module: Module) -> None:
+    def register_submodule(self: Module, name: str, module: Module) -> None:
         self._submodules[name] = module
         
-    def register_buffer(self, name: str, tensor: Tensor) -> None:
+    def register_buffer(self: Module, name: str, tensor: Tensor) -> None:
         self._buffers[name] = tensor
     
     # GETTERS / SETTERS
     
-    def __setattr__(self, name: str, value: Any) -> None:
+    def __setattr__(self: Module, name: str, value: Any) -> None:
         if '_buffers' in self.__dict__ and name in self._buffers:
             self._buffers[name] = value
         if isinstance(value, Module):
@@ -74,13 +76,12 @@ class Module():
             return self._parameters[name]
         if '_submodules' in self.__dict__ and name in self._submodules:
             return self._submodules[name]
-        else: 
-            raise AttributeError(
+        else: raise AttributeError(
                 f'{type(self).__name__} has no attribute "{name}"')
     
     # SUBMODULES
     
-    def _walk_module_tree(self) -> list[tuple[str, Module]]:
+    def _walk_module_tree(self: Module) -> list[tuple[str, Module]]:
         tree: list[tuple[str, Module]] = []
         
         def walk_tree(prefix: str, node: Module):
@@ -94,48 +95,44 @@ class Module():
     
     # GRADIENTS
     
-    def zero_grad(self) -> None:
+    def zero_grad(self: Module) -> None:
         modules = self._walk_module_tree()
         for _, module in modules:
             for parameter in module._parameters.values():
                 if not parameter.requires_grad: continue
-                parameter.grad = np.zeros_like(parameter.data)
+                parameter.zero_grad()
     
     # DEVICE / DTYPE
     
     def to(
-        self,
+        self: Module,
         device: Literal['cpu', 'cuda'],
         dtype: DTypeLike | None = None
     ) -> Module: 
         modules = self._walk_module_tree()
         for _, module in modules:
             module.device = device
-            if dtype is not None:
-                module.dtype = dtype
-                
-            for buffer in module._buffers.values():
-                buffer.device = device
-                if dtype is not None:
-                    buffer.dtype = dtype
-        
+            if dtype is not None: module.dtype = dtype
+            for buffer in module._buffers.values():  buffer.to(device, dtype)
+            for parm in module._parameters.values(): parm.to(device, dtype)
+       
         return self
     
     # STATES
     
-    def train(self) -> None: 
+    def train(self: Module) -> None: 
         modules = self._walk_module_tree()
         for _, module in modules:
             module.training = True
     
-    def eval(self) -> None:
+    def eval(self: Module) -> None:
         modules = self._walk_module_tree()
         for _, module in modules:
             module.training = False
         
     # INSPECTION
     
-    def list_parameters(self) -> list[tuple[str, Tensor]]:
+    def list_parameters(self: Module) -> list[tuple[str, Tensor]]:
         output = []
         modules = self._walk_module_tree()
         for module_name, module in modules:
@@ -145,12 +142,8 @@ class Module():
                 output.append((name, parameter))
         return output
     
-    def list_submodules(self) -> list[tuple[str, Module]]:
-        output = []
-        modules = self._walk_module_tree()
-        for name, module in modules:
-            output.append((name, module))
-        return output
+    def list_submodules(self: Module) -> list[tuple[str, Module]]:
+        return [(name, module) for name, module in self._walk_module_tree()]
     
     def __repr__(self, indent: int = 0) -> str:
         pad = '  ' * indent
@@ -172,14 +165,14 @@ class Module():
         
         return '\n'.join(lines)
         
-    def __hash__(self) -> int: return id(self)
+    def __hash__(self: Module) -> int: return id(self)
     
     # FORWARD
     
-    def forward(self, *args, **kwargs): 
+    def forward(self: Module, *args, **kwargs): 
         raise NotImplementedError('forward() not implemented by child class.')
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self: Module, *args, **kwargs):
         return self.forward(*args, **kwargs)
 
 

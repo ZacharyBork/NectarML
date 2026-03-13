@@ -1,6 +1,8 @@
 from typing import Literal
 
-from nectarml import Tensor, DTypeLike, float32, empty, zeros
+from nectarml.tensor import Tensor
+from nectarml.typing import DTypeLike, float32
+from nectarml.creation import empty, zeros
 import nectarml.nn as nn
 
 class Linear(nn.Module):

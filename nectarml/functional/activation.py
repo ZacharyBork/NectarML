@@ -1,7 +1,5 @@
 from nectarml.tensor import Tensor
 from nectarml.functional.indexing import where
-from nectarml.functional.common import _eval_core_function
-from nectarml._core import activation 
 
 def ReLU(input: Tensor) -> Tensor:
     '''Rectified linear unit activation function.

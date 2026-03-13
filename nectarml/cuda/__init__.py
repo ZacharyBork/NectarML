@@ -1,6 +1,5 @@
 from . import (
-    activation, combination, indexing, masking, math, reductions, shapes, 
-    utils)
+    combination, indexing, masking, math, reductions, shapes, utils)
 from .mapping import DTYPE_MAP
 from .utils import map_dtype, cast_tensor, to_cuda, data_to_cuda, to_cpu, clone 
 from .memory import (
