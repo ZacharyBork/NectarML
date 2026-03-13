@@ -48,7 +48,6 @@ py::array to_cpu(uintptr_t device_ptr, std::vector<size_t> shape, DType dtype) {
             auto buf = result.request();
             cudaMemcpy(buf.ptr, d_float, 
                        n_elements * sizeof(float), cudaMemcpyDeviceToHost);
-            cudaFree(d_float);
             return result;
         } else {
             auto result = py::array_t<T>(shape);

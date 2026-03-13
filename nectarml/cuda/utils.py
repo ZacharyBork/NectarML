@@ -17,7 +17,6 @@ def map_dtype(dtype: DTypeLike) -> Any:
 def to_cuda(input: Tensor) -> int:
     ptr = _nectarml.to_cuda(
         input.data.ctypes.data, input.size, map_dtype(input.dtype))
-    input.data = None
     return ptr
 
 def to_cpu(input: Tensor, host_dtype: DTypeLike | None = None) -> np.ndarray:
