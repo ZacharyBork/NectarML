@@ -1,6 +1,6 @@
 from nectarml.tensor import Tensor
 from nectarml.cuda import combination
-from nectarml._core import combination as _combination
+from nectarml.cpu import combination as _combination
 
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])

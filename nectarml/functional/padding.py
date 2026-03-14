@@ -1,7 +1,7 @@
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml._core import padding
+from nectarml.cpu import padding
 from nectarml.functional.common import _eval_core_function
 
 def pad(

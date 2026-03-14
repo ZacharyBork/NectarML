@@ -10,7 +10,7 @@
 
 ### ✅  Typing Abstraction Layer
 
-### ✅  Core Library (nectarml._core)
+### ✅  CPU Library (nectarml.cpu)
 
     ✅ 1. Combinations
     🟡 2. Conv
@@ -58,14 +58,14 @@
     First-order:
         ✅ 1. SGD
         ✅ 2. SGD w/ Nesterov momentum
-        ❌ 3. Adagrad
-        ❌ 4. RMSprop
-        ❌ 5. Adam
-        ❌ 6. AdamW
+        ✅ 3. Adam
+        ❌ 4. AdamW
+        ❌ 5. NAdam
+        ❌ 6. RAdam
         ❌ 7. Adamax
-        ❌ 8. NAdam
-        ❌ 9. RAdam
-
+        ❌ 8. Adagrad
+        ❌ 9. RMSprop
+        
     Second-order:
         ❌ 1. Adadelta
         ❌ 2. ASGD
@@ -110,28 +110,35 @@
 ### 🟡  CUDA:
 
     🟡 1. Host
-        ❌ 1. Conv
-        ✅ 2. Elementwise
-        ✅ 3. Indexing
-        ✅ 4. Matmul
-        ✅ 5. Memory
-        ❌ 6. Padding
-        ✅ 7. Reductions
-        ✅ 8. Combination
-        🟡 9. Vision
+        ❌ 1.  Conv
+        ❌ 2.  Upsample
+        ✅ 3.  Elementwise
+        ✅ 4.  Indexing
+        ✅ 5.  Matmul
+        ✅ 6.  Memory
+        ❌ 7.  Padding
+        ✅ 8.  Reductions
+        ✅ 9.  Combination
+        🟡 10. Vision
     🟡 2. Kernels
-        ❌ 1. Conv
-        ✅ 2. Elementwise
-        ✅ 3. Indexing
-        ✅ 4. Matmul
-        ✅ 5. Memory
-        ❌ 6. Padding
-        ✅ 7. Reductions
-        ✅ 8. Combination
-        🟡 9. Vision
+        ❌ 1.  Conv
+        ❌ 2.  Upsample
+        ✅ 3.  Elementwise
+        ✅ 4.  Indexing
+        ✅ 5.  Matmul
+        ✅ 6.  Memory
+        ❌ 7.  Padding
+        ✅ 8.  Reductions
+        ✅ 9.  Combination
+        🟡 10. Vision
     🟡 3. Bindings
     ✅ 4. CMakeLists
     ❌ 5. Organization and Cleanup
+
+### 🟡  Other:
+
+    🟡 1. Autocast Context
+    ❌ 2. Nograd Context/Decorator
 
 ### 🟡  Documentation:
 

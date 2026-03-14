@@ -6,10 +6,8 @@ from collections.abc import Callable
 
 import numpy as np
 
-from nectarml import typing
+from nectarml import typing, cpu, cuda
 from nectarml.cuda.memory import CudaBuffer
-import nectarml.cuda as cuda
-import nectarml._core as _core
 
 class Tensor():
     def __init__(
@@ -720,7 +718,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.add(self, other)
-        else: out_data = _core.math.add(self.data, other.data)
+        else: out_data = cpu.math.add(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
@@ -752,7 +750,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.subtract(self, other)   
-        else: out_data = _core.math.subtract(self.data, other.data)
+        else: out_data = cpu.math.subtract(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
@@ -770,7 +768,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.negate(self)
-        else: out_data = _core.math.negate(self.data)
+        else: out_data = cpu.math.negate(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -786,7 +784,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.multiply(self, other)
-        else: out_data = _core.math.multiply(self.data, other.data)
+        else: out_data = cpu.math.multiply(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
@@ -809,7 +807,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.matmul(self, other)
-        else: out_data = _core.math.matmul(self.data, other.data)
+        else: out_data = cpu.math.matmul(self.data, other.data)
         out = self._build_output_tensor(out_data, (self, other))
         
         def _backward() -> None:
@@ -830,7 +828,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.pow(self, exponent)
-        else: out_data = _core.math.pow(self.data, exponent)
+        else: out_data = cpu.math.pow(self.data, exponent)
         out = self._build_output_tensor(out_data, (self,))
         
         def _backward() -> None:
@@ -856,7 +854,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.abs(self)
-        else: out_data = _core.math.abs(self.data)
+        else: out_data = cpu.math.abs(self.data)
         
         def _backward(out_grad: Tensor) -> None:
             if self_requires_grad: 
@@ -876,7 +874,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.minimum(self, other)
-        else: out_data = _core.math.minimum(self.data, other.data)
+        else: out_data = cpu.math.minimum(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
@@ -899,7 +897,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.maximum(self, other)
-        else: out_data = _core.math.maximum(self.data, other.data)
+        else: out_data = cpu.math.maximum(self.data, other.data)
         out = self._build_output_tensor(out_data, children)
         
         def _backward() -> None:
@@ -923,7 +921,7 @@ class Tensor():
         
         if self.device == 'cuda': 
             out_data = cuda.math.clamp(self, min_value, max_value)
-        else: out_data = _core.math.clamp(self.data, min_value, max_value)
+        else: out_data = cpu.math.clamp(self.data, min_value, max_value)
         out = self._build_output_tensor(out_data, (self,))
                     
         def _backward() -> None:
@@ -946,7 +944,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.exp(self)
-        else:  out_data = _core.math.exp(self.data)
+        else:  out_data = cpu.math.exp(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -962,7 +960,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log(self)
-        else: out_data = _core.math.log(self.data)
+        else: out_data = cpu.math.log(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -976,7 +974,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log2(self)
-        else: out_data = _core.math.log2(self.data)
+        else: out_data = cpu.math.log2(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -990,7 +988,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log10(self)
-        else: out_data = _core.math.log10(self.data)
+        else: out_data = cpu.math.log10(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1006,7 +1004,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.sqrt(self)
-        else: out_data = _core.math.sqrt(self.data)
+        else: out_data = cpu.math.sqrt(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1020,7 +1018,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.rsqrt(self)
-        else: out_data = _core.math.rsqrt(self.data)
+        else: out_data = cpu.math.rsqrt(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1036,7 +1034,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.sin(self)
-        else: out_data = _core.math.sin(self.data)
+        else: out_data = cpu.math.sin(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1052,7 +1050,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.asin(self)
-        else: out_data = _core.math.asin(self.data)
+        else: out_data = cpu.math.asin(self.data)
         
         def _backward() -> None:
             if self_requires_grad:
@@ -1068,7 +1066,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.sinh(self)
-        else: out_data = _core.math.sinh(self.data)
+        else: out_data = cpu.math.sinh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1083,7 +1081,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.asinh(self)
-        else: out_data = _core.math.asinh(self.data)
+        else: out_data = cpu.math.asinh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1098,7 +1096,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.cos(self)
-        else: out_data = _core.math.cos(self.data)
+        else: out_data = cpu.math.cos(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1114,7 +1112,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.acos(self)
-        else: out_data = _core.math.acos(self.data)
+        else: out_data = cpu.math.acos(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1130,7 +1128,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.cosh(self)
-        else: out_data = _core.math.cosh(self.data)
+        else: out_data = cpu.math.cosh(self.data)
         out = self._build_output_tensor(out_data, (self,))
         
         def _backward() -> None:
@@ -1145,7 +1143,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.acosh(self)
-        else: out_data = _core.math.acosh(self.data)
+        else: out_data = cpu.math.acosh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1163,7 +1161,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.tan(self)
-        else: out_data = _core.math.tan(self.data)
+        else: out_data = cpu.math.tan(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1178,7 +1176,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.tanh(self)
-        else: out_data = _core.math.tanh(self.data)
+        else: out_data = cpu.math.tanh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1193,7 +1191,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.atan(self)
-        else: out_data = _core.math.atan(self.data)
+        else: out_data = cpu.math.atan(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1208,7 +1206,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.atanh(self)
-        else: out_data = _core.math.atanh(self.data)
+        else: out_data = cpu.math.atanh(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1226,7 +1224,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.atan2(other, self)
-        else: out_data = _core.math.atan2(other.data, self.data)
+        else: out_data = cpu.math.atan2(other.data, self.data)
         out = self._build_output_tensor(out_data, (self, other))
         
         def _backward() -> None:
@@ -1247,7 +1245,7 @@ class Tensor():
         self._bool_type_check('Tensor.sign()')
                 
         if self.device == 'cuda': out_data = cuda.math.sign(self)
-        else: out_data = _core.math.sign(self.data)
+        else: out_data = cpu.math.sign(self.data)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None: pass
@@ -1271,7 +1269,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': data = cuda.reductions.min(self, dim)
-        else: data = _core.reductions.min(self.data, dim, keepdim)
+        else: data = cpu.reductions.min(self.data, dim, keepdim)
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad,
@@ -1302,7 +1300,7 @@ class Tensor():
             data = cuda.reductions.max(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data = _core.reductions.max(
+            data = cpu.reductions.max(
                 self.data, dim, keepdim)
             output_shape = typing.Size(data.shape)
         out = Tensor(
@@ -1331,7 +1329,7 @@ class Tensor():
         if self.device == 'cuda':
             raise RuntimeError(
                 'argmin currently not supported for CUDA tensors.')
-        return _core.reductions.argmin(self.data, dim=dim, keepdim=keepdim)
+        return cpu.reductions.argmin(self.data, dim=dim, keepdim=keepdim)
         
     def argmax(
         self: Tensor, 
@@ -1342,7 +1340,7 @@ class Tensor():
         if self.device == 'cuda':
             raise RuntimeError(
                 'argmax currently not supported for CUDA tensors.')
-        return _core.reductions.argmax(self.data, dim=dim, keepdim=keepdim)
+        return cpu.reductions.argmax(self.data, dim=dim, keepdim=keepdim)
     
     def mean(
         self: Tensor, 
@@ -1364,7 +1362,7 @@ class Tensor():
             data = cuda.reductions.mean(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data = _core.reductions.mean(
+            data = cpu.reductions.mean(
                 self.data, dim, keepdim)
             output_shape = typing.Size(data.shape)
 
@@ -1403,7 +1401,7 @@ class Tensor():
                 return result
             
             data = cuda.reductions.sum(self, dim, initial)
-        else: data = _core.reductions.sum(self.data, dim, keepdim, initial)
+        else: data = cpu.reductions.sum(self.data, dim, keepdim, initial)
 
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
@@ -1438,7 +1436,7 @@ class Tensor():
                 return result
             
             data = cuda.reductions.prod(self, dim, initial)
-        else: data = _core.reductions.prod(self.data, dim, keepdim, initial)
+        else: data = cpu.reductions.prod(self.data, dim, keepdim, initial)
         
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
@@ -1477,7 +1475,7 @@ class Tensor():
             self._buffer = out._buffer.increment()
         else:
             out = Tensor(
-                _core.shapes.reshape(self.data, shape), shape, self.dtype, 
+                cpu.shapes.reshape(self.data, shape), shape, self.dtype, 
                 self.device, self.requires_grad, _children=(self,))
         
         def _backward() -> None:
@@ -1511,7 +1509,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
     
         if self.device == 'cuda': out_data = cuda.shapes.permute(self, dims)
-        else: out_data = _core.shapes.permute(self.data, dims) 
+        else: out_data = cpu.shapes.permute(self.data, dims) 
         out_shape = tuple(self.shape[d] for d in dims)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
@@ -1545,7 +1543,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.shape.expand(self, shape)
-        else: out_data = _core.shapes.expand(self.data, shape).copy()
+        else: out_data = cpu.shapes.expand(self.data, shape).copy()
         out = Tensor(out_data, shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
 
@@ -1621,7 +1619,7 @@ class Tensor():
         
         if self.device == 'cuda':
             out_data = cuda.indexing.gather(self, dim, index)
-        else: out_data = _core.indexing.gather(self.data, dim, index.data)
+        else: out_data = cpu.indexing.gather(self.data, dim, index.data)
         out = Tensor(out_data, index.shape, self.dtype, self.device, 
             self.requires_grad, _children=(self,))
         
@@ -1662,7 +1660,7 @@ class Tensor():
         
         if self.device == 'cuda':
             out_data = cuda.indexing.scatter(self, index, dim, source)
-        else: out_data = _core.indexing.scatter(
+        else: out_data = cpu.indexing.scatter(
             self.data, index.data, dim, source.data)
         out = Tensor(out_data, self.shape, self.dtype, self.device, 
             self.requires_grad, _children=(self,))
@@ -1712,7 +1710,7 @@ class Tensor():
         
         if self.device == 'cuda':
             out_data = cuda.indexing.scatter_add(self, index, dim, source)
-        else: out_data = _core.indexing.scatter_add(
+        else: out_data = cpu.indexing.scatter_add(
             self.data, index.data, dim, source.data)
         out = Tensor(out_data, self.shape, self.dtype, self.device, 
             self.requires_grad, _children=(self,))

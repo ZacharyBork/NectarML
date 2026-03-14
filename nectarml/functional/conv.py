@@ -1,7 +1,7 @@
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml._core import conv
+from nectarml.cpu import conv
 
 def conv1d(
     input: Tensor,
