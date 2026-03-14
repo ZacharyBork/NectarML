@@ -519,7 +519,7 @@ class Tensor():
         
     def to(
         self: Tensor,
-        device: Literal['cpu', 'cuda'],
+        device: Literal['cpu', 'cuda'] | None = None,
         dtype: typing.DTypeLike | None = None
     ) -> Tensor: 
         '''Casts tensor to new device and/or Dtype.
@@ -531,19 +531,18 @@ class Tensor():
         Returns:
             Tensor : The resulting Tensor from the cast operation.
         '''
-        if device == self.device:
-            if dtype is None or dtype == self.dtype:
-                return self
+        device = device or self.device
+        dtype  = dtype  or self.dtype
+        if device == self.device and dtype == self.dtype: return self
                                 
-        dtype = dtype or self.dtype
         if device == 'cuda':
-            shape = self.shape
             if self.device == 'cpu': data = cuda.to_cuda(self)
             else: data = cuda.cast_tensor(self, dtype)
+            shape = self.shape
         elif device == 'cpu':
-            shape = None
-            if self.device == 'cpu': data = self.data
+            if self.device == 'cpu': data = self.data.astype(dtype)
             else: data = cuda.to_cpu(self, dtype)
+            shape = typing.Size(data.shape)
         else: raise ValueError(f'Invalid device type: {device}')
         
         new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
