@@ -33,34 +33,39 @@ class SGD(Optimizer):
         self.foreach = foreach
         self.fused = fused
         
+    def _build_state(self: SGD, param_index: int, param: Tensor) -> None:
         if self.momentum > 0.0:
-            for idx, param in enumerate(self._get_all_params()):
-                if 'velocity' not in self.state[idx]:
-                    self.state[idx]['velocity'] = zeros_like(param)
+            if 'velocity' not in self.state[param_index]:
+                self.state[param_index]['velocity'] = zeros_like(param)
                 
     def _update(self: SGD) -> None:
-        for idx, param in enumerate(self._get_all_params()):
-            if param.grad is None: continue
-            
-            grad = param.grad.clone()
-            
-            if self.maximize: grad = -grad
-            if self.weight_decay: 
-                grad = grad + self.weight_decay * param.detach()
-            
-            if self.momentum > 0.0:
-                if idx not in self.state: self.state[idx] = {}
-                if 'velocity' not in self.state[idx]:
-                    self.state[idx]['velocity'] = zeros_like(param)
+        for group in self.param_groups:
+            _lr = group.get('lr', self.lr)
+                        
+            for param in group['params']:
+                if param.grad is None: continue
+                idx = self._get_parameter_state_index(param)
+                self._build_state(idx, param)
                 
-                v = self.state[idx]['velocity']
-                v = self.momentum * v + (1 - self.dampening) * grad
-                self.state[idx]['velocity'] = v
+                grad = param.grad.clone()
                 
-                if self.nesterov: grad = grad + self.momentum * v
-                else: grad = v
-            
-            param -= self.lr * grad
+                if self.maximize: grad = -grad
+                if self.weight_decay: 
+                    grad = grad + self.weight_decay * param.detach()
+                
+                if self.momentum > 0.0:
+                    if idx not in self.state: self.state[idx] = {}
+                    if 'velocity' not in self.state[idx]:
+                        self.state[idx]['velocity'] = zeros_like(param)
+                    
+                    v = self.state[idx]['velocity']
+                    v = self.momentum * v + (1 - self.dampening) * grad
+                    self.state[idx]['velocity'] = v
+                    
+                    if self.nesterov: grad = grad + self.momentum * v
+                    else: grad = v
+                
+                param -= _lr * grad
                 
             
 

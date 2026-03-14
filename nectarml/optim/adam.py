@@ -21,13 +21,13 @@ class Adam(Optimizer):
         decoupled_weight_decay: bool = False,
         amsgrad:                bool = False,
         maximize:               bool = False,
-        foreach:                bool = None,
-        capturable:             bool = False,
-        fused:                  bool = False
+        foreach:                bool = None,  # NOT YET IMPLEMENTED
+        capturable:             bool = False, # NOT YET IMPLEMENTED
+        fused:                  bool = False  # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(parameters, defaults=None)
         self.lr = lr
-        self.betas = betas
+        self.beta1, self.beta2 = betas
         self.eps = eps
         self.weight_decay = weight_decay
         self.decoupled_weight_decay = decoupled_weight_decay
@@ -36,9 +36,59 @@ class Adam(Optimizer):
         self.foreach = foreach
         self.capturable = capturable
         self.fused = fused
+              
+    def _build_state(self: Adam, param_index: int, param: Tensor) -> None:
+        if param_index not in self.state: self.state[param_index] = {}
+        if 'exp_avg' not in self.state[param_index]:
+            self.state[param_index]['exp_avg'] = zeros_like(param)
+        if 'exp_avg_sq' not in self.state[param_index]:
+            self.state[param_index]['exp_avg_sq'] = zeros_like(param)
+        if 'step' not in self.state[param_index]: 
+            self.state[param_index]['step'] = 0
+        if self.amsgrad:
+            if 'max_exp_avg_sq' not in self.state[param_index]:
+                self.state[param_index]['max_exp_avg_sq'] = zeros_like(param)
         
     def _update(self: Adam) -> None:
-        pass
+        for group in self.param_groups:
+            _lr = group.get('lr', self.lr)
+                        
+            for param in group['params']:
+                if param.grad is None: continue
+                idx = self._get_parameter_state_index(param)
+                self._build_state(idx, param)
+                
+                grad = param.grad.clone()
+                
+                if self.maximize: grad = -grad
+                if self.weight_decay: 
+                    if self.decoupled_weight_decay:
+                        param -= _lr * self.weight_decay * param.detach()
+                    else: grad = grad + self.weight_decay * param.detach()
+                    
+                self.state[idx]['step'] += 1
+                step = self.state[idx]['step']
+                
+                exp_avg = self.state[idx]['exp_avg']
+                exp_avg = self.beta1 * exp_avg + (1 - self.beta1) * grad
+                self.state[idx]['exp_avg'] = exp_avg
+                
+                exp_avg_sq = self.state[idx]['exp_avg_sq']
+                exp_avg_sq = self.beta2 * exp_avg_sq + (1-self.beta2) * grad**2
+                self.state[idx]['exp_avg_sq'] = exp_avg_sq
+                
+                exp_avg_corrected = exp_avg / (1 - self.beta1**step)
+                exp_avg_sq_corrected = exp_avg_sq / (1 - self.beta2**step) 
+                
+                if self.amsgrad:
+                    max_exp_avg_sq = self.state[idx]['max_exp_avg_sq']
+                    max_exp_avg_sq = max_exp_avg_sq.maximum(
+                        exp_avg_sq_corrected)
+                    self.state[idx]['max_exp_avg_sq'] = max_exp_avg_sq
+                    denom = max_exp_avg_sq.sqrt() + self.eps
+                else: denom = exp_avg_sq_corrected.sqrt() + self.eps
+                
+                param -= _lr * exp_avg_corrected / denom
 
 class AdamW(Optimizer):
     def __init__(
@@ -60,7 +110,7 @@ class AdamW(Optimizer):
     ) -> None:
         super().__init__(parameters, defaults=None)
         self.lr = lr
-        self.betas = betas
+        self.beta1, self.beta2 = betas
         self.eps = eps
         self.weight_decay = weight_decay
         self.amsgrad = amsgrad
@@ -92,7 +142,7 @@ class NAdam(Optimizer):
     ) -> None:
         super().__init__(parameters, defaults=None)
         self.lr = lr
-        self.betas = betas
+        self.beta1, self.beta2 = betas
         self.eps = eps
         self.weight_decay = weight_decay
         self.momentum_decay = momentum_decay
@@ -123,7 +173,7 @@ class RAdam(Optimizer):
     ) -> None:
         super().__init__(parameters, defaults=None)
         self.lr = lr
-        self.betas = betas
+        self.beta1, self.beta2 = betas
         self.eps = eps
         self.weight_decay = weight_decay
         self.decoupled_weight_decay = decoupled_weight_decay
@@ -152,7 +202,7 @@ class Adamax(Optimizer):
     ) -> None:
         super().__init__(parameters, defaults=None)
         self.lr = lr
-        self.betas = betas
+        self.beta1, self.beta2 = betas
         self.eps = eps
         self.weight_decay = weight_decay
         self.maximize = maximize
