@@ -16,7 +16,7 @@ void register_shapes(py::module_& m) {
         py::arg("dtype"),
         "Permutes tensor dimensions and returns as new tensor data.");
 
-    m.def("permute", &nectar::permute, 
+    m.def("expand", &nectar::expand, 
         py::arg("in_ptr"), 
         py::arg("in_shape"), 
         py::arg("target_shape"),

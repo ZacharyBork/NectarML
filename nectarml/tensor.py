@@ -822,6 +822,14 @@ class Tensor():
     ### MATH DUNDERS ###
     
     def __iadd__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Adds other (Tensor|int|float) to given Tensor's data in-place.
+        
+        Args:
+            other : The other Tensor or scalar value to add to the Tensor.
+            
+        Returns:
+            Tensor : A reference to the Tensor being added to.
+        '''
         other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__iadd__()', other)
 
@@ -833,6 +841,14 @@ class Tensor():
         return self
     
     def __add__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Adds (Tensor|int|float) to Tensor's data and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to add to the given Tensor.
+            
+        Returns:
+            Tensor : Resulting Tensor from addition operation.
+        '''
         other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__add__()', other)
 
@@ -851,9 +867,26 @@ class Tensor():
         return out
     
     def __radd__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Adds (Tensor|int|float) to Tensor's data and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to add to the given Tensor.
+            
+        Returns:
+            Tensor : Resulting Tensor from addition operation.
+        '''
         return self + other
 
     def __isub__(self, other: Tensor | int | float) -> Tensor:
+        '''Subtracts other (Tensor|scalar) from given Tensor's data in-place.
+        
+        Args:
+            other : The other Tensor or scalar value to subtract from the 
+                Tensor.
+            
+        Returns:
+            Tensor : A reference to the Tensor being subtracted from.
+        '''
         other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__isub__()', other)
 
@@ -865,6 +898,14 @@ class Tensor():
         return self
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
+        '''Subtracts (Tensor|scalar) from Tensor's data and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to add to the given Tensor.
+            
+        Returns:
+            Tensor : Resulting Tensor from addition operation.
+        '''
         other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__sub__()', other)
         
@@ -1664,7 +1705,7 @@ class Tensor():
         
         self_requires_grad = self.requires_grad
         
-        if self.device == 'cuda': out_data = cuda.shape.expand(self, shape)
+        if self.device == 'cuda': out_data = cuda.shapes.expand(self, shape)
         else: out_data = cpu.shapes.expand(self.data, shape).copy()
         out = Tensor(out_data, shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
