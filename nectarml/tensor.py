@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-from nectarml import typing, cpu, cuda
+from nectarml import typing, cpu, cuda, autograd
 from nectarml.cuda.memory import CudaBuffer
 
 class Tensor():
@@ -158,12 +158,9 @@ class Tensor():
             value : True to enable grad on the given Tensor, False to disable.
         '''
         if self.dtype != typing.bool_: 
-            self._requires_grad = value
-            if value and self.grad is None: self._allocate_grad()
-        else: 
-            self._requires_grad = False
-            self._deallocate_grad()
-    
+            self._requires_grad = value and autograd.is_grad_enabled()
+        else: self._requires_grad = False
+            
     ### DATA UTILS ###
     
     def numpy(self: Tensor) -> np.ndarray:
@@ -178,29 +175,78 @@ class Tensor():
         return self.data
     
     def tolist(self: Tensor) -> list[Any]:
+        '''Returns the Tensor's data as nested list.
+        
+        Returns:
+            list[Any] : The Tensor's data as a nested list.
+        '''
         return self.numpy().tolist()
     
     def item(self: Tensor) -> int | float:
+        '''Returns the value of the given Tensor as a float or int.
+        
+        Returns:
+            int | float : The value of the Tensor.
+            
+        Raises:
+            RuntimeError : If called on Tensor with more than a single element.
+        '''
+        if self.numel() != 1:
+            raise RuntimeError(
+                'Tensor.item() can only be called on Tensors with 1 element.')
         return self.numpy().item()
     
     def is_floating_point(self: Tensor) -> bool:
+        '''Tensor floating point Dtype check.
+        
+        Returns:
+            bool : True if Tensor's Dtype is float, float16, or float32,
+                otherwise False
+        '''
         return self.dtype in [typing.float, typing.float16, typing.float32]
     
     def is_cuda(self: Tensor) -> bool:
+        '''CUDA device check. Equivalent to Tensor.device == 'cuda'.
+        
+        Returns:
+            bool : True if the Tensor's device is 'cuda', otherwise False.
+        '''
         return self.device == 'cuda'
     
     def is_cpu(self: Tensor) -> bool:
+        '''CPU device check. Equivalent to Tensor.device == 'cpu'.
+        
+        Returns:
+            bool : True if the Tensor's device is 'cpu', otherwise False.
+        '''
         return self.device == 'cpu'
     
     def dim(self: Tensor) -> int:
+        '''Returns ndim of Tensor.shape. Equivalent to Tensor.ndim
+        
+        Returns:
+            int : The number of dimensions in the given Tensor's shape.
+        '''
         return self.shape.ndim
     
     def numel(self: Tensor) -> int:
+        '''Returns the number of elements in Tensor's shape.
+        
+        Functional equivalent of math.prod(Tensor.shape).
+        
+        Returns:
+            int : The number of elements in the given Tensor's shape.
+        '''
         return self.shape.numel()
     
     ### UTILS ###
     
     def detach(self: Tensor) -> Tensor:
+        '''Returns a copy of the Tensor detached from the computation graph.
+        
+        Returns:
+            Tensor : A detached copy of the Tensor this method is called on.
+        '''
         if self.device == 'cuda':
             out = Tensor(self._data_ptr, self.shape, self.dtype, self.device)
             out._buffer = self._buffer.increment()
@@ -208,11 +254,28 @@ class Tensor():
         return out
     
     def detach_(self: Tensor) -> None:
+        '''In-place detach. Detaches given Tensor from the computation graph. 
+        
+        WARNING: This will corrupt the gradients of any Tensors which depend on 
+        the Tensor this is called from!
+        
+        Detaches the Tensor this method is called on from the computation graph
+        by disabling requires_grad and clearing all autograd data.
+        '''
         self.requires_grad = False
         self._backward = None
         self._prev.clear()
     
     def clone(self: Tensor) -> Tensor:
+        '''Creates and returns a clone of the Tensor.
+        
+        This method is differentiable. The new Tensor's gradients will flow
+        back from the newly created Tensor to the Tensor this method was called
+        on. If you would like to avoid this, please see Tensor.detach().
+        
+        Returns:
+            Tensor : The newly created clone Tensor.
+        '''
         if self.device == 'cuda':
             clone_ptr = cuda.clone(self)
             out = Tensor(clone_ptr, self.shape, self.dtype, self.device,
@@ -229,10 +292,39 @@ class Tensor():
         return out
     
     def requires_grad_(self: Tensor, value: bool) -> Tensor:
+        '''In-place setter for Tensor.requires_grad.
+        
+        If value=True and the given Tensor does not already have a grad Tensor,
+        this method will allocate a new grad Tensor. If value=False and the
+        Tensor does have a grad Tensor, the grad Tensor will be deallocated and
+        the memory will be freed (or buffer decremented, in the case of CUDA
+        Tensors).
+        
+        NOTE: Calling this function with value=True inside of a no_grad context
+        will bypass the context and set requires_grad=True.
+        
+        Args:
+            value : The new value for requires_grad.
+            
+        Returns:
+            Tensor : A reference to the Tensor that this method was called on.
+                Useful for chaining ops.
+        '''
         self.requires_grad = value
+        if value and self.grad is None: self._allocate_grad()
+        elif not value: self._deallocate_grad()
         return self
     
     def fill_(self: Tensor, fill_value: float | int) -> Tensor:
+        '''In-place fill method. Fills given Tensor data with fill_value.
+        
+        Args:
+            fill_value : The (float|int) value to fill the Tensor's data with.
+            
+        Returns:
+            Tensor : A reference to the Tensor that this method was called on.
+                Useful for chaining ops.
+        '''
         if self.device == 'cuda':
             new_ptr = cuda.memory.alloc_cuda_full(
                 self.size, self.dtype, fill_value)
@@ -243,9 +335,29 @@ class Tensor():
         return self
     
     def zero_(self: Tensor) -> Tensor:
+        '''In-place zero-fill method. Fills given Tensor's data with zeros.
+        
+        Returns:
+            Tensor : A reference to the Tensor that this method was called on.
+                Useful for chaining ops.
+        '''
         return self.fill_(0.0)
     
     def copy_(self: Tensor, other: Tensor) -> Tensor:
+        '''Copies data from other Tensor to this Tensor in-place.
+        
+        Requires that other Tensor have the same shape and dtype as the Tensor
+        this method is called from. The Tensors can be on different devices.
+        The Tensor calling this method will remain on whatever device it 
+        started on regardless.
+        
+        Args:
+            other : The Tensor to copy the data from.
+            
+        Returns:
+            Tensor : A reference to the Tensor that this method was called on.
+                Useful for chaining ops.
+        '''
         assert self.shape == other.shape, \
             f'copy_ requires Tensors to have the same shape.'
         assert self.dtype == other.dtype, \
@@ -260,6 +372,16 @@ class Tensor():
         return self
     
     def cuda_build_shape_(self: Tensor) -> None:
+        '''Builds CUDA Tensor's shape in-place from Tensor's actual data.
+        
+        This method will call Tensor.numpy() internally on the given
+        tensor, temporarily copying the Tensor's data from VRAM to system
+        memory. It will then overwrite the given Tensors shape in-place with
+        the shape of the actual data. 
+        
+        NOTE: This is not very performance friendly, especially on larger 
+        Tensors. Generally only use this for debugging purposes.
+        '''
         self.shape = typing.Size(self.numpy().shape)
     
     def _bool_type_check(
