@@ -22,7 +22,6 @@ class GradScaler():
         self._skipped = False
     
     def scale(self: GradScaler, loss: Tensor) -> Tensor:
-        self._loss = loss
         return loss * self.scale_factor
     
     def unscale_(self: GradScaler, optimizer: Optimizer) -> None:
