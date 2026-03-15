@@ -95,6 +95,26 @@ class Tensor():
                 self._buffer = CudaBuffer(cuda.to_cuda(self), self.dtype)
         else: raise ValueError(f'Invalid device type: {self.device}')
     
+    @classmethod
+    def _from_data(
+        cls: type[Tensor],
+        data: np.ndarray, 
+        shape: typing.Size | tuple[int, ...], 
+        dtype: typing.DTypeLike, 
+        device: Literal['cpu', 'cuda']
+    ) -> Tensor:
+        out = cls.__new__(cls)
+        out.device = device
+        out._dtype = dtype
+        out.shape = shape
+        out.data = data
+        out._buffer = None
+        out.grad = None
+        out._requires_grad = False
+        out._backward = lambda: None
+        out._prev = set()
+        return out
+    
     ### PROPERTIES ###
       
     @property
@@ -250,7 +270,9 @@ class Tensor():
         if self.device == 'cuda':
             out = Tensor(self._data_ptr, self.shape, self.dtype, self.device)
             out._buffer = self._buffer.increment()
-        else: out = Tensor(self.data, self.shape, self.dtype, self.device)
+        else: 
+            out = Tensor._from_data(
+                self.data.view(), self.shape, self.dtype, self.device)
         return out
     
     def detach_(self: Tensor) -> None:
