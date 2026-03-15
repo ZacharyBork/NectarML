@@ -6,17 +6,6 @@ from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float16, float32
 from nectarml.amp.autocast import is_autocast_enabled, autocast_context
 
-
-# ORDER OF OPERATIONS && PER-STEP PRECISION
-# -----------------------------------------------------------------------------
-# forward pass ----------> float16 ops via autocast
-# loss computed ---------> still float16
-# loss * scale_factor ---> still float16 but larger magnitude
-# backward() ------------> gradients in float16 but in representable range
-# scaler.step() ---------> unscale to float32, check for inf/NaN, step or skip
-# scaler.update() -------> adjust scale factor up or down
-# optimizer.zero_grad() -> reset for next iteration
-
 def _cast(
     precision: DTypeLike, 
     *args, 
@@ -48,7 +37,9 @@ def amp_float16(func: Callable):
     
 def amp_float32(func: Callable):
     @functools.wraps(func)
-    def wrapper(*args, **kwargs): return _cast(float32, *args, **kwargs)
+    def wrapper(*args, **kwargs): 
+        args, kwargs = _cast(float32, *args, **kwargs)
+        return func(*args, **kwargs)
     return wrapper
 
     

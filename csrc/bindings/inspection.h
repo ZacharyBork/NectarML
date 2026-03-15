@@ -16,31 +16,31 @@ void register_inspection(py::module_& m) {
         py::arg("in_ptr"), 
         py::arg("n_elements"), 
         py::arg("dtype"),
-        "");
+        "Returns true if all values in Tensor's data are infinite, else returns false.");
 
     m.def("is_finite", &nectar::is_finite, 
         py::arg("in_ptr"), 
         py::arg("n_elements"), 
         py::arg("dtype"),
-        "");
+        "Returns true if all values in Tensor's data are finite, else false");
 
     m.def("is_nan", &nectar::is_nan, 
         py::arg("in_ptr"), 
         py::arg("n_elements"), 
         py::arg("dtype"),
-        "");
+        "Returns true if all values in Tensor's data are NaN, else false.");
 
     m.def("has_inf", &nectar::has_inf, 
         py::arg("in_ptr"), 
         py::arg("n_elements"), 
         py::arg("dtype"),
-        "");
+        "Returns true if any value in Tensor's data is infinite, else returns false.");
 
     m.def("has_nan", &nectar::has_nan, 
         py::arg("in_ptr"), 
         py::arg("n_elements"), 
         py::arg("dtype"),
-        "");
+        "Returns true if any value in Tensor's data is NaN, else returns false.");
 
 }
 
