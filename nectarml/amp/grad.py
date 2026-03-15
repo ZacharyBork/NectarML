@@ -41,7 +41,7 @@ class GradScaler():
             if inspection.has_inf(param.grad) or \
                inspection.has_nan(param.grad):
                 found_bad = True
-                break
+                if found_bad: break
 
         if not found_bad: 
             self._skipped = False
