@@ -524,6 +524,11 @@ class Tensor():
     ) -> Tensor: 
         '''Casts tensor to new device and/or Dtype.
         
+        If both device and DType are the same as the device and DType of the
+        Tensor this is called on, this method will return a reference to the
+        original Tensor object. If you would like to make a duplicate of a
+        given Tensor, please see Tensor.clone() instead.
+        
         Args:
             device : The device to cast the Tensor to ["cpu", "cuda"].
             dtype : The Dtype to cast the Tensor to.
@@ -555,6 +560,10 @@ class Tensor():
     def cuda(self: Tensor) -> Tensor: 
         '''Convenience function to cast given Tensor to CUDA device.
         
+        When called on a Tensor who's device is already "cuda", this method 
+        will return a reference to the original Tensor object. If you would 
+        like to make a duplicate of a given Tensor, please see Tensor.clone().
+        
         Returns:
             Tensor : The resulting CUDA Tensor from the cast operation.
         '''
@@ -562,6 +571,10 @@ class Tensor():
 
     def cpu(self: Tensor) -> Tensor: 
         '''Convenience function to cast given Tensor to CPU device.
+        
+        When called on a Tensor who's device is already "cpu", this method 
+        will return a reference to the original Tensor object. If you would 
+        like to make a duplicate of a given Tensor, please see Tensor.clone().
         
         Returns:
             Tensor : The resulting CPU Tensor from the cast operation.

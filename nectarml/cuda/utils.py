@@ -48,5 +48,27 @@ def compute_tensor_max(input: Tensor) -> float:
 def compute_tensor_range(input: Tensor) -> list[float]:
     return _nectarml.compute_tensor_range(
         input._data_ptr, input.size, map_dtype(input.dtype))
+    
+### INSPECTION ###
+    
+def is_inf(input: Tensor) -> bool:
+    return _nectarml.is_inf(
+        input._data_ptr, input.size, map_dtype(input.dtype))
+    
+def is_finite(input: Tensor) -> bool:
+    return _nectarml.is_finite(
+        input._data_ptr, input.size, map_dtype(input.dtype))
+    
+def is_nan(input: Tensor) -> bool:
+    return _nectarml.is_nan(
+        input._data_ptr, input.size, map_dtype(input.dtype))
+    
+def has_inf(input: Tensor) -> bool:
+    return _nectarml.has_inf(
+        input._data_ptr, input.size, map_dtype(input.dtype))
+    
+def has_nan(input: Tensor) -> bool:
+    return _nectarml.has_nan(
+        input._data_ptr, input.size, map_dtype(input.dtype))
 
 

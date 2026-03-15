@@ -9,6 +9,7 @@
 #include "bindings/shapes.h"
 #include "bindings/matmul.h"
 #include "bindings/indexing.h"
+#include "bindings/inspection.h"
 
 namespace py = pybind11;
 
@@ -37,4 +38,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_shapes(m);
     register_matmul(m);
     register_indexing(m);
+    register_inspection(m);
 }
