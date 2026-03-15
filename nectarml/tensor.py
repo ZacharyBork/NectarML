@@ -19,6 +19,46 @@ class Tensor():
         requires_grad: bool = False,
         _children = ()
     ) -> None:
+        '''Initializes a new Tensor object.
+        
+        If data is an ArrayLike object and the Tensor's device is "cpu", this
+        method will fill the Tensor's data with the data from the ArrayLike
+        object. In this case, if shape is provided, it will be used to set the
+        Tensor's shape. If shape is not provided, the Tensor's shape will
+        instead be taken from the shape of the input data.
+        
+        If the Tensor's device is "cuda" and data is a unintptr to tensor data
+        in CUDA memory, this method will create a CudaBuffer object from the
+        given pointer. In this case, shape is required, and will be used
+        directly to set the Tensor's shape.
+        
+        If the Tensor's device is "cuda" and data is an ArrayLike object, the
+        given data will be passed to CUDA and a CudaBuffer object will be
+        created for the resulting pointer. In this case, shape is not required,
+        and if not provided, will be assumed from the shape of the given data.
+        Shape may be provided, however, and if it is, will override the shape
+        of the input data when setting the Tensor's shape.
+        
+        Args:
+            data : Either an ArrayLike object of tensor data, or a uintptr to
+                a tensor in CUDA memory.
+            shape : Optional if initializing with ArrayLike data. Used to
+                define the shape of the Tensor.
+            dtype : A DtypeLike defining the data type for the new Tensor.
+            device : The device for the new Tensor, "cpu" or "cuda".
+            requires_grad : A boolean defining whether the new Tensor should
+                require grad or not. If True, a grad Tensor will be created
+                and assigned to the new Tensor, and the new Tensor will be
+                included in the computational graph to participate in gradient
+                backpropagation. If False, the Tensor will not be included in
+                the computational graph, and will not contribute to the 
+                network's gradients.
+            _children : The _prev Tensors for the newly created Tensor. If the
+                new Tensor is included in the computational graph, the 
+                gradients from the new Tensor will flow back to the _children
+                Tensors during backpropagation. Used for autograd operations,
+                generally not set manually.
+        '''
         self.device = device
         self._dtype = dtype
         
@@ -43,24 +83,6 @@ class Tensor():
         shape: typing.Size | tuple[int, ...] | None = None
     ) -> None:
         '''Initializes a Tensor from given data and optional shape.
-        
-        If data is an ArrayLike object and the Tensor's device is "cpu", this
-        method will fill the Tensor's data with the data from the ArrayLike
-        object. In this case, if shape is provided, it will be used to set the
-        Tensor's shape. If shape is not provided, the Tensor's shape will
-        instead be taken from the shape of the input data.
-        
-        If the Tensor's device is "cuda" and data is a unintptr to tensor data
-        in CUDA memory, this method will create a CudaBuffer object from the
-        given pointer. In this case, shape is required, and will be used
-        directly to set the Tensor's shape.
-        
-        If the Tensor's device is "cuda" and data is an ArrayLike object, the
-        given data will be passed to CUDA and a CudaBuffer object will be
-        created for the resulting pointer. In this case, shape is not required,
-        and if not provided, will be assumed from the shape of the given data.
-        Shape may be provided, however, and if it is, will override the shape
-        of the input data when setting the Tensor's shape.
         
         Args:
             data : Either an ArrayLike object of tensor data, or a uintptr to
@@ -103,6 +125,18 @@ class Tensor():
         dtype: typing.DTypeLike, 
         device: Literal['cpu', 'cuda']
     ) -> Tensor:
+        '''Helper method to duplicate CPU Tensors which share underlying data.
+        
+        Args:
+            cls : Tensor class type.
+            data : The data reference to assign to the new Tensor.
+            shape : The shape of the new Tensor.
+            dtype : The Dtype of the new Tensor.
+            device : The device of the new Tensor.
+            
+        Return:
+            Tensor : The newly created Tensor.
+        '''
         out = cls.__new__(cls)
         out.device = device
         out._dtype = dtype
@@ -263,6 +297,10 @@ class Tensor():
     
     def detach(self: Tensor) -> Tensor:
         '''Returns a copy of the Tensor detached from the computation graph.
+        
+        NOTE: The newly created Tensor will share the same same underlying
+        storage. As such, modifying the resulting detached Tensor in-place will 
+        also modify the original Tensor.
         
         Returns:
             Tensor : A detached copy of the Tensor this method is called on.
@@ -958,9 +996,22 @@ class Tensor():
         return out
     
     def __rsub__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Subtracts (Tensor|scalar) from Tensor's data and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to add to the given Tensor.
+            
+        Returns:
+            Tensor : Resulting Tensor from addition operation.
+        '''
         return (-self) + other
     
     def __neg__(self) -> Tensor:
+        '''Negates the data of a given Tensor.
+            
+        Returns:
+            Tensor : A new Tensor with the data from the negation operation.
+        '''
         self._bool_type_check('Tensor.__neg__()')
         self_requires_grad = self.requires_grad
         
@@ -974,7 +1025,34 @@ class Tensor():
         out._backward = _backward
         return out
 
+    def __imul__(self, other: Tensor | int | float) -> Tensor:
+        '''Multiplies other (Tensor|scalar) with given Tensor's data in-place.
+        
+        Args:
+            other : The other Tensor or scalar value to multiply the Tensor by.
+            
+        Returns:
+            Tensor : A reference to the Tensor being multiplied.
+        '''
+        other, _ = self._handle_tensor_or_numerical(other)
+        self._bool_type_check('Tensor.__imul__()', other)
+
+        if self.device == 'cuda': 
+            new_ptr = cuda.math.multiply(self, other)
+            self._buffer.decrement()
+            self._buffer = CudaBuffer(new_ptr, self.dtype)
+        else: self.data *= other.data
+        return self
+
     def __mul__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Multiplies Tensor by (Tensor|scalar) and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to multiply the given Tensor by.
+            
+        Returns:
+            Tensor : Resulting Tensor from multiplication operation.
+        '''
         other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__sub__()', other)
         self_requires_grad = self.requires_grad
@@ -992,9 +1070,25 @@ class Tensor():
         return out
     
     def __rmul__(self: Tensor, other: Tensor | int | float) -> Tensor:
+        '''Multiplies Tensor by (Tensor|scalar) and returns new Tensor.
+        
+        Args:
+            other : The Tensor or scalar value to multiply the given Tensor by.
+            
+        Returns:
+            Tensor : Resulting Tensor from multiplication operation.
+        '''
         return self * other
     
     def __matmul__(self: Tensor, other: Tensor) -> Tensor:
+        '''Performs a matrix multiplication between the data of two Tensors.
+        
+        Args:
+            other : The other Tensor for the matrix multiplication.
+            
+        Returns:
+            Tensor : Resulting Tensor from matrix multiplication operation.
+        '''
         self._validate_other(other)
         self._bool_type_check('Tensor.__matmul__()', other)
         if self.ndim == 1 or other.ndim == 1:
@@ -1018,9 +1112,26 @@ class Tensor():
         out._backward = _backward
         return out
     
-    def __rmatmul__(self: Tensor, other: Tensor) -> Tensor: return other @ self
+    def __rmatmul__(self: Tensor, other: Tensor) -> Tensor: 
+        '''Performs a matrix multiplication between the data of two Tensors.
+        
+        Args:
+            other : The other Tensor for the matrix multiplication.
+            
+        Returns:
+            Tensor : Resulting Tensor from matrix multiplication operation.
+        '''
+        return other @ self
     
-    def __pow__(self: Tensor, exponent: float | int) -> Tensor: 
+    def __pow__(self: Tensor, exponent: float | int) -> Tensor:
+        '''Raises a Tensor by the given exponent and returns as new Tensor.
+        
+        Args:
+            exponent : The exponent to raise the Tensor's data by.
+            
+        Returns:
+            Tensor : Resulting Tensor from power operation.
+        ''' 
         self._bool_type_check('Tensor.__pow__()')
         self_requires_grad = self.requires_grad
         
@@ -1039,14 +1150,35 @@ class Tensor():
         raise NotImplementedError
     
     def __truediv__(self: Tensor, other: Tensor | float | int) -> Tensor:
+        '''Divides a Tensor by a (Tensor/scalar) and returns as new Tensor.
+        
+        Args:
+            other : The (Tensor/scalar) to act as the divisor.
+            
+        Returns:
+            Tensor : Resulting Tensor from division operation.
+        ''' 
         self._bool_type_check('Tensor.__truediv__()', other)
         return self * other ** -1
     
     def __rtruediv__(self: Tensor, other: Tensor | float | int) -> Tensor:
+        '''Divides a Tensor by a (Tensor/scalar) and returns as new Tensor.
+        
+        Args:
+            other : The (Tensor/scalar) to act as the divisor.
+            
+        Returns:
+            Tensor : Resulting Tensor from division operation.
+        ''' 
         self._bool_type_check('Tensor.__rtruediv__()', other)
         return (self ** -1) * other
     
     def __abs__(self: Tensor) -> Tensor:
+        '''Takes the absolute of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from absolute operation.
+        ''' 
         self._bool_type_check('Tensor.__abs__()')
         self_requires_grad = self.requires_grad
         
@@ -1064,6 +1196,19 @@ class Tensor():
     ### CLAMP ###
     
     def minimum(self: Tensor, other: Tensor | float | int) -> Tensor:
+        '''Return the minimum of a Tensor and a (Tensor/scalar) as new Tensor.
+        
+        NOTE: It "other" is a Tensor, this method will perform and elementwise
+        mimimum operation, comparing each element of the given Tensor against 
+        the corresponding element from the "other" Tensor and returning the
+        smaller value.
+        
+        Args:
+            other : The (Tensor/scalar) to compare against.
+        
+        Returns:
+            Tensor : Resulting Tensor from the minimum operation.
+        ''' 
         other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.minimum()', other)
         
@@ -1084,9 +1229,21 @@ class Tensor():
         
         out._backward = _backward
         return out
-        
     
     def maximum(self: Tensor, other: Tensor | float | int) -> Tensor:
+        '''Return the maximum of a Tensor and a (Tensor/scalar) as new Tensor.
+        
+        NOTE: It "other" is a Tensor, this method will perform and elementwise
+        maximum operation, comparing each element of the given Tensor against 
+        the corresponding element from the "other" Tensor and returning the
+        larger value.
+        
+        Args:
+            other : The (Tensor/scalar) to compare against.
+        
+        Returns:
+            Tensor : Resulting Tensor from the maximum operation.
+        ''' 
         other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.maximum()', other)
         
@@ -1113,6 +1270,19 @@ class Tensor():
         min_value: float | None = None, 
         max_value: float | None = None
     ) -> Tensor:
+        '''Clamps Tensor's values between min and max, returns as new Tensor.
+        
+        Args:
+            min_value : The minimum allowable value for the clamping operation,
+                or None. If this is None, the minimum representable value for
+                the Tensor's datatype will be used instead.
+            max_value : The minimum allowable value for the clamping operation,
+                or None. If this is None, the maximum representable value for
+                the Tensor's datatype will be used instead.
+        
+        Returns:
+            Tensor : Resulting Tensor from the clamp operation.
+        ''' 
         self._bool_type_check('Tensor.clamp()')
         self_requires_grad = self.requires_grad
         
@@ -1132,11 +1302,22 @@ class Tensor():
     
     ### ABS ###
 
-    def abs(self: Tensor) -> Tensor: return self.__abs__()
+    def abs(self: Tensor) -> Tensor: 
+        '''Takes the absolute of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the absolute operation.
+        ''' 
+        return self.__abs__()
         
     ### EXP ###
             
     def exp(self: Tensor) -> Tensor:
+        '''Takes the exponent of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the exponent operation.
+        ''' 
         self._bool_type_check('Tensor.exp()') 
         self_requires_grad = self.requires_grad
         
@@ -1153,6 +1334,11 @@ class Tensor():
     ### LOG ###
             
     def log(self: Tensor) -> Tensor:
+        '''Takes the logarithm of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the log operation.
+        ''' 
         self._bool_type_check('Tensor.log()') 
         self_requires_grad = self.requires_grad
         
@@ -1167,6 +1353,11 @@ class Tensor():
         return out
     
     def log2(self: Tensor) -> Tensor:
+        '''Takes the log^2 of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the log2 operation.
+        ''' 
         self._bool_type_check('Tensor.log2()') 
         self_requires_grad = self.requires_grad
         
@@ -1181,6 +1372,11 @@ class Tensor():
         return out
     
     def log10(self: Tensor) -> Tensor:
+        '''Takes the log^10 of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the log10 operation.
+        ''' 
         self._bool_type_check('Tensor.log10()') 
         self_requires_grad = self.requires_grad
         
@@ -1197,6 +1393,11 @@ class Tensor():
     ### SQRT ###
             
     def sqrt(self: Tensor) -> Tensor:
+        '''Takes the square root of a Tensor's data and returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the square root operation.
+        ''' 
         self._bool_type_check('Tensor.sqrt()')
         self_requires_grad = self.requires_grad
         
@@ -1211,6 +1412,12 @@ class Tensor():
         return out
     
     def rsqrt(self: Tensor) -> Tensor:
+        '''Takes the reciprocal sqrt of a Tensor's data, returns as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the reciprocal square root 
+                operation.
+        ''' 
         self._bool_type_check('Tensor.rsqrt()')
         self_requires_grad = self.requires_grad
         
@@ -1227,6 +1434,11 @@ class Tensor():
     ### SIN / COS ###
             
     def sin(self: Tensor) -> Tensor:
+        '''Returns the sine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the sine operation.
+        ''' 
         self._bool_type_check('Tensor.sin()') 
         self_requires_grad = self.requires_grad
         
@@ -1243,6 +1455,11 @@ class Tensor():
         return out
     
     def asin(self: Tensor) -> Tensor:
+        '''Returns the arc sine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the arcsine operation.
+        ''' 
         self._bool_type_check('Tensor.asin()') 
         self_requires_grad = self.requires_grad
         
@@ -1259,6 +1476,11 @@ class Tensor():
         return out
     
     def sinh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic sine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic sine operation.
+        ''' 
         self._bool_type_check('Tensor.sinh()') 
         self_requires_grad = self.requires_grad
         
@@ -1274,6 +1496,11 @@ class Tensor():
         return out
     
     def asinh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic arc sine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic arcsine operation.
+        ''' 
         self._bool_type_check('Tensor.asinh()') 
         self_requires_grad = self.requires_grad
         
@@ -1289,6 +1516,11 @@ class Tensor():
         return out
         
     def cos(self: Tensor) -> Tensor: 
+        '''Returns the cosine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the cosine operation.
+        ''' 
         self._bool_type_check('Tensor.cos()')
         self_requires_grad = self.requires_grad
         
@@ -1305,6 +1537,11 @@ class Tensor():
         return out
     
     def acos(self: Tensor) -> Tensor:
+        '''Returns the arc cosine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the arc cosine operation.
+        ''' 
         self._bool_type_check('Tensor.acos()') 
         self_requires_grad = self.requires_grad
         
@@ -1321,6 +1558,11 @@ class Tensor():
         return out
     
     def cosh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic cosine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic cosine operation.
+        ''' 
         self._bool_type_check('Tensor.cosh()') 
         self_requires_grad = self.requires_grad
         
@@ -1336,6 +1578,11 @@ class Tensor():
         return out
     
     def acosh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic arc cosine of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic arc cosine operation.
+        ''' 
         self._bool_type_check('Tensor.acosh()') 
         self_requires_grad = self.requires_grad
         
@@ -1354,6 +1601,11 @@ class Tensor():
     ### TAN / ATAN ###
     
     def tan(self: Tensor) -> Tensor:
+        '''Returns the tangent of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the tangent operation.
+        ''' 
         self._bool_type_check('Tensor.tan()') 
         self_requires_grad = self.requires_grad
         
@@ -1369,6 +1621,11 @@ class Tensor():
         return out
         
     def tanh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic tangent of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic tangent operation.
+        ''' 
         self._bool_type_check('Tensor.tanh()') 
         self_requires_grad = self.requires_grad
         
@@ -1384,6 +1641,11 @@ class Tensor():
         return out
     
     def atan(self: Tensor) -> Tensor:
+        '''Returns the arc tangent of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the arc tangent operation.
+        ''' 
         self._bool_type_check('Tensor.atan()') 
         self_requires_grad = self.requires_grad
         
@@ -1399,6 +1661,12 @@ class Tensor():
         return out
     
     def atanh(self: Tensor) -> Tensor:
+        '''Returns the hyperbolic arc tangent of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the hyperbolic arc tangent
+                operation.
+        ''' 
         self._bool_type_check('Tensor.atanh()') 
         self_requires_grad = self.requires_grad
         
@@ -1414,6 +1682,11 @@ class Tensor():
         return out
     
     def atan2(self: Tensor, other: Tensor) -> Tensor:
+        '''Returns the arc tangent^2 of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the arc tangent^2 operation.
+        ''' 
         self._validate_other(other)
         self._bool_type_check('Tensor.__add__()', other)
 
@@ -1439,6 +1712,11 @@ class Tensor():
     ### SIGN ###
     
     def sign(self: Tensor) -> Tensor:
+        '''Returns the sign of a Tensor's data as new Tensor.
+        
+        Returns:
+            Tensor : Resulting Tensor from the sign operation.
+        ''' 
         self._bool_type_check('Tensor.sign()')
                 
         if self.device == 'cuda': out_data = cuda.math.sign(self)
