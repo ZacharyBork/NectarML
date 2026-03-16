@@ -44,12 +44,12 @@ class WeightedRandomSampler(Sampler):
         self.replacement = replacement
         super().__init__(self.num_samples)
     
-    def sample(self: WeightedRandomSampler) -> Iterator[int]:
+    def __iter__(self: WeightedRandomSampler) -> Iterator[int]:
         indices = list(range(len(self.weights)))
         indices = random.choices(
             indices, weights=self.weights, 
-            k=self.num_samples) if self.replacement else random.sample(
-            indices, k=self.num_samples)
+            k=self.num_samples) if self.replacement \
+            else random.sample(indices, k=self.num_samples)
         for idx in indices: yield idx
 
 class SubsetRandomSampler(Sampler):

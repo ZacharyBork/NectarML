@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+import csv
 from os import PathLike
 from pathlib import Path
+from typing import Any, Literal
 from collections.abc import Iterable
 
 from nectarml.tensor import Tensor
@@ -28,9 +29,9 @@ class IterableDataset:
 
 ### CORE DATASETS ###
 
-class ImageDataset(Dataset):
+class ImageFolder(Dataset):
     def __init__(
-        self: ImageDataset,
+        self: ImageFolder,
         image_directory: str | PathLike,
         extensions = ['.jpg', '.jpeg', '.png', '.bmp'],
         device: Literal['cpu', 'cuda'] = 'cpu',
@@ -57,10 +58,10 @@ class ImageDataset(Dataset):
         self.load = lambda x : load_image(
             x, dtype, device, normalize, value_range, batch_dim=False)
         
-    def __len__(self: ImageDataset) -> int:
+    def __len__(self: ImageFolder) -> int:
         return self.length
     
-    def __getitem__(self: ImageDataset, index: int) -> Tensor:
+    def __getitem__(self: ImageFolder, index: int) -> Tensor:
         sample = self.load(self.image_files[index])
         if self.transform: sample = self.transform(sample)
         return sample
@@ -86,6 +87,103 @@ class TensorDataset(Dataset):
         sample = tuple(t[index] for t in self.tensors)
         if self.transform: sample = self.transform(sample)
         return sample
+    
+class Subset(Dataset):
+    def __init__(
+        self: Subset,
+        dataset: Dataset,
+        indices: Iterable[int]
+    ) -> None:
+        super().__init__()
+        self.dataset = dataset
+        self.indices = indices
+        self.length  = len(self.indices)
+        
+    def __len__(self: Subset) -> int:
+        return self.length
+    
+    def __getitem__(self: Subset, index: int) -> Tensor:
+        sample = self.dataset[self.indices[index]]
+        if self.transform: sample = self.transform(sample)
+        return sample
+    
+class CSVDataset(Dataset):
+    def __init__(
+        self:CSVDataset, 
+        csv_file: str | PathLike, 
+        has_header: bool = True, 
+        **csv_kwargs
+    ) -> None:
+        self.csv_file = Path(csv_file)
+        assert self.csv_file.exists(), \
+            f'Unable to locate CSV file at path: {self.csv_file.as_posix()}'
+        
+        with open(self.csv_file, newline='') as file:
+            reader = csv.reader(file, **csv_kwargs)
+            rows = list(reader)
+        
+        if has_header:
+            self.header = rows[0]
+            self.rows = rows[1:]
+        else:
+            self.header = None
+            self.rows = rows
+        
+    def __len__(self: CSVDataset) -> int:
+        return len(self.rows)
+    
+    def __getitem__(self: CSVDataset, index: int) -> Tensor | tuple[Any, ...]:
+        return tuple(self.rows[index])
+
+class RandomSplitDataset(Dataset):
+    def __init__(self: RandomSplitDataset) -> None:
+        super().__init__()
+        
+    def __len__(self: RandomSplitDataset) -> int:
+        pass
+    
+    def __getitem__(self: RandomSplitDataset, index: int) -> Tensor:
+        pass
+
+### COMBINED DATASETS ###
+
+class ConcatDataset(Dataset):
+    def __init__(
+        self: ConcatDataset,
+        datasets: Iterable[Dataset]
+    ) -> None:
+        super().__init__()
+        self.datasets = datasets
+        self.lengths = [len(i) for i in self.datasets]
+        self.length = sum(self.lengths)
+    
+    def __len__(self: ConcatDataset) -> int:
+        return self.length
+    
+    def __getitem__(self, index: int) -> Any:
+        offset = index
+        for idx, length in enumerate(self.lengths):
+            if offset < length:
+                return self.datasets[idx][offset]
+            offset -= length
+        raise IndexError(
+            f'Index {index} out of range for ConcatDataset of '
+            f'length {self.length}')
+    
+class ChainDataset(IterableDataset):
+    def __init__(
+        self: ConcatDataset, 
+        datasets: Iterable[IterableDataset]
+    ) -> None:
+        super().__init__()
+        self.datasets = list(datasets)
+        self.length = sum(len(i) for i in self.datasets)
+    
+    def __len__(self: ChainDataset) -> int:
+        return self.length
+    
+    def __iter__(self: ChainDataset) -> Iterable[Tensor]:
+        for dataset in self.datasets: yield from dataset
 
 class StackDataset(Dataset):
     def __init__(
@@ -104,13 +202,5 @@ class StackDataset(Dataset):
     def __iter__(self: StackDataset) -> Any:
         raise NotImplementedError
         
-class ChainDataset(Dataset):
-    def __len__(self: ChainDataset) -> int:
-        raise NotImplementedError
-    
-    def __getitem__(self: ChainDataset, index: int) -> Any:
-        raise NotImplementedError
-    
-    def __iter__(self: ChainDataset) -> Any:
-        raise NotImplementedError
+
     
