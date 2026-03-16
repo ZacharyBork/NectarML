@@ -29,7 +29,6 @@ class Dataloader:
         self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.batch_sampler = batch_sampler
         self.num_workers = num_workers
         self.collate_fn = collate_fn or default_collate
         self.pin_memory = pin_memory
@@ -42,6 +41,9 @@ class Dataloader:
         if sampler is not None: self.sampler = sampler
         elif shuffle: self.sampler = RandomSampler(len(self))
         else: self.sampler = SequentialSampler(len(self))
+        
+        self.batch_sampler = batch_sampler or BatchSampler(
+            self.sampler, self.batch_size, self.drop_last)
         
         self._setup_complete = False
         self._prepare_complete = False
@@ -61,8 +63,7 @@ class Dataloader:
         if not self._setup_complete: self.setup()
         if not self._prepare_complete: self.prepare()
         
-        indices = self.sampler.sample()
-        for batch_indices in self._batch(indices):
+        for batch_indices in self.batch_sampler:
             samples = [self.dataset[idx] for idx in batch_indices]
             yield self.collate_fn(samples)
     
