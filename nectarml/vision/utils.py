@@ -11,15 +11,17 @@ import nectarml.functional as F
 
 ### TENSOR UTILS ###
 
-def _normalize_(
+def _normalize(
     input: Tensor, 
-    range: tuple[int | float, int | float] = (255.0, 255.0)
-) -> None:
-    _min = input.min()
-    _max = input.max()
-    spatial = input[2:]
-    spatial = ((spatial - _min) * ((range[1] - range[0]) / (_max - _min)))
-
+    value_range: tuple[int | float, int | float] = (0.0, 255.0)
+) -> Tensor:
+    _min, _max = input.min().item(), input.max().item() 
+    _rmin, _rmax = value_range[0]
+    if _min == _max:
+        if _min == 0.0: return input
+        return input / _min * _rmax
+    else: return ((input - _min) * ((_rmax - _rmin) / (_max - _min)))
+        
 def make_grid(
     input: Tensor | Sequence[Tensor], 
     nrow: int = 8,
@@ -33,9 +35,9 @@ def make_grid(
     
     if scale_each:
         split = F.split(input, sizes=input.shape[0])
-        if normalize: split = [_normalize_(i, value_range) for i in split]
+        if normalize: split = [_normalize(i, value_range) for i in split]
     else:
-        if normalize: input = _normalize_(input, value_range)
+        if normalize: input = _normalize(input, value_range)
         split = F.split(input, sizes=input.shape[0])
                     
     count = len(split)
@@ -70,10 +72,15 @@ def PIL_to_tensor(
     if batch_dim: output = output.reshape((1,) + output.shape)
     return output
 
-def tensor_to_PIL(input: Tensor) -> Image.Image:
+def tensor_to_PIL(
+    input: Tensor,
+    normalize: bool = False,
+    value_range: tuple[int, int] = (0, 255)
+) -> Image.Image:
     if input.ndim > 3: input = input.squeeze(dim=0)
     input = input.permute((1, 2, 0))
-    return Image.fromarray(input.data.astype(dtype=uint8), 'RGB')
+    if normalize: input = _normalize(input, value_range)
+    return Image.fromarray(input.numpy().astype(dtype=uint8), 'RGB')
 
 ### IMAGE I/O ###
 
@@ -82,7 +89,7 @@ def load_image(
     dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     normalize: bool = False,
-    value_range: tuple[int | float, int | float] = [0.0, 1.0],
+    value_range: tuple[int | float, int | float] = (0.0, 1.0),
     batch_dim: bool = True
 ) -> Tensor: 
     image_path = Path(image_path)
@@ -92,14 +99,14 @@ def load_image(
     
     image = Image.open(image_path)
     output = PIL_to_tensor(image, dtype, device, batch_dim)
-    if normalize: _normalize_(output, value_range)
+    if normalize: output = _normalize(output, value_range)
     return output
     
 def save_image(
     input: Tensor | Sequence[Tensor], 
     output_path: PathLike,
     normalize: bool = False,
-    value_range: tuple[int, int] = [0, 255],
+    value_range: tuple[int, int] = (0, 255),
     **kwargs
 ) -> None: 
     output_path = Path(output_path)
@@ -111,7 +118,8 @@ def save_image(
     if isinstance(input, Sequence) or input.shape[0] > 1:
         input = make_grid(
             input, normalize=normalize, value_range=value_range, **kwargs)
-    elif normalize: _normalize_(input, value_range)
+        img = tensor_to_PIL(input, normalize=False)
+    else: img = tensor_to_PIL(input, normalize, value_range)
     
-    tensor_to_PIL(input).save(output_path)
+    img.save(output_path)
 

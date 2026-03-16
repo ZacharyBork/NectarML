@@ -22,5 +22,5 @@ from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import ToTensor, ToPIL, ToNumpy, ConvertDtype, Permute
 from .composition import (
-    Compose, RandomApply, RandomChoice, RandomOrder, OneOf, SomeOf)
+    Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
 

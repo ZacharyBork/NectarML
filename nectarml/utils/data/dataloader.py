@@ -4,15 +4,16 @@ import random
 from typing import Any
 from collections.abc import Callable
 
-from nectarml.utils.data.dataset import Dataset, StackDataset
+from nectarml.utils.data.dataset import (
+    Dataset, IterableDataset, StackDataset)
 from nectarml.utils.data.sampling import (
     Sampler, SequentialSampler, RandomSampler, BatchSampler)
 from nectarml.utils.data.collate import default_collate
 
 class Dataloader:
     def __init__(
-        self: Dataloader,
-        dataset: Dataset,
+        self:    Dataloader,
+        dataset: Dataset | IterableDataset,
         batch_size:             int = 1,
         shuffle:               bool = False,
         sampler:            Sampler = None,

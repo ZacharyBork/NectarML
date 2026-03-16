@@ -2,6 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
+import nectarml.cuda.utils as cuda_utils
 
 class Normalize(Transform):
     def __init__(
@@ -18,8 +19,7 @@ class Normalize(Transform):
     
     def forward(self, input: Tensor) -> Tensor:
         if self.device == 'cuda':
-            t_range = _nectarml.compute_tensor_range(
-                input._data_ptr, input.size, nectarml.cuda.map_dtype(x.dtype))
+            t_range = cuda_utils.compute_tensor_range(input)
 
 class Denormalize(Transform):
     def __init__(self) -> None:
