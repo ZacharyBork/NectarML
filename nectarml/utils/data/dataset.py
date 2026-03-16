@@ -29,9 +29,9 @@ class IterableDataset:
 
 ### CORE DATASETS ###
 
-class ImageFolder(Dataset):
+class ImageFolderDataset(Dataset):
     def __init__(
-        self: ImageFolder,
+        self: ImageFolderDataset,
         image_directory: str | PathLike,
         extensions = ['.jpg', '.jpeg', '.png', '.bmp'],
         device: Literal['cpu', 'cuda'] = 'cpu',
@@ -58,10 +58,10 @@ class ImageFolder(Dataset):
         self.load = lambda x : load_image(
             x, dtype, device, normalize, value_range, batch_dim=False)
         
-    def __len__(self: ImageFolder) -> int:
+    def __len__(self: ImageFolderDataset) -> int:
         return self.length
     
-    def __getitem__(self: ImageFolder, index: int) -> Tensor:
+    def __getitem__(self: ImageFolderDataset, index: int) -> Tensor:
         sample = self.load(self.image_files[index])
         if self.transform: sample = self.transform(sample)
         return sample
@@ -134,16 +134,6 @@ class CSVDataset(Dataset):
     
     def __getitem__(self: CSVDataset, index: int) -> Tensor | tuple[Any, ...]:
         return tuple(self.rows[index])
-
-class RandomSplitDataset(Dataset):
-    def __init__(self: RandomSplitDataset) -> None:
-        super().__init__()
-        
-    def __len__(self: RandomSplitDataset) -> int:
-        pass
-    
-    def __getitem__(self: RandomSplitDataset, index: int) -> Tensor:
-        pass
 
 ### COMBINED DATASETS ###
 
