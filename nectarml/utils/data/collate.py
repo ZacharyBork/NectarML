@@ -7,7 +7,7 @@ from nectarml.tensor import Tensor
 from nectarml.typing import int32, float32
 import nectarml.functional as F
 
-def default_collate(inputs: list[Any]) -> None:
+def default_collate(inputs: list[Any]) -> Any:
     first = inputs[0]
     match first:
         case Tensor(): 
