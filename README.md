@@ -27,13 +27,14 @@
     ✅ 2.  Attention
     ✅ 3.  Combination
     🟡 4.  Conv
-    ✅ 5.  Indexing
-    ✅ 6.  Loss
-    ✅ 7.  Math
-    ✅ 8.  Normalization
-    ✅ 9.  Padding
-    ✅ 10. Reductions
-    ✅ 11. Shapes
+    ❌ 5.  Pooling (MaxPool1d/2d/3d, AvgPool1d/2d/3d)
+    ✅ 6.  Indexing
+    ✅ 7.  Loss
+    ✅ 8.  Math
+    ✅ 9.  Normalization
+    ✅ 10. Padding
+    ✅ 11. Reductions
+    ✅ 12. Shapes
 
 ### ✅  Normalization Modules (nectarml.nn.norm) 
 
@@ -50,6 +51,7 @@
     ✅ 3. Identity
     ❌ 4. Attention
     ❌ 5. Convolutions
+    ❌ 6. Pooling (MaxPool1d/2d/3d, AvgPool1d/2d/3d)
 
 ### 🟡  Optimizers
 
@@ -112,33 +114,35 @@
     🟡 1. Host
         ❌ 1.  Conv
         ❌ 2.  Upsample
-        ✅ 3.  Elementwise
-        ✅ 4.  Indexing
-        ✅ 5.  Matmul
-        ✅ 6.  Memory
-        ❌ 7.  Padding
-        ✅ 8.  Reductions
-        ✅ 9.  Combination
-        🟡 10. Vision
+        ❌ 3.  Pooling
+        ✅ 4.  Elementwise
+        ✅ 5.  Indexing
+        ✅ 6.  Matmul
+        ✅ 7.  Memory
+        ❌ 8.  Padding
+        ✅ 9.  Reductions
+        ✅ 10. Combination
+        🟡 11. Vision
     🟡 2. Kernels
         ❌ 1.  Conv
         ❌ 2.  Upsample
-        ✅ 3.  Elementwise
-        ✅ 4.  Indexing
-        ✅ 5.  Matmul
-        ✅ 6.  Memory
-        ❌ 7.  Padding
-        ✅ 8.  Reductions
-        ✅ 9.  Combination
-        🟡 10. Vision
+        ❌ 3.  Pooling
+        ✅ 4.  Elementwise
+        ✅ 5.  Indexing
+        ✅ 6.  Matmul
+        ✅ 7.  Memory
+        ❌ 8.  Padding
+        ✅ 9.  Reductions
+        ✅ 10. Combination
+        🟡 11. Vision
     🟡 3. Bindings
     ✅ 4. CMakeLists
     ❌ 5. Organization and Cleanup
 
-### 🟡  Other:
+### ✅  Other:
 
-    🟡 1. Autocast Context
-    ❌ 2. Nograd Context/Decorator
+    ✅ 1. Autocast Context
+    ✅ 2. Nograd Context/Decorator
 
 ### 🟡  Documentation:
 
