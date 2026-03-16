@@ -1,8 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+
 import functools
 from typing import Any
 from collections.abc import Callable
 
-from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float16, float32
 from nectarml.amp.autocast import is_autocast_enabled, autocast_context
 
