@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import random
 from typing import Any
 from collections.abc import Callable
 
 from nectarml.utils.data.dataset import Dataset, StackDataset
-from nectarml.utils.data.sampling import Sampler, BatchSampler
+from nectarml.utils.data.sampling import (
+    Sampler, SequentialSampler, RandomSampler, BatchSampler)
 from nectarml.utils.data.collate import default_collate
 
 class Dataloader:
@@ -27,7 +29,6 @@ class Dataloader:
         self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.sampler = sampler
         self.batch_sampler = batch_sampler
         self.num_workers = num_workers
         self.collate_fn = collate_fn or default_collate
@@ -37,6 +38,10 @@ class Dataloader:
         self.worker_init_fn = worker_init_fn
         self.prefetch_factor = prefetch_factor
         self.persistent_workers = persistent_workers
+        
+        if sampler is not None: self.sampler = sampler
+        elif shuffle: self.sampler = RandomSampler(len(self))
+        else: self.sampler = SequentialSampler(len(self))
         
         self._setup_complete = False
         self._prepare_complete = False
@@ -48,19 +53,15 @@ class Dataloader:
         self._prepare_complete = True
         
     def _get_indices(self: Dataloader) -> list[int]:
-        pass
-    
-    def _batch(self: Dataloader, indices: int) -> list[Any]:
-        return [self.dataset[i] for i in indices]
-        
-    def __len__(self: Dataloader) -> int:
-        return len(self.dataset)
+        indices = list(range(len(self)))
+        if self.shuffle: random.shuffle(indices)
+        return indices
 
     def __iter__(self: Dataloader) -> Any:
         if not self._setup_complete: self.setup()
         if not self._prepare_complete: self.prepare()
         
-        indices = self._get_indices()
+        indices = self.sampler.sample()
         for batch_indices in self._batch(indices):
             samples = [self.dataset[idx] for idx in batch_indices]
             yield self.collate_fn(samples)
