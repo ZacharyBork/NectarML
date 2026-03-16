@@ -5,6 +5,7 @@ import tarfile
 from os import PathLike
 from pathlib import Path
 from typing import Any
+from collections.abc import Iterable
 
 from nectarml.tensor import Tensor
 
@@ -37,7 +38,7 @@ def _load_tarfile(file_path: Path) -> dict[str, Any]:
 ### PICKLING ###
 
 def save(
-    tensor: Tensor, 
+    input: Tensor | Iterable[Tensor], 
     output_path: PathLike,
     overwrite: bool = False
 ) -> None:
@@ -58,12 +59,16 @@ def save(
         f'save() requires output to be of type ".pt" or ".pth", not ' \
         f'[{output_path.suffix}]'
     
-    data = {
-        'dtype': tensor.dtype,
-        'shape': tensor.shape,
-        'data' : tensor.numpy()
-    }
+    if isinstance(input, Tensor): input = [input]
+    data = []
+    for tensor in input:
+        data.append({
+            'dtype': tensor.dtype,
+            'shape': tensor.shape,
+            'data' : tensor.numpy()
+        })
     
+    print('tensors parsed')
     if len(suffixes) == 1:
         with open(output_path, 'wb') as file:
             pickle.dump(data, file, pickle.HIGHEST_PROTOCOL)
@@ -72,18 +77,19 @@ def save(
         f'Unable to save Tensor data with file suffixes: {suffixes}')
     
 
-def load(file_path: PathLike) -> Tensor:
+def load(file_path: PathLike) -> Tensor | list[Tensor]:
     file_path = Path(file_path).resolve()
     if not file_path.parent.exists():
         raise FileNotFoundError(
             f'Unable to locate input file at path: {file_path.as_posix()}')
 
-    if tarfile.is_tarfile(file_path):
-        data = _load_tarfile(file_path)
-    else:
+    if not tarfile.is_tarfile(file_path):
         with open(file_path, 'rb') as file:
             data = pickle.load(file)
+    else: data = _load_tarfile(file_path)
         
-    tensor = Tensor(data['data'], data['shape'], data['dtype'])
-    return tensor
+    output = []
+    for i in data: output.append(Tensor(i['data'], i['shape'], i['dtype']))
+    if len(output) == 1: output = output[0]
+    return output
 
