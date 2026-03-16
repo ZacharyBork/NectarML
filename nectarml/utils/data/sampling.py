@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import math
 import random
+from collections.abc import Iterator
 
 ### INDEXING ###
 
@@ -11,24 +13,24 @@ class Sampler:
     def __len__(self) -> int:
         return self.dataset_length
         
-    def __iter__(self) -> list[int]:
+    def __iter__(self) -> Iterator[int]:
         raise NotImplementedError
 
 class SequentialSampler(Sampler):
     def __init__(self: SequentialSampler, dataset_length: int) -> None:
         super().__init__(dataset_length)
 
-    def __iter__(self: SequentialSampler) -> list[int]:
-        return list(range(self.dataset_length))
+    def __iter__(self: SequentialSampler) -> Iterator[int]:
+        for idx in range(self.dataset_length): yield idx
     
 class RandomSampler(Sampler):
     def __init__(self: RandomSampler, dataset_length: int) -> None:
         super().__init__(dataset_length)
 
-    def __iter__(self: RandomSampler) -> list[int]:
+    def __iter__(self: RandomSampler) -> Iterator[int]:
         indices = list(range(self.dataset_length))
         random.shuffle(indices)
-        return indices
+        for idx in indices: yield idx
     
 class WeightedRandomSampler(Sampler):
     def __init__(
@@ -42,12 +44,13 @@ class WeightedRandomSampler(Sampler):
         self.replacement = replacement
         super().__init__(self.num_samples)
     
-    def sample(self: WeightedRandomSampler) -> list[int]:
+    def sample(self: WeightedRandomSampler) -> Iterator[int]:
         indices = list(range(len(self.weights)))
-        return random.choices(
+        indices = random.choices(
             indices, weights=self.weights, 
             k=self.num_samples) if self.replacement else random.sample(
             indices, k=self.num_samples)
+        for idx in indices: yield idx
 
 class SubsetRandomSampler(Sampler):
     def __init__(
@@ -57,10 +60,10 @@ class SubsetRandomSampler(Sampler):
         super().__init__(len(self.indices))
         self.indices = indices
 
-    def __iter__(self: SubsetRandomSampler) -> list[int]:
+    def __iter__(self: SubsetRandomSampler) -> Iterator[int]:
         indices = list(self.indices)
         random.shuffle(indices)
-        return indices
+        for idx in indices: yield idx
 
 ### BATCHING ###
 
@@ -74,9 +77,23 @@ class BatchSampler:
         self.sampler = sampler
         self.batch_size = batch_size
         self.drop_last = drop_last
-        
-    def __iter__(self: BatchSampler) -> list[list[int]]:
-        pass
+     
+    def __len__(self) -> int:
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        return math.ceil(len(self.sampler) / self.batch_size)
+    
+    def __iter__(self: BatchSampler) -> Iterator[list[int]]:
+        indices = list(self.sampler)
+        batch = []
+        for idx in indices:
+            batch.append(idx)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+        if batch and not self.drop_last:
+            yield batch
+            
     
 
 
