@@ -14,6 +14,9 @@
 
     ✅ 1. Combinations
     🟡 2. Conv
+        ✅ 1. Conv1d
+        ❌ 2. Conv2d
+        ❌ 3. Conv3d
     ✅ 3. Indexing
     ✅ 4. Masking
     ✅ 5. Math
@@ -112,7 +115,10 @@
 ### 🟡  CUDA:
 
     🟡 1. Host
-        ❌ 1.  Conv
+        🟡 1. Conv
+            ✅ 1. Conv1d
+            ❌ 2. Conv2d
+            ❌ 3. Conv3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise
@@ -124,7 +130,10 @@
         ✅ 10. Combination
         🟡 11. Vision
     🟡 2. Kernels
-        ❌ 1.  Conv
+        🟡 1. Conv
+            ✅ 1. Conv1d
+            ❌ 2. Conv2d
+            ❌ 3. Conv3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise

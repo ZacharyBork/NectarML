@@ -1,7 +1,9 @@
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml.cpu import conv
+from nectarml import cpu, cuda
+
+### 1-Dimensional ###
 
 def conv1d(
     input: Tensor,
@@ -12,19 +14,95 @@ def conv1d(
     dilation: int = 1,
     groups: int = 1
 ) -> Tensor:
-    out_data, _backward = conv.conv1d(
-        input.data, weight.data, bias.data if bias is not None else None, 
-        stride, padding, dilation, groups)
-    out = Tensor(out_data, out_data.shape, input.dtype, input.device,
-        input.requires_grad, _children=(input,))
-    def _backward_hook():
-        grad_input, grad_weight, grad_bias = _backward(out.grad)
-        if input.requires_grad: input.grad += grad_input
-        if weight.requires_grad: weight.grad += grad_weight
-        if bias is not None and bias.requires_grad: bias.grad += grad_bias
-    out._backward = _backward_hook
+    B, C_in, L = input.shape
+    C_out, _, K = weight.shape
+    
+    assert C_in % groups == 0, (
+        f'Input channel count [{C_in}] must be evenly divisible by number '
+        f'of groups [{groups}].')
+    assert C_out % groups == 0, (
+        f'Weight channel count [{C_out}] must be evenly divisible by number '
+        f'of groups [{groups}].')
+    
+    if padding == 'valid': padding = 0
+    elif padding == 'same': 
+        padding = ((L - 1) * stride - L + dilation * (K-1) + 1) // 2
+    L_out = (L + 2*padding - dilation*(K-1) - 1) // stride + 1
+    
+    _requires_grad = input.requires_grad or weight.requires_grad
+    _children = [input, weight]
+    if bias is not None: 
+        _children.append(bias)
+        _requires_grad = _requires_grad or bias.requires_grad
+    if input.device == 'cuda':
+        out_data = cuda.conv.conv1d(
+            input, weight, bias, 
+            B, C_in, L, C_out, K,
+            stride, padding, dilation, groups)
+        input_padded = None
+        out = Tensor(out_data, (B, C_out, L_out), input.dtype, input.device,
+            requires_grad=_requires_grad, _children=tuple(_children))
+    else:
+        out_data, input_padded = cpu.conv.conv1d(
+            input.data, weight.data, bias.data if bias is not None else None,
+            B, C_in, L_out, C_out, K,
+            stride, padding, dilation, groups)
+        out = Tensor(
+            out_data, (B, C_out, L_out), input.dtype, input.device,
+            requires_grad=_requires_grad, _children=tuple(_children))
+    
+    input_requires_grad = input.requires_grad
+    weight_requires_grad = weight.requires_grad
+    bias_requires_grad = bias.requires_grad if bias is not None else False
+    def _backward() -> None:
+        out_grad = out.grad.contiguous()
+        
+        B, C_in, L = input.shape
+        C_out, _, K = weight.shape
+        L_out = out.shape[2]
+        
+        if input.device == 'cuda':
+            if input_requires_grad:
+                grad_input_ptr = cuda.conv.conv1d_backward_input(
+                    out_grad, weight, B, C_in, L, C_out, K, L_out,
+                    stride, padding, dilation)
+                input.grad += Tensor(
+                    grad_input_ptr, input.shape, input.dtype, input.device)
+            
+            if weight_requires_grad:
+                grad_weight_ptr = cuda.conv.conv1d_backward_weight(
+                    out_grad, input, B, C_in, L, C_out, K, L_out,
+                    stride, padding, dilation)
+                weight.grad += Tensor(
+                    grad_weight_ptr, weight.shape, weight.dtype, weight.device)
+            
+            if bias is not None and bias_requires_grad:
+                bias.grad += out_grad.sum(dim=(0, 2))
+        else:
+            if input_requires_grad:
+                grad_input = cpu.conv.conv1d_backward_input(
+                    out_grad.data, input_padded, weight.data,
+                    stride, padding, dilation, groups)
+                input.grad += Tensor(
+                    grad_input, input.shape, input.dtype, 'cpu')
+            
+            if weight_requires_grad:
+                grad_weight = cpu.conv.conv1d_backward_weight(
+                    out_grad.data, input_padded, weight.data,
+                    stride, padding, dilation, groups)
+                weight.grad += Tensor(
+                    grad_weight, weight.shape, weight.dtype, 'cpu')
+            
+            if bias is not None and bias_requires_grad:
+                bias.grad += Tensor(
+                    out_grad.data.sum(axis=(0, 2)), 
+                    bias.shape, bias.dtype, 'cpu')
+                
+    out._backward = _backward
     return out
-                    
+  
+### 2-Dimensional ###
+  
 def conv2d(
     input: Tensor,
     weight: Tensor,
@@ -35,6 +113,8 @@ def conv2d(
     groups: int = 1
 ) -> Tensor:
     pass
+    
+### 3-Dimensional ###
     
 def conv3d(
     input: Tensor,

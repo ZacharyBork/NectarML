@@ -214,6 +214,11 @@ class Tensor():
         if self.dtype != typing.bool_: 
             self._requires_grad = value and autograd.is_grad_enabled()
         else: self._requires_grad = False
+        
+    @property
+    def is_contiguous(self) -> bool:
+        if self.device == 'cuda': return True
+        else: return self.data.flags['C_CONTIGUOUS']
             
     ### DATA UTILS ###
     
@@ -224,8 +229,7 @@ class Tensor():
             np.ndarray : The Tensor's data as a numpy.ndarray.
         '''
         if self.device == 'cuda': 
-            data = cuda.to_cpu(self)
-            return data[0] if len(data) == 1 else data
+            return cuda.to_cpu(self)
         return self.data
     
     def tolist(self: Tensor) -> list[Any]:
@@ -295,6 +299,23 @@ class Tensor():
     
     ### UTILS ###
     
+    def contiguous(self) -> Tensor:
+        if self.is_contiguous: return self
+        if self.device == 'cuda':
+            clone_ptr = cuda.clone(self)
+            out = Tensor(clone_ptr, self.shape, self.dtype, self.device,
+                self.requires_grad, _children=(self,))
+        else: out = Tensor(np.ascontiguousarray(self.data), self.shape,
+                self.dtype, self.device, self.requires_grad)
+        
+        self_requires_grad = self.requires_grad
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad
+        
+        out._backward = _backward
+        return out
+
     def detach(self: Tensor) -> Tensor:
         '''Returns a copy of the Tensor detached from the computation graph.
         
@@ -935,7 +956,7 @@ class Tensor():
             if self_requires_grad: self.grad += out.grad
             if other_requires_grad: other.grad += out.grad
                 
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def __radd__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -992,7 +1013,7 @@ class Tensor():
             if self_requires_grad: self.grad += out.grad
             if other_requires_grad: other.grad += out.grad
 
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def __rsub__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1066,7 +1087,7 @@ class Tensor():
             if self_requires_grad: self.grad += other.grad * out.grad
             if other_requires_grad: other.grad += self.grad * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def __rmul__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1143,7 +1164,7 @@ class Tensor():
             if self_requires_grad: 
                 self.grad += exponent * (self**(exponent-1)) * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def __rpow__(self: Tensor, exponent: float | int) -> Tensor: 
@@ -1190,7 +1211,7 @@ class Tensor():
                 self.grad += self.sign() * out_grad
         
         out = self._build_output_tensor(out_data, (self,))
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     ### CLAMP ###
@@ -1472,7 +1493,7 @@ class Tensor():
                 self.grad += out.grad / denom
         
         out = self._build_output_tensor(out_data, (self,))
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def sinh(self: Tensor) -> Tensor:
@@ -1492,7 +1513,7 @@ class Tensor():
             if self_requires_grad:
                 self.grad += self.cosh() * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def asinh(self: Tensor) -> Tensor:
@@ -1512,7 +1533,7 @@ class Tensor():
             if self_requires_grad:
                 self.grad += out.grad / (self**2 - 1).sqrt()
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
         
     def cos(self: Tensor) -> Tensor: 
@@ -1554,7 +1575,7 @@ class Tensor():
                 grad = (1 - self**2).sqrt().clamp(min_value=1e-7)
                 self.grad += -out.grad / grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def cosh(self: Tensor) -> Tensor:
@@ -1574,7 +1595,7 @@ class Tensor():
             if self_requires_grad:
                 self.grad += self.sinh() * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     def acosh(self: Tensor) -> Tensor:
@@ -1595,7 +1616,7 @@ class Tensor():
                 grad = (self**2 - 1).sqrt().clamp(min_value=1e-7)
                 self.grad += out.grad / grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
     
     ### TAN / ATAN ###
@@ -1617,7 +1638,7 @@ class Tensor():
             if self_requires_grad:
                 self.grad += (1 + out**2) * out.grad
         
-        out._backward = lambda : _backward(out.grad)
+        out._backward = _backward
         return out
         
     def tanh(self: Tensor) -> Tensor:

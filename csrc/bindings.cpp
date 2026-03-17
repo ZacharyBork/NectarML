@@ -10,6 +10,7 @@
 #include "bindings/matmul.h"
 #include "bindings/indexing.h"
 #include "bindings/inspection.h"
+#include "bindings/conv.h"
 
 namespace py = pybind11;
 
@@ -39,4 +40,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_matmul(m);
     register_indexing(m);
     register_inspection(m);
+    register_conv(m);
 }
