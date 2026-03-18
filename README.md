@@ -15,7 +15,7 @@
     ✅ 1. Combinations
     🟡 2. Conv
         ✅ 1. Conv1d
-        ❌ 2. Conv2d
+        ✅ 2. Conv2d
         ❌ 3. Conv3d
     ✅ 3. Indexing
     ✅ 4. Masking
@@ -30,7 +30,16 @@
     ✅ 2.  Attention
     ✅ 3.  Combination
     🟡 4.  Conv
-    ❌ 5.  Pooling (MaxPool1d/2d/3d, AvgPool1d/2d/3d)
+        ✅ 1. Conv1d
+        ✅ 2. Conv2d
+        ❌ 3. Conv3d
+    ❌ 5.  Pooling
+        ❌ 1. MaxPool1d
+        ❌ 2. MaxPool2d
+        ❌ 3. MaxPool3d
+        ❌ 4. AvgPool1d
+        ❌ 5. AvgPool2d
+        ❌ 6. AvgPool3d
     ✅ 6.  Indexing
     ✅ 7.  Loss
     ✅ 8.  Math
@@ -54,7 +63,16 @@
     ✅ 3. Identity
     ❌ 4. Attention
     ❌ 5. Convolutions
-    ❌ 6. Pooling (MaxPool1d/2d/3d, AvgPool1d/2d/3d)
+        ❌ 1. Conv1d
+        ❌ 2. Conv2d
+        ❌ 3. Conv3d
+    ❌ 6. Pooling
+        ❌ 1. MaxPool1d
+        ❌ 2. MaxPool2d
+        ❌ 3. MaxPool3d
+        ❌ 4. AvgPool1d
+        ❌ 5. AvgPool2d
+        ❌ 6. AvgPool3d
 
 ### 🟡  Optimizers
 
@@ -96,9 +114,9 @@
     ❌ 11. CyclicLR
     ❌ 12. OneCycleLR
 
-### ❌  Dataset
+### ✅  Dataset
 
-### ❌  Dataloader
+### 🟡  Dataloader
 
 ### ✅  Image I/O Utilities
 
@@ -117,7 +135,7 @@
     🟡 1. Host
         🟡 1. Conv
             ✅ 1. Conv1d
-            ❌ 2. Conv2d
+            ✅ 2. Conv2d
             ❌ 3. Conv3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
@@ -132,7 +150,7 @@
     🟡 2. Kernels
         🟡 1. Conv
             ✅ 1. Conv1d
-            ❌ 2. Conv2d
+            ✅ 2. Conv2d
             ❌ 3. Conv3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
