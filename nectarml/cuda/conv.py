@@ -57,7 +57,58 @@ def conv1d_backward_weight(
     
 ### 2-Dimensional ###
 
-
+def conv2d(
+    input: Tensor,
+    weight: Tensor,
+    bias: Tensor | None,
+    B: int, C_in: int, H: int, W: int,
+    C_out: int, KH: int, KW: int,
+    stride_h: int, stride_w: int, 
+    padding_h: int, padding_w: int, 
+    dilation_h: int, dilation_w: int,
+    groups: int
+) -> int:
+    assert groups == 1, \
+        'Grouped convolution is not currently supported for CUDA Tensors.'
+        
+    return _nectarml.conv2d(
+        input._data_ptr, weight._data_ptr,
+        bias._data_ptr if bias is not None else 0,
+        B, C_in, H, W, C_out, KH, KW,
+        stride_h, stride_w, padding_h, padding_w,
+        dilation_h, dilation_w, groups, map_dtype(input.dtype))
+    
+def conv2d_backward_input(
+    out_grad: Tensor,
+    weight: Tensor,
+    B: int, C_in: int, H: int, W: int,
+    C_out: int, KH: int, KW: int,
+    H_out: int, W_out: int,
+    stride_h: int, stride_w: int, 
+    padding_h: int, padding_w: int, 
+    dilation_h: int, dilation_w: int
+) -> int:
+    return _nectarml.conv2d_backward_input(
+        out_grad._data_ptr, weight._data_ptr,
+        B, C_in, H, W, C_out, KH, KW, H_out, W_out,
+        stride_h, stride_w, padding_h, padding_w,
+        dilation_h, dilation_w, map_dtype(out_grad.dtype))
+    
+def conv2d_backward_weight(
+    out_grad: Tensor,
+    input: Tensor,
+    B: int, C_in: int, H: int, W: int,
+    C_out: int, KH: int, KW: int,
+    H_out: int, W_out: int,
+    stride_h: int, stride_w: int, 
+    padding_h: int, padding_w: int, 
+    dilation_h: int, dilation_w: int
+) -> int:
+    return _nectarml.conv2d_backward_weight(
+        out_grad._data_ptr, input._data_ptr,
+        B, C_in, H, W, C_out, KH, KW, H_out, W_out,
+        stride_h, stride_w, padding_h, padding_w,
+        dilation_h, dilation_w, map_dtype(out_grad.dtype))
 
 ### 3-Dimensional ###
 
