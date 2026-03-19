@@ -25,7 +25,7 @@ MODE_NDIM = {
 def upsample(
     input: np.ndarray,
     out_sizes: tuple[int, ...],
-    mode: Literal['nearest', 'linear', 'bilinear', 'bicubic', 'trilinear']
+    mode: Literal['nearest', 'linear', 'bilinear', 'trilinear']
 ) -> np.ndarray:
     mode_ndim = MODE_NDIM[mode]
     if mode_ndim is not None:
@@ -41,7 +41,7 @@ def upsample(
 
 def upsample_nearest_backward(
     grad_output: np.ndarray,
-    in_sizes: tuple
+    in_sizes: tuple[int, ...]
 ) -> np.ndarray:
     spatial_out = grad_output.shape[2:]
     spatial_in = in_sizes
@@ -49,8 +49,7 @@ def upsample_nearest_backward(
         grad_output.shape[:2] + spatial_in, dtype=grad_output.dtype)
     
     indices = tuple(
-        np.minimum(
-            (np.arange(o) * i // o).astype(int), i - 1)
+        np.minimum((np.arange(o) * i // o).astype(int), i - 1)
         for o, i in zip(spatial_out, spatial_in))
 
     if len(spatial_in) == 1:
@@ -116,9 +115,10 @@ def upsample_linear_backward_nd(
 
 def upsample_linear_backward(
     grad_output: np.ndarray,
-    in_size: int
+    in_size: int | tuple[int]
 ) -> np.ndarray:
-    return upsample_linear_backward_nd(grad_output, (in_size,))
+    if not isinstance(in_size, tuple): in_size = (in_size,)
+    return upsample_linear_backward_nd(grad_output, in_size)
 
 def upsample_bilinear_backward(
     grad_output: np.ndarray,
@@ -142,6 +142,37 @@ def cubic_weight(t: np.ndarray, a: float = -0.75) -> np.ndarray:
             a * t**3 - 5*a * t**2 + 8*a * t - 4*a,
             0.0))
     return w
+
+def upsample_bicubic(
+    input: np.ndarray,
+    out_sizes: tuple,
+    a: float = -0.75
+) -> np.ndarray:
+    assert input.ndim == 4, \
+        f'Upsample mode [bicubic] expects input to have ndim=4.'
+            
+    H_out, W_out = out_sizes
+    H_in, W_in = input.shape[2], input.shape[3]
+    output = np.zeros(input.shape[:2] + (H_out, W_out), dtype=input.dtype)
+
+    h_in_float = np.arange(H_out) * (H_in / H_out)
+    w_in_float = np.arange(W_out) * (W_in / W_out)
+    h_base = np.floor(h_in_float).astype(int)
+    w_base = np.floor(w_in_float).astype(int)
+
+    for i in range(4):
+        h_idx = np.clip(h_base + i - 1, 0, H_in - 1)
+        wh = cubic_weight(h_in_float - (h_base + i - 1), a)
+        for j in range(4):
+            w_idx = np.clip(w_base + j - 1, 0, W_in - 1)
+            ww = cubic_weight(w_in_float - (w_base + j - 1), a)
+            weight = (wh[:, None] * ww[None, :])
+            for b in range(input.shape[0]):
+                for c in range(input.shape[1]):
+                    output[b, c] += weight * input[b, c][
+                        h_idx[:, None], w_idx[None, :]]
+
+    return output
 
 def upsample_bicubic_backward(
     grad_output: np.ndarray,

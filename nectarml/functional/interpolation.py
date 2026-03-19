@@ -1,3 +1,5 @@
+from typing import Literal
+
 from nectarml.tensor import Tensor
 from nectarml import cuda, cpu
 
@@ -7,7 +9,7 @@ def _compute_output_size(
     input_shape: tuple,
     size: int | tuple | None,
     scale_factor: float | tuple | None
-) -> tuple:
+) -> tuple[int, ...]:
     spatial_dims = input_shape[2:]
     n_dims = len(spatial_dims)
     
@@ -23,13 +25,12 @@ def _compute_output_size(
     
     raise ValueError('Either size or scale_factor must be specified')
 
-### UPSAMPLING ###
+### NEAREST NEIGHBOR ###
 
 def upsample_nearest(
     input: Tensor,
-    size: int | tuple[int, int] | tuple[int, int, int] | None = None,
-    scale_factor: float | tuple[float, float] | tuple[float, float, float]\
-        | None = None,
+    size: int | tuple[int, ...] | None = None,
+    scale_factor: float | tuple[float, ...] | None = None,
 ) -> Tensor:
     output_size = _compute_output_size(input.shape, size, scale_factor)
     if input.device == 'cuda':
@@ -63,8 +64,8 @@ def upsample_nearest(
                 f'upsample_nearest requires input to have 3, 4, or 5 dims.')
     else:
         input_size = input.shape[2:]
-        out_data = cpu.interpolation.upsample_nearest(
-            input.data, output_size)
+        out_data = cpu.interpolation.upsample(
+            input.data, output_size, mode='nearest')
         _backward_fn = lambda x : \
             cpu.interpolation.upsample_nearest_backward(x, input_size)
     
@@ -82,3 +83,182 @@ def upsample_nearest(
     
     out._backward = _backward
     return out
+
+### LINEAR ###
+
+def upsample_linear(
+    input: Tensor,
+    size: int | None = None,
+    scale_factor: float | None = None
+) -> Tensor:
+    output_size = _compute_output_size(input.shape, size, scale_factor)
+    
+    if input.device == 'cuda':
+        L_in = input.shape[2]
+        L_out = output_size[0]
+        out_data = cuda.interpolation.upsample_linear(input, L_out)
+        _backward_fn = lambda x : \
+            cuda.interpolation.upsample_linear_backward(
+                x, L_in, L_out)
+    else: 
+        input_size = input.shape[2:]
+        out_data = cpu.interpolation.upsample(
+            input.data, output_size, mode='linear')
+        _backward_fn = lambda x : \
+            cpu.interpolation.upsample_linear_backward(x, input_size)
+
+    input_requires_grad = input.requires_grad
+    output_shape = (input.shape[0], input.shape[1]) + output_size
+    out = Tensor(
+        out_data, output_shape, input.dtype, input.device,
+        input_requires_grad, _children=(input,))
+    
+    def _backward() -> None:
+        if input_requires_grad:
+            grad_ptr = _backward_fn(out.grad)
+            input.grad += Tensor(
+                grad_ptr, input.shape, input.dtype, input.device)
+    
+    out._backward = _backward
+    return out
+
+def upsample_bilinear(
+    input: Tensor,
+    size: int | tuple[int, int] | None = None,
+    scale_factor: float | tuple[float, float] | None = None
+) -> Tensor:
+    output_size = _compute_output_size(input.shape, size, scale_factor)
+    
+    if input.device == 'cuda':
+        H_in, W_in = input.shape[2], input.shape[3]
+        H_out, W_out = output_size
+        out_data = cuda.interpolation.upsample_bilinear(
+            input, H_out, W_out)
+        _backward_fn = lambda x : \
+            cuda.interpolation.upsample_bilinear_backward(
+                x, H_in, W_in, H_out, W_out)
+    else: 
+        input_size = input.shape[2:]
+        out_data = cpu.interpolation.upsample(
+            input.data, output_size, mode='bilinear')
+        _backward_fn = lambda x : \
+            cpu.interpolation.upsample_bilinear_backward(x, input_size)
+
+    input_requires_grad = input.requires_grad
+    output_shape = (input.shape[0], input.shape[1]) + output_size
+    out = Tensor(
+        out_data, output_shape, input.dtype, input.device,
+        input_requires_grad, _children=(input,))
+    
+    def _backward() -> None:
+        if input_requires_grad:
+            grad_ptr = _backward_fn(out.grad)
+            input.grad += Tensor(
+                grad_ptr, input.shape, input.dtype, input.device)
+    
+    out._backward = _backward
+    return out
+
+def upsample_trilinear(
+    input: Tensor,
+    size: int | tuple[int, int, int] | None = None,
+    scale_factor: float | tuple[float, float, float] | None = None
+) -> Tensor:
+    output_size = _compute_output_size(input.shape, size, scale_factor)
+    
+    if input.device == 'cuda':
+        D_in = input.shape[2]
+        H_in = input.shape[3]
+        W_in = input.shape[4]
+        D_out, H_out, W_out = output_size
+        out_data = cuda.interpolation.upsample_trilinear(
+            input, D_out, H_out, W_out)
+        _backward_fn = lambda x : \
+            cuda.interpolation.upsample_trilinear_backward(
+                x, D_in, H_in, W_in, D_out, H_out, W_out)
+    else: 
+        input_size = input.shape[2:]
+        out_data = cpu.interpolation.upsample(
+            input.data, output_size, mode='trilinear')
+        _backward_fn = lambda x : \
+            cpu.interpolation.upsample_trilinear_backward(x, input_size)
+
+    input_requires_grad = input.requires_grad
+    output_shape = (input.shape[0], input.shape[1]) + output_size
+    out = Tensor(
+        out_data, output_shape, input.dtype, input.device,
+        input_requires_grad, _children=(input,))
+    
+    def _backward() -> None:
+        if input_requires_grad:
+            grad_ptr = _backward_fn(out.grad)
+            input.grad += Tensor(
+                grad_ptr, input.shape, input.dtype, input.device)
+    
+    out._backward = _backward
+    return out
+
+### CUBIC ###
+
+def upsample_bicubic(
+    input: Tensor,
+    size: int | tuple[int, int] | None = None,
+    scale_factor: float | tuple[float, float] | None = None,
+    a: float = -0.75
+) -> Tensor:
+    output_size = _compute_output_size(input.shape, size, scale_factor)
+    
+    if input.device == 'cuda':
+        H_in, W_in = input.shape[2], input.shape[3]
+        H_out, W_out = output_size
+        out_data = cuda.interpolation.upsample_bicubic(
+            input, H_out, W_out, a)
+        _backward_fn = lambda x : \
+            cuda.interpolation.upsample_bicubic_backward(
+                x, H_in, W_in, H_out, W_out, a)
+    else: 
+        input_size = input.shape[2:]
+        out_data = cpu.interpolation.upsample_bicubic(
+            input.data, output_size, a)
+        _backward_fn = lambda x : \
+            cpu.interpolation.upsample_bicubic_backward(x, input_size, a)
+
+    input_requires_grad = input.requires_grad
+    output_shape = (input.shape[0], input.shape[1]) + output_size
+    out = Tensor(
+        out_data, output_shape, input.dtype, input.device,
+        input_requires_grad, _children=(input,))
+    
+    def _backward() -> None:
+        if input_requires_grad:
+            grad_ptr = _backward_fn(out.grad)
+            input.grad += Tensor(
+                grad_ptr, input.shape, input.dtype, input.device)
+    
+    out._backward = _backward
+    return out
+
+### WRAPPER ###
+
+def upsample(
+    input: Tensor,
+    size: int | tuple[int, ...] | None = None,
+    scale_factor: float | tuple[float, ...] | None = None,
+    mode: Literal[
+        'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
+    ] = 'nearest',
+    a: float = -0.75
+) -> Tensor:
+    mode_ndim = cpu.interpolation.MODE_NDIM[mode]
+    if mode_ndim is not None:
+        assert input.ndim == mode_ndim, \
+            f'Upsample mode [{mode}] expects input to have ndim={mode_ndim}.'
+    
+    match mode:
+        case 'nearest': return upsample_nearest(input, size, scale_factor)
+        case 'linear': return upsample_linear(input, size, scale_factor)
+        case 'bilinear': return upsample_bilinear(input, size, scale_factor)
+        case 'trilinear': return upsample_trilinear(input, size, scale_factor)
+        case 'bicubic': return upsample_bicubic(input, size, scale_factor, a)
+        case _: raise ValueError(f'Invalid upsampling mode: {mode}')
+

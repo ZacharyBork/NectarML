@@ -26,6 +26,7 @@
     ✅ 6. Padding
     ✅ 7. Reductions
     ✅ 8. Shapes
+    ✅ 9. Interpolation
 
 ### ✅  Functional Library
 
@@ -53,6 +54,7 @@
     ✅ 10. Padding
     ✅ 11. Reductions
     ✅ 12. Shapes
+    ✅ 13. Interpolation
 
 ### ✅  Normalization Modules (nectarml.nn.norm) 
 
@@ -149,7 +151,7 @@
             ❌ 4. ConvTranspose1d
             ❌ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
-        ❌ 2.  Upsample
+        ✅ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise
         ✅ 5.  Indexing
@@ -167,7 +169,7 @@
             ❌ 4. ConvTranspose1d
             ❌ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
-        ❌ 2.  Upsample
+        ✅ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise
         ✅ 5.  Indexing
