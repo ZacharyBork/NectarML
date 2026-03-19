@@ -17,6 +17,9 @@
         ✅ 1. Conv1d
         ✅ 2. Conv2d
         ❌ 3. Conv3d
+        ❌ 4. ConvTranspose1d
+        ❌ 5. ConvTranspose2d
+        ❌ 6. ConvTranspose3d
     ✅ 3. Indexing
     ✅ 4. Masking
     ✅ 5. Math
@@ -33,6 +36,9 @@
         ✅ 1. Conv1d
         ✅ 2. Conv2d
         ❌ 3. Conv3d
+        ❌ 4. ConvTranspose1d
+        ❌ 5. ConvTranspose2d
+        ❌ 6. ConvTranspose3d
     ❌ 5.  Pooling
         ❌ 1. MaxPool1d
         ❌ 2. MaxPool2d
@@ -66,6 +72,9 @@
         ❌ 1. Conv1d
         ❌ 2. Conv2d
         ❌ 3. Conv3d
+        ❌ 4. ConvTranspose1d
+        ❌ 5. ConvTranspose2d
+        ❌ 6. ConvTranspose3d
     ❌ 6. Pooling
         ❌ 1. MaxPool1d
         ❌ 2. MaxPool2d
@@ -137,6 +146,9 @@
             ✅ 1. Conv1d
             ✅ 2. Conv2d
             ❌ 3. Conv3d
+            ❌ 4. ConvTranspose1d
+            ❌ 5. ConvTranspose2d
+            ❌ 6. ConvTranspose3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise
@@ -152,6 +164,9 @@
             ✅ 1. Conv1d
             ✅ 2. Conv2d
             ❌ 3. Conv3d
+            ❌ 4. ConvTranspose1d
+            ❌ 5. ConvTranspose2d
+            ❌ 6. ConvTranspose3d
         ❌ 2.  Upsample
         ❌ 3.  Pooling
         ✅ 4.  Elementwise

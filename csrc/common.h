@@ -204,4 +204,20 @@ __device__ void device_prod(volatile T& a, volatile T b) {
     else { a *= b; }
 }
 
+#ifdef __CUDACC__
+template<typename T>
+__device__ void atomic_add(T* address, T val) {
+    if constexpr (std::is_same_v<T, float>) {
+        atomicAdd(address, val);
+    } else if constexpr (std::is_same_v<T, half>) {
+        atomicAdd(address, val);
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+        atomicAdd(address, val);
+    } else if constexpr (std::is_same_v<T, uint8_t>) {
+        static_cast<uint8_t>(
+            atomicAdd(reinterpret_cast<int*>(address), static_cast<int>(val)));
+    }
+}
+#endif
+
 

@@ -11,6 +11,7 @@
 #include "bindings/indexing.h"
 #include "bindings/inspection.h"
 #include "bindings/conv.h"
+#include "bindings/interpolation.h"
 
 namespace py = pybind11;
 
@@ -41,4 +42,5 @@ PYBIND11_MODULE(_nectarml, m) {
     register_indexing(m);
     register_inspection(m);
     register_conv(m);
+    register_interpolation(m);
 }

@@ -12,7 +12,7 @@ def _conv1d_cuda(
     B: int, C_in: int, L_in: int,
     L_out: int, C_out: int, K: int,
     stride: int,
-    padding: int | Literal['valid', 'same'],
+    padding: int,
     dilation: int,
     groups: int,
 ) -> Tensor:
@@ -66,7 +66,7 @@ def _conv1d_cpu(
     B: int, C_in: int, L_out: int,
     C_out: int, K: int,
     stride: int,
-    padding: int | Literal['valid', 'same'],
+    padding: int,
     dilation: int,
     groups: int,
 ) -> Tensor:
@@ -331,7 +331,7 @@ def conv3d(
     dilation: int = 1,
     groups: int = 1
 ) -> Tensor:
-    pass
+    raise NotImplementedError('3D convolution is currently not supported.')
 
 
 

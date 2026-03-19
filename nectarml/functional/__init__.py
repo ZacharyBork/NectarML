@@ -11,6 +11,9 @@ from .conv import conv1d, conv2d, conv3d
 from .indexing import (
     gather, scatter, where, masked_fill, index_select)
 
+from .interpolation import (
+    upsample_nearest)
+
 from .loss import (
     L1Loss, MAELoss, L2Loss, MSELoss, RMSELoss, HuberLoss, LogCoshLoss, 
     BCELoss, CrossEntropyLoss, NLLLoss, HingeLoss, Hinge2Loss, 

@@ -6,7 +6,9 @@ from collections.abc import Sequence
 from PIL import Image
 import numpy as np
 
-from nectarml import Tensor, DTypeLike, float32, uint8, full
+from nectarml.tensor import Tensor
+from nectarml.typing import DTypeLike, float32, uint8
+from nectarml.creation import full
 import nectarml.functional as F
 
 ### TENSOR UTILS ###
@@ -16,7 +18,7 @@ def _normalize(
     value_range: tuple[int | float, int | float] = (0.0, 255.0)
 ) -> Tensor:
     _min, _max = input.min().item(), input.max().item() 
-    _rmin, _rmax = value_range[0]
+    _rmin, _rmax = value_range[0], value_range[1]
     if _min == _max:
         if _min == 0.0: return input
         return input / _min * _rmax
