@@ -1,43 +1,39 @@
 import itertools
-from typing import Literal
 
 import numpy as np
-from scipy.ndimage import zoom
-
-ORDER_MAPPING = {
-    'nearest':   0,
-    'linear':    1,
-    'bilinear':  1,
-    'bicubic':   3,
-    'trilinear': 1
-}
-
-MODE_NDIM = {
-    'nearest':   None,
-    'linear':    3,
-    'bilinear':  4,
-    'bicubic':   4,
-    'trilinear': 5
-}
-
-### UPSAMPLE ###
-
-def upsample(
-    input: np.ndarray,
-    out_sizes: tuple[int, ...],
-    mode: Literal['nearest', 'linear', 'bilinear', 'trilinear']
-) -> np.ndarray:
-    mode_ndim = MODE_NDIM[mode]
-    if mode_ndim is not None:
-        assert input.ndim == mode_ndim, \
-            f'Upsample mode [{mode}] expects input to have ndim={mode_ndim}.'
-    zoom_factors = (1, 1) \
-                 + tuple(o / i for o, i in zip(out_sizes, input.shape[2:]))
-    return zoom(input, zoom_factors, order=ORDER_MAPPING[mode])
-
-### BACKWARD ###
 
 # NEAREST NEIGHBOR
+
+def upsample_nearest(
+    input: np.ndarray,
+    out_sizes: tuple[int, ...]
+) -> np.ndarray:
+    in_sizes = input.shape[2:]
+    output = np.zeros(input.shape[:2] + out_sizes, dtype=input.dtype)
+
+    indices = tuple(
+        np.minimum((np.arange(o) * i // o).astype(int), i - 1)
+        for o, i in zip(out_sizes, in_sizes))
+
+    if len(in_sizes) == 1:
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][indices[0]]
+    elif len(in_sizes) == 2:
+        idx_h = indices[0][:, None]
+        idx_w = indices[1][None, :]
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][idx_h, idx_w]
+    elif len(in_sizes) == 3:
+        idx_d = indices[0][:, None, None]
+        idx_h = indices[1][None, :, None]
+        idx_w = indices[2][None, None, :]
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][idx_d, idx_h, idx_w]
+
+    return output
 
 def upsample_nearest_backward(
     grad_output: np.ndarray,
@@ -75,9 +71,79 @@ def upsample_nearest_backward(
 
 # LINEAR/BILINEAR/TRILINEAR
 
+def upsample_linear_nd(
+    input: np.ndarray,
+    out_sizes: tuple[int, ...],
+    align_corners: bool = False
+) -> np.ndarray:
+    n_spatial = len(out_sizes)
+    in_sizes = input.shape[2:]
+    output = np.zeros(input.shape[:2] + out_sizes, dtype=input.dtype)
+
+    lows, highs, wt_highs = [], [], []
+    for dim in range(n_spatial):
+        if align_corners:
+            in_float = (
+                np.arange(out_sizes[dim]) * (in_sizes[dim] - 1) 
+              / (out_sizes[dim] - 1)) if out_sizes[dim] > 1 else np.zeros(1)
+        else:
+            in_float = np.arange(
+                out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
+        low  = np.floor(in_float).astype(int)
+        lows.append(low)
+        highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
+        wt_highs.append(in_float - low)
+
+    for corner in itertools.product(*[(0, 1)] * n_spatial):
+        weight = np.ones(out_sizes, dtype=input.dtype)
+        idx = []
+        for dim, is_high in enumerate(corner):
+            wt    = wt_highs[dim] if is_high else (1.0 - wt_highs[dim])
+            coord = highs[dim]    if is_high else lows[dim]
+            shape = [1] * n_spatial
+            shape[dim] = -1
+            weight = weight * wt.reshape(shape)
+            idx.append(coord.reshape(shape) * np.ones(out_sizes, dtype=int))
+        idx = tuple(idx)
+
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] += weight * input[b, c][idx]
+
+    return output
+
+def upsample_linear(
+    input: np.ndarray,
+    out_size: int | tuple[int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 3, \
+        f'Upsample mode [linear] expects input to have ndim=3.'
+    if not isinstance(out_size, tuple): out_size = (out_size,)
+    return upsample_linear_nd(input, out_size, align_corners)
+
+def upsample_bilinear(
+    input: np.ndarray,
+    out_sizes: tuple[int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 4, \
+        f'Upsample mode [bilinear] expects input to have ndim=4.'
+    return upsample_linear_nd(input, out_sizes, align_corners)
+
+def upsample_trilinear(
+    input: np.ndarray,
+    out_sizes: tuple[int, int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 5, \
+        f'Upsample mode [trilinear] expects input to have ndim=35.'
+    return upsample_linear_nd(input, out_sizes, align_corners)
+
 def upsample_linear_backward_nd(
     grad_output: np.ndarray,
-    in_sizes: tuple[int, ...]
+    in_sizes: tuple[int, ...],
+    align_corners: bool = False
 ) -> np.ndarray:
     n_spatial = len(in_sizes)
     out_sizes = grad_output.shape[2:]
@@ -87,7 +153,13 @@ def upsample_linear_backward_nd(
 
     lows, highs, wt_highs = [], [], []
     for dim in range(n_spatial):
-        in_float = np.arange(out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
+        if align_corners:
+            in_float = (
+                np.arange(out_sizes[dim]) * (in_sizes[dim] - 1) 
+              / (out_sizes[dim] - 1)) if out_sizes[dim] > 1 else np.zeros(1)
+        else:
+            in_float = np.arange(
+                out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
         low  = np.floor(in_float).astype(int)
         lows.append(low)
         highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
@@ -115,22 +187,25 @@ def upsample_linear_backward_nd(
 
 def upsample_linear_backward(
     grad_output: np.ndarray,
-    in_size: int | tuple[int]
+    in_size: int | tuple[int],
+    align_corners: bool = False
 ) -> np.ndarray:
     if not isinstance(in_size, tuple): in_size = (in_size,)
-    return upsample_linear_backward_nd(grad_output, in_size)
+    return upsample_linear_backward_nd(grad_output, in_size, align_corners)
 
 def upsample_bilinear_backward(
     grad_output: np.ndarray,
-    in_sizes: tuple[int, int]
+    in_sizes: tuple[int, int],
+    align_corners: bool = False
 ) -> np.ndarray:
-    return upsample_linear_backward_nd(grad_output, in_sizes)
+    return upsample_linear_backward_nd(grad_output, in_sizes, align_corners)
 
 def upsample_trilinear_backward(
     grad_output: np.ndarray,
-    in_sizes: tuple[int, int, int]
+    in_sizes: tuple[int, int, int],
+    align_corners: bool = False
 ) -> np.ndarray:
-    return upsample_linear_backward_nd(grad_output, in_sizes)
+    return upsample_linear_backward_nd(grad_output, in_sizes, align_corners)
 
 # BICUBIC
 
@@ -146,7 +221,8 @@ def cubic_weight(t: np.ndarray, a: float = -0.75) -> np.ndarray:
 def upsample_bicubic(
     input: np.ndarray,
     out_sizes: tuple,
-    a: float = -0.75
+    a: float = -0.75,
+    align_corners: bool = False
 ) -> np.ndarray:
     assert input.ndim == 4, \
         f'Upsample mode [bicubic] expects input to have ndim=4.'
@@ -155,8 +231,15 @@ def upsample_bicubic(
     H_in, W_in = input.shape[2], input.shape[3]
     output = np.zeros(input.shape[:2] + (H_out, W_out), dtype=input.dtype)
 
-    h_in_float = np.arange(H_out) * (H_in / H_out)
-    w_in_float = np.arange(W_out) * (W_in / W_out)
+    if align_corners:
+        h_in_float = np.arange(H_out) * (H_in - 1) \
+                   / (H_out - 1) if H_out > 1 else np.zeros(1)
+        w_in_float = np.arange(W_out) * (W_in - 1) \
+                   / (W_out - 1) if W_out > 1 else np.zeros(1)
+    else:
+        h_in_float = np.arange(H_out) * (H_in / H_out)
+        w_in_float = np.arange(W_out) * (W_in / W_out)
+        
     h_base = np.floor(h_in_float).astype(int)
     w_base = np.floor(w_in_float).astype(int)
 
@@ -177,7 +260,8 @@ def upsample_bicubic(
 def upsample_bicubic_backward(
     grad_output: np.ndarray,
     in_sizes: tuple,
-    a: float = -0.75
+    a: float = -0.75,
+    align_corners: bool = False
 ) -> np.ndarray:
     H_out, W_out = grad_output.shape[2], grad_output.shape[3]
     H_in, W_in = in_sizes
@@ -185,8 +269,14 @@ def upsample_bicubic_backward(
     grad_input = np.zeros(
         grad_output.shape[:2] + (H_in, W_in), dtype=grad_output.dtype)
 
-    h_in_float = np.arange(H_out) * (H_in / H_out)
-    w_in_float = np.arange(W_out) * (W_in / W_out)
+    if align_corners:
+        h_in_float = np.arange(H_out) * (H_in - 1) \
+                   / (H_out - 1) if H_out > 1 else np.zeros(1)
+        w_in_float = np.arange(W_out) * (W_in - 1) \
+                   / (W_out - 1) if W_out > 1 else np.zeros(1)
+    else:
+        h_in_float = np.arange(H_out) * (H_in / H_out)
+        w_in_float = np.arange(W_out) * (W_in / W_out)
 
     h_base = np.floor(h_in_float).astype(int)
     w_base = np.floor(w_in_float).astype(int)

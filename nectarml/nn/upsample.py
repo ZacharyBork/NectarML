@@ -1,4 +1,3 @@
-import math
 import warnings
 from typing import Literal
 
@@ -18,16 +17,16 @@ class Upsample(Module):
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
         a: float = -0.75,
-        align_corners: bool | None = None,
-        recompute_scale_factor: bool | None = None,
+        align_corners: bool = False,
+        recompute_scale_factor: bool = False,
         device: Literal['cpu', 'cuda'] = 'cpu',
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(device, dtype)
         self.mode = mode
         self.a = a
-        self.align_corners = align_corners or False
-        self.recompute_scale_factor = recompute_scale_factor or False
+        self.align_corners = align_corners
+        self.recompute_scale_factor = recompute_scale_factor
         self._validated = False
         self._is_scale_factor = True
         
@@ -90,10 +89,12 @@ class Upsample(Module):
         self._compute_dimensions(x)
         if self._is_scale_factor:
             return upsample(
-                x, scale_factor=self._scale, mode=self.mode, a=self.a)
+                x, scale_factor=self._scale, mode=self.mode, 
+                a=self.a, align_corners=self.align_corners)
         else: 
             return upsample(
-                x, size=self._scale, mode=self.mode, a=self.a)
+                x, size=self._scale, mode=self.mode, 
+                a=self.a, align_corners=self.align_corners)
     
     
     

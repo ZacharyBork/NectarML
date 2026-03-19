@@ -1,4 +1,5 @@
 #include "common.h"
+#include "ops/tensor/interpolation/coordinate.h"
 
 /* BICUBIC */
 
@@ -11,7 +12,7 @@ __device__ float cubic_weight(float t, float a = -0.75f) {
     return 0.0f;
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 __global__ void upsample_bicubic_kernel(
     T* input, T* output,
     int B, int C, int H_in, int W_in, int H_out, int W_out,
@@ -25,8 +26,8 @@ __global__ void upsample_bicubic_kernel(
     int c     = (idx / (W_out * H_out)) % C;
     int b     =  idx / (W_out * H_out * C);
 
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int h_base = (int)floorf(h_in_float);
     int w_base = (int)floorf(w_in_float);
@@ -48,7 +49,7 @@ __global__ void upsample_bicubic_kernel(
     output[idx] = static_cast<T>(result);
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_bicubic(
     T* input, T* output,
     int B, int C, int H_in, int W_in, int H_out, int W_out,
@@ -56,16 +57,21 @@ void launch_upsample_bicubic(
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * H_out * W_out + threads - 1) / threads;
-    upsample_bicubic_kernel<T><<<blocks, threads>>>(
+    upsample_bicubic_kernel<T, align_corners><<<blocks, threads>>>(
         input, output, B, C, H_in, W_in, H_out, W_out, a);
 }
 
-template void launch_upsample_bicubic<float>(float*, float*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic<half>(half*, half*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<  float, true>(float*, float*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<   half, true>(half*, half*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int, float);
 
-template<typename T>
+template void launch_upsample_bicubic<  float, false>(float*, float*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<   half, false>(half*, half*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int, float);
+
+template<typename T, bool align_corners>
 __global__ void upsample_bicubic_backward_kernel(
     T* grad_output, T* grad_input,
     int B, int C, 
@@ -81,8 +87,8 @@ __global__ void upsample_bicubic_backward_kernel(
     int c     = (idx / (W_out * H_out)) % C;
     int b     =  idx / (W_out * H_out * C);
 
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int h_base = (int)floorf(h_in_float);
     int w_base = (int)floorf(w_in_float);
@@ -102,7 +108,7 @@ __global__ void upsample_bicubic_backward_kernel(
     }
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_bicubic_backward(
     T* grad_output, T* grad_input,
     int B, int C, 
@@ -112,13 +118,17 @@ void launch_upsample_bicubic_backward(
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * H_out * W_out + threads - 1) / threads;
-    upsample_bicubic_backward_kernel<T><<<blocks, threads>>>(
+    upsample_bicubic_backward_kernel<T, align_corners><<<blocks, threads>>>(
         grad_output, grad_input, B, C, H_in, W_in, H_out, W_out);
 }
 
-template void launch_upsample_bicubic_backward<float>(float*, float*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic_backward<half>(half*, half*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic_backward<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
-template void launch_upsample_bicubic_backward<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<  float, true>(float*, float*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<   half, true>(half*, half*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int, float);
 
+template void launch_upsample_bicubic_backward<  float, false>(float*, float*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<   half, false>(half*, half*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int, float);
+template void launch_upsample_bicubic_backward<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int, float);
 

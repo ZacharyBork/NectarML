@@ -1,12 +1,7 @@
 #include "common.h"
+#include "ops/tensor/interpolation/coordinate.h"
 
-template<typename T>
-__device__ int linear_1d_low(int l_out, int L_in, int L_out) {
-    float l_in = (l_out + 0.5f) * (float)L_in / L_out - 0.5f;
-    return max(0, min((int)floorf(l_in), L_in - 1));
-}
-
-template<typename T>
+template<typename T, bool align_corners>
 __global__ void upsample_linear_1d_kernel(
     T* input, T* output,
     int B, int C, int L_in, int L_out
@@ -18,7 +13,7 @@ __global__ void upsample_linear_1d_kernel(
     int c     = (idx / L_out) % C;
     int b     =  idx / (L_out * C);
 
-    float l_in_float = l_out * (float)L_in / L_out;
+    float l_in_float = l_out * AlignCorners<align_corners>::operation(L_in, L_out);
     int l_low  = max(0, min((int)floorf(l_in_float), L_in - 1));
     int l_high = max(0, min(l_low + 1, L_in - 1));
     float wt_high = l_in_float - floorf(l_in_float);
@@ -32,23 +27,28 @@ __global__ void upsample_linear_1d_kernel(
         wt_high * static_cast<float>(input[in_high]));
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_1d(
     T* input, T* output,
     int B, int C, int L_in, int L_out
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * L_out + threads - 1) / threads;
-    upsample_linear_1d_kernel<T><<<blocks, threads>>>(
+    upsample_linear_1d_kernel<T, align_corners><<<blocks, threads>>>(
         input, output, B, C, L_in, L_out);
 }
 
-template void launch_upsample_linear_1d<float>(float*, float*, int, int, int, int);
-template void launch_upsample_linear_1d<half>(half*, half*, int, int, int, int);
-template void launch_upsample_linear_1d<uint8_t>(uint8_t*, uint8_t*, int, int, int, int);
-template void launch_upsample_linear_1d<int32_t>(int32_t*, int32_t*, int, int, int, int);
+template void launch_upsample_linear_1d<  float, true>(float*, float*, int, int, int, int);
+template void launch_upsample_linear_1d<   half, true>(half*, half*, int, int, int, int);
+template void launch_upsample_linear_1d<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int);
+template void launch_upsample_linear_1d<int32_t, true>(int32_t*, int32_t*, int, int, int, int);
 
-template<typename T>
+template void launch_upsample_linear_1d<  float, false>(float*, float*, int, int, int, int);
+template void launch_upsample_linear_1d<   half, false>(half*, half*, int, int, int, int);
+template void launch_upsample_linear_1d<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int);
+template void launch_upsample_linear_1d<int32_t, false>(int32_t*, int32_t*, int, int, int, int);
+
+template<typename T, bool align_corners>
 __global__ void upsample_linear_1d_backward_kernel(
     T* grad_output, T* grad_input,
     int B, int C, int L_in, int L_out
@@ -60,7 +60,7 @@ __global__ void upsample_linear_1d_backward_kernel(
     int c     = (idx / L_out) % C;
     int b     =  idx / (L_out * C);
 
-    float l_in_float = l_out * (float)L_in / L_out;
+    float l_in_float = l_out * AlignCorners<align_corners>::operation(L_in, L_out);
     int l_low  = max(0, min((int)floorf(l_in_float), L_in - 1));
     int l_high = max(0, min(l_low + 1, L_in - 1));
     float wt_high = l_in_float - floorf(l_in_float);
@@ -76,23 +76,28 @@ __global__ void upsample_linear_1d_backward_kernel(
                   static_cast<T>(wt_high * static_cast<float>(grad)));
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_1d_backward(
     T* grad_output, T* grad_input,
     int B, int C, int L_in, int L_out
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * L_out + threads - 1) / threads;
-    upsample_linear_1d_backward_kernel<T><<<blocks, threads>>>(
+    upsample_linear_1d_backward_kernel<T, align_corners><<<blocks, threads>>>(
         grad_output, grad_input, B, C, L_in, L_out);
 }
 
-template void launch_upsample_linear_1d_backward<float>(float*, float*, int, int, int, int);
-template void launch_upsample_linear_1d_backward<half>(half*, half*, int, int, int, int);
-template void launch_upsample_linear_1d_backward<uint8_t>(uint8_t*, uint8_t*, int, int, int, int);
-template void launch_upsample_linear_1d_backward<int32_t>(int32_t*, int32_t*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<  float, true>(float*, float*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<   half, true>(half*, half*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<int32_t, true>(int32_t*, int32_t*, int, int, int, int);
 
-template<typename T>
+template void launch_upsample_linear_1d_backward<  float, false>(float*, float*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<   half, false>(half*, half*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int);
+template void launch_upsample_linear_1d_backward<int32_t, false>(int32_t*, int32_t*, int, int, int, int);
+
+template<typename T, bool align_corners>
 __global__ void upsample_linear_2d_kernel(
     T* input, T* output,
     int B, int C, int H_in, int W_in, int H_out, int W_out
@@ -105,8 +110,8 @@ __global__ void upsample_linear_2d_kernel(
     int c     = (idx / (W_out * H_out)) % C;
     int b     =  idx / (W_out * H_out * C);
 
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int h_low  = max(0, min((int)floorf(h_in_float), H_in - 1));
     int h_high = max(0, min(h_low + 1, H_in - 1));
@@ -129,23 +134,28 @@ __global__ void upsample_linear_2d_kernel(
     output[idx] = static_cast<T>(result);
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_2d(
     T* input, T* output,
     int B, int C, int H_in, int W_in, int H_out, int W_out
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * H_out * W_out + threads - 1) / threads;
-    upsample_linear_2d_kernel<T><<<blocks, threads>>>(
+    upsample_linear_2d_kernel<T, align_corners><<<blocks, threads>>>(
         input, output, B, C, H_in, W_in, H_out, W_out);
 }
 
-template void launch_upsample_linear_2d<float>(float*, float*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d<half>(half*, half*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<  float, true>(float*, float*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<   half, true>(half*, half*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int);
 
-template<typename T>
+template void launch_upsample_linear_2d<  float, false>(float*, float*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<   half, false>(half*, half*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int);
+
+template<typename T, bool align_corners>
 __global__ void upsample_linear_2d_backward_kernel(
     T* grad_output, T* grad_input,
     int B, int C, int H_in, int W_in, int H_out, int W_out
@@ -158,8 +168,8 @@ __global__ void upsample_linear_2d_backward_kernel(
     int c     = (idx / (W_out * H_out)) % C;
     int b     =  idx / (W_out * H_out * C);
 
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int h_low  = max(0, min((int)floorf(h_in_float), H_in - 1));
     int h_high = max(0, min(h_low + 1, H_in - 1));
@@ -184,23 +194,28 @@ __global__ void upsample_linear_2d_backward_kernel(
                   static_cast<T>(wt_h_high * wt_w_high * grad));
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_2d_backward(
     T* grad_output, T* grad_input,
     int B, int C, int H_in, int W_in, int H_out, int W_out
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * H_out * W_out + threads - 1) / threads;
-    upsample_linear_2d_backward_kernel<T><<<blocks, threads>>>(
+    upsample_linear_2d_backward_kernel<T, align_corners><<<blocks, threads>>>(
         grad_output, grad_input, B, C, H_in, W_in, H_out, W_out);
 }
 
-template void launch_upsample_linear_2d_backward<float>(float*, float*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d_backward<half>(half*, half*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d_backward<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int);
-template void launch_upsample_linear_2d_backward<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<  float, true>(float*, float*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<   half, true>(half*, half*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int);
 
-template<typename T>
+template void launch_upsample_linear_2d_backward<  float, false>(float*, float*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<   half, false>(half*, half*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int);
+template void launch_upsample_linear_2d_backward<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int);
+
+template<typename T, bool align_corners>
 __global__ void upsample_linear_3d_kernel(
     T* input, T* output,
     int B, int C,
@@ -216,9 +231,9 @@ __global__ void upsample_linear_3d_kernel(
     int c     = (idx / (W_out * H_out * D_out)) % C;
     int b     =  idx / (W_out * H_out * D_out * C);
 
-    float d_in_float = d_out * (float)D_in / D_out;
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float d_in_float = d_out * AlignCorners<align_corners>::operation(D_in, D_out);
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int d_low  = max(0, min((int)floorf(d_in_float), D_in - 1));
     int d_high = max(0, min(d_low + 1, D_in - 1));
@@ -250,7 +265,7 @@ __global__ void upsample_linear_3d_kernel(
     output[idx] = static_cast<T>(result);
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_3d(
     T* input, T* output,
     int B, int C,
@@ -259,16 +274,21 @@ void launch_upsample_linear_3d(
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * D_out * H_out * W_out + threads - 1) / threads;
-    upsample_linear_3d_kernel<T><<<blocks, threads>>>(
+    upsample_linear_3d_kernel<T, align_corners><<<blocks, threads>>>(
         input, output, B, C, D_in, H_in, W_in, D_out, H_out, W_out);
 }
 
-template void launch_upsample_linear_3d<float>(float*, float*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d<half>(half*, half*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<  float, true>(float*, float*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<   half, true>(half*, half*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
 
-template<typename T>
+template void launch_upsample_linear_3d<  float, false>(float*, float*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<   half, false>(half*, half*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
+
+template<typename T, bool align_corners>
 __global__ void upsample_linear_3d_backward_kernel(
     T* grad_output, T* grad_input,
     int B, int C,
@@ -284,9 +304,9 @@ __global__ void upsample_linear_3d_backward_kernel(
     int c     = (idx / (W_out * H_out * D_out)) % C;
     int b     =  idx / (W_out * H_out * D_out * C);
 
-    float d_in_float = d_out * (float)D_in / D_out;
-    float h_in_float = h_out * (float)H_in / H_out;
-    float w_in_float = w_out * (float)W_in / W_out;
+    float d_in_float = d_out * AlignCorners<align_corners>::operation(D_in, D_out);
+    float h_in_float = h_out * AlignCorners<align_corners>::operation(H_in, H_out);
+    float w_in_float = w_out * AlignCorners<align_corners>::operation(W_in, W_out);
 
     int d_low  = max(0, min((int)floorf(d_in_float), D_in - 1));
     int d_high = max(0, min(d_low + 1, D_in - 1));
@@ -324,7 +344,7 @@ __global__ void upsample_linear_3d_backward_kernel(
                 static_cast<T>(wt_d_high * wt_h_high * wt_w_high * grad));
 }
 
-template<typename T>
+template<typename T, bool align_corners>
 void launch_upsample_linear_3d_backward(
     T* grad_output, T* grad_input,
     int B, int C,
@@ -333,11 +353,16 @@ void launch_upsample_linear_3d_backward(
 ) {
     int threads = BLOCK_SIZE_1D;
     int blocks = (B * C * D_out * H_out * W_out + threads - 1) / threads;
-    upsample_linear_3d_backward_kernel<T><<<blocks, threads>>>(
+    upsample_linear_3d_backward_kernel<T, align_corners><<<blocks, threads>>>(
         grad_output, grad_input, B, C, D_in, H_in, W_in, D_out, H_out, W_out);
 }
 
-template void launch_upsample_linear_3d_backward<float>(float*, float*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d_backward<half>(half*, half*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d_backward<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
-template void launch_upsample_linear_3d_backward<int32_t>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<  float, true>(float*, float*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<   half, true>(half*, half*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<uint8_t, true>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<int32_t, true>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
+
+template void launch_upsample_linear_3d_backward<  float, false>(float*, float*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<   half, false>(half*, half*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<uint8_t, false>(uint8_t*, uint8_t*, int, int, int, int, int, int, int, int);
+template void launch_upsample_linear_3d_backward<int32_t, false>(int32_t*, int32_t*, int, int, int, int, int, int, int, int);
