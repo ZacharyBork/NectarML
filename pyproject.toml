@@ -37,7 +37,7 @@ dev = [
 ]
 
 [tool.scikit-build]
-cmake.source-dir = "csrc"
+cmake.source-dir = "nectarml/csrc"
 cmake.build-type = "Release"
 wheel.packages = ["nectarml"]
 build-dir = "build"
