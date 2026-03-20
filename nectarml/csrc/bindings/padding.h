@@ -1,0 +1,32 @@
+#include "common.h"
+
+namespace py = pybind11;
+
+namespace nectar {
+    
+    uintptr_t pad(
+        uintptr_t input_ptr,
+        std::vector<int> input_shape,
+        std::vector<int> pad_before,
+        std::vector<int> pad_after,
+        const std::string& mode,
+        float constant_value,
+        DType dtype
+    );
+
+}
+
+void register_padding(py::module_& m) {
+    
+    m.def("pad", &nectar::pad, 
+        py::arg("input_ptr"), 
+        py::arg("input_shape"), 
+        py::arg("pad_before"),
+        py::arg("pad_after"), 
+        py::arg("mode"),
+        py::arg("constant_value"),
+        py::arg("dtype"),
+        "");
+
+}
+
