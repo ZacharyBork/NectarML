@@ -23,7 +23,16 @@ class SGD(Optimizer):
         foreach:        bool = None, # NOT YET IMPLEMENTED
         fused:          bool = None  # NOT YET IMPLEMENTED
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'momentum': 0.0,
+                'dampening': 0.0,
+                'weight_decay': 0.0,
+                'nesterov': False
+            }
+        )
         self.lr = lr
         self.momentum = momentum
         self.dampening = dampening

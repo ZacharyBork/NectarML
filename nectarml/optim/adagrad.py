@@ -23,7 +23,16 @@ class Adagrad(Optimizer):
         foreach:                    bool = None,
         fused:                      bool = False
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'lr_decay': 0.0,
+                'weight_decay': 0.0,
+                'initial_accumulator_value': 0.0,
+                'eps': 1e-8
+            }
+        )
         self.lr = lr
         self.lr_decay = lr_decay
         self.weight_decay = weight_decay
@@ -51,7 +60,15 @@ class Adadelta(Optimizer):
         maximize:                   bool = False,
         foreach:                    bool = None
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'rho': 0.9,
+                'eps': 1e-8,
+                'weight_decay': 0.0
+            }
+        )
         self.lr = lr
         self.rho = rho
         self.eps = eps

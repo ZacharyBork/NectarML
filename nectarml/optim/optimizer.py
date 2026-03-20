@@ -26,7 +26,7 @@ class Optimizer():
     ) -> None:
         self.state:   dict[int, dict[str, Any]] = {}
         self.param_groups: list[dict[str, Any]] = []
-        self.defaults = defaults
+        self.defaults = defaults or {}
           
         self._add_init_parameters(parameters)
         for idx, param in enumerate(self._get_all_params()):
@@ -34,6 +34,10 @@ class Optimizer():
         self._param_to_idx = {
             id(p): idx for idx, p in enumerate(self._get_all_params())}
         
+        for group in self.param_groups:
+            for key, value in self.defaults.items():
+                if key not in group: group[key] = value
+                
         self.state_dict_pre_hooks:  list[Callable] = []
         self.state_dict_post_hooks: list[Callable] = []
         
@@ -77,6 +81,10 @@ class Optimizer():
     def add_param_group(self: Optimizer, param_group: dict[str, Any]) -> None:
         assert 'params' in param_group, \
             'param_group must contain "params" key.'
+        
+        for key, value in self.defaults.items():
+            if key not in param_group: param_group[key] = value
+        
         self.param_groups.append(param_group)
         start_idx = len(self._param_to_idx)
         for i, param in enumerate(param_group['params']):

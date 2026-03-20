@@ -110,18 +110,18 @@
         ❌ 2. Lion
         ❌ 3. Sophia
 
-### ❌  LR Schedulers
+### 🟡  LR Schedulers
 
-    ❌ 1.  Base Scheduler
-    ❌ 2.  StepLR
-    ❌ 3.  MultiStepLR
-    ❌ 4.  ConstantLR
-    ❌ 5.  ExponentialLR
-    ❌ 6.  CosineAnnealingLR
-    ❌ 7.  CosineAnnealingWarmRestarts
-    ❌ 8.  ReduceLROnPlateau
-    ❌ 9.  LinearLR
-    ❌ 10. PolynomialLR
+    ✅ 1.  Base Scheduler
+    ✅ 2.  StepLR
+    ✅ 3.  MultiStepLR
+    ✅ 4.  ConstantLR
+    ✅ 5.  LinearLR
+    ✅ 6.  ExponentialLR
+    ❌ 7.  PolynomialLR
+    ❌ 8.  CosineAnnealingLR
+    ❌ 9.  CosineAnnealingWarmRestarts
+    ❌ 10. ReduceLROnPlateau
     ❌ 11. CyclicLR
     ❌ 12. OneCycleLR
 

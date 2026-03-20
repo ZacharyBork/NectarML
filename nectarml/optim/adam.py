@@ -25,7 +25,17 @@ class Adam(Optimizer):
         capturable:             bool = False, # NOT YET IMPLEMENTED
         fused:                  bool = False  # NOT YET IMPLEMENTED
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'betas': (0.9, 0.999),
+                'eps': 1e-8,
+                'weight_decay': 0.0,
+                'decoupled_weight_decay': False,
+                'amsgrad': False
+            }
+        )
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
@@ -108,7 +118,16 @@ class AdamW(Optimizer):
         capturable:             bool = False,
         fused:                  bool = False
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'betas': (0.9, 0.999),
+                'eps': 1e-8,
+                'weight_decay': 0.0,
+                'amsgrad': False
+            }
+        )
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
@@ -140,7 +159,17 @@ class NAdam(Optimizer):
         foreach:                bool = None,
         capturable:             bool = False
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'betas': (0.9, 0.999),
+                'eps': 1e-8,
+                'weight_decay': 0.0,
+                'momentum_decay': 0.004,
+                'decoupled_weight_decay': False
+            }
+        )
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
@@ -171,7 +200,16 @@ class RAdam(Optimizer):
         foreach:                bool = None,
         capturable:             bool = False
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'betas': (0.9, 0.999),
+                'eps': 1e-8,
+                'weight_decay': 0.0,
+                'decoupled_weight_decay': False
+            }
+        )
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
@@ -200,7 +238,15 @@ class Adamax(Optimizer):
         foreach:                bool = None,
         capturable:             bool = False
     ) -> None:
-        super().__init__(parameters, defaults=None)
+        super().__init__(
+            parameters, 
+            defaults={
+                'lr': 0.003,
+                'betas': (0.9, 0.999),
+                'eps': 1e-8,
+                'weight_decay': 0.0
+            }
+        )
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
