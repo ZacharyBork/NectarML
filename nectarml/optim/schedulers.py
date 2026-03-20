@@ -214,20 +214,75 @@ class ReduceLROnPlateau(Scheduler):
         threshold: float = 0.0001,
         threshold_mode: Literal['rel', 'abs'] = 'rel',
         cooldown: int = 0,
+        min_lr: float = 0.0,
         eps: float = 1e-8,
         last_epoch: int = -1
     ) -> None:
+        assert 0.0 < factor < 1.0, \
+            'factor must be between 0.0 and 1.0, not inclusive.'
         self.mode = mode
         self.factor = factor
         self.patience = patience
         self.threshold = threshold
         self.threshold_mode = threshold_mode
         self.cooldown = cooldown
+        self.min_lr = min_lr
         self.eps = eps
+        
+        self.best: int | float = None
+        self.num_bad_epochs = 0
+        self.cooldown_counter = 0
+        
         super().__init__(optimizer, last_epoch)
         
+    def _check_for_improvement(
+        self: ReduceLROnPlateau,
+        metric: int | float
+    ) -> bool:
+        if self.mode == 'min':
+            check = self.best * (1 - self.threshold) \
+                    if self.threshold_mode == 'rel' \
+                    else self.best - self.threshold
+            improved = metric < check
+        else:
+            check = self.best * (1 + self.threshold) \
+                    if self.threshold_mode == 'rel' \
+                    else self.best + self.threshold
+            improved = metric > check
+        return improved
+    
     def get_lr(self: ReduceLROnPlateau) -> list[float]:
-        raise NotImplementedError
+        return [max(self.min_lr, group['lr'] * self.factor)
+            for group in self.optimizer.param_groups]
+    
+    def step(
+        self: ReduceLROnPlateau, 
+        metric: int | float
+    ) -> None:
+        if self.best is None: 
+            self.best = metric
+            return
+        
+        if self.cooldown_counter > 0: 
+            self.cooldown_counter -= 1
+            return
+        
+        improved = self._check_for_improvement(metric)
+        
+        if improved:
+            self.num_bad_epochs = 0
+            self.best = metric
+        else: self.num_bad_epochs += 1
+        
+        if self.num_bad_epochs > self.patience:
+            self.num_bad_epochs = 0
+            self.cooldown_counter = self.cooldown
+            
+            values = self.get_lr()
+            self._last_lr = values
+            
+            for group, lr in zip(self.optimizer.param_groups, values):
+                if group['lr'] - lr > self.eps: group['lr'] = lr
         
 class CyclicLR(Scheduler):
     def __init__(
