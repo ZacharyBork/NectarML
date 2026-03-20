@@ -67,7 +67,7 @@
 ### 🟡  Layers:
 
     ✅ 1. Linear
-    🟡 2. Upsample
+    ✅ 2. Upsample
     ✅ 3. Identity
     ❌ 4. Attention
     ❌ 5. Convolutions
@@ -157,7 +157,7 @@
         ✅ 5.  Indexing
         ✅ 6.  Matmul
         ✅ 7.  Memory
-        ❌ 8.  Padding
+        ✅ 8.  Padding
         ✅ 9.  Reductions
         ✅ 10. Combination
         🟡 11. Vision
@@ -175,7 +175,7 @@
         ✅ 5.  Indexing
         ✅ 6.  Matmul
         ✅ 7.  Memory
-        ❌ 8.  Padding
+        ✅ 8.  Padding
         ✅ 9.  Reductions
         ✅ 10. Combination
         🟡 11. Vision
@@ -183,10 +183,11 @@
     ✅ 4. CMakeLists
     ❌ 5. Organization and Cleanup
 
-### ✅  Other:
+### 🟡  Other:
 
     ✅ 1. Autocast Context
     ✅ 2. Nograd Context/Decorator
+    ❌ 3. AMP flags for functions/methods
 
 ### 🟡  Documentation:
 
