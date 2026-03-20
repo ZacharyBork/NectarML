@@ -305,9 +305,21 @@ class CyclicLR(Scheduler):
         self.step_size_up = step_size_up
         self.step_size_down = step_size_down if step_size_down is not None \
                               else step_size_up
+        
         self.cycle_momentum = cycle_momentum
-        self.base_momentum = base_momentum
-        self.max_momentum = max_momentum
+        if isinstance(base_momentum, list):
+            assert len(base_momentum) == len(optimizer.param_groups), \
+                f'base_momentum list length {len(base_momentum)} must match ' \
+                f'number of param groups {len(optimizer.param_groups)}.'
+            self.base_momentum = base_momentum
+        else: self.base_momentum = [base_momentum]*len(optimizer.param_groups)
+
+        if isinstance(max_momentum, list):
+            assert len(max_momentum) == len(optimizer.param_groups), \
+                f'max_momentum list length {len(max_momentum)} must match ' \
+                f'number of param groups {len(optimizer.param_groups)}.'
+            self.max_momentum = max_momentum
+        else: self.max_momentum = [max_momentum]*len(optimizer.param_groups)
         
         self._init_scale_fn(mode, gamma, scale_fn, scale_mode)
         super().__init__(optimizer, last_epoch)
@@ -351,9 +363,9 @@ class CyclicLR(Scheduler):
                      for base_lr in self.base_lrs]
         
         if self.cycle_momentum:
-            momentums = [
-                self.max_momentum - (self.max_momentum - self.base_momentum) 
-              * x * scale for _ in self.optimizer.param_groups]
+            zip_m = zip(self.base_momentum, self.max_momentum)
+            momentums = [max_m - (max_m - base_m) * x * scale
+                         for base_m, max_m in zip_m]
             for group, m in zip(self.optimizer.param_groups, momentums):
                 group['momentum'] = m
         
