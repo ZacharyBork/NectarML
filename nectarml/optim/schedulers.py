@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 from collections.abc import Callable
 
@@ -147,7 +148,10 @@ class PolynomialLR(Scheduler):
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: PolynomialLR) -> list[float]:
-        raise NotImplementedError
+        if self.last_epoch == 0 or self.last_epoch > self.total_iters:
+            return [group['lr'] for group in self.optimizer.param_groups]
+        decay = (1 - self.last_epoch / self.total_iters) ** self.power
+        return [base_lr * decay for base_lr in self.base_lrs]
         
 class CosineAnnealingLR(Scheduler):
     def __init__(
@@ -162,7 +166,11 @@ class CosineAnnealingLR(Scheduler):
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: CosineAnnealingLR) -> list[float]:
-        raise NotImplementedError
+        if self.last_epoch == 0: return [base_lr for base_lr in self.base_lrs]
+        t = min(self.last_epoch, self.T_max)
+        schedule = lambda x: self.eta_min + 0.5 * (x - self.eta_min) \
+            * (1 + math.cos(math.pi * t / self.T_max))
+        return [schedule(base_lr) for base_lr in self.base_lrs]
         
 class CosineAnnealingWarmRestarts(Scheduler):
     def __init__(
@@ -173,13 +181,28 @@ class CosineAnnealingWarmRestarts(Scheduler):
         eta_min: float = 0.0,
         last_epoch: int = -1
     ) -> None:
+        assert T_0 > 0, 'T_0 must be a positive integer.'
+        assert T_mult >= 1, 'T_mult must be >= 1.'
         self.T_0 = T_0
         self.T_mult = T_mult
         self.eta_min = eta_min
         super().__init__(optimizer, last_epoch)
-        
+
+    def _get_T_cur_T_i(self: CosineAnnealingWarmRestarts) -> tuple[int, int]:
+        T_i = self.T_0
+        T_cur = self.last_epoch
+        while T_cur >= T_i:
+            T_cur -= T_i
+            T_i *= self.T_mult
+        return T_cur, T_i
+
     def get_lr(self: CosineAnnealingWarmRestarts) -> list[float]:
-        raise NotImplementedError
+        if self.last_epoch == 0:
+            return [base_lr for base_lr in self.base_lrs]
+        T_cur, T_i = self._get_T_cur_T_i()
+        schedule = lambda x: self.eta_min + 0.5 * (x - self.eta_min) \
+                 * (1 + math.cos(math.pi * T_cur / T_i))
+        return [schedule(base_lr) for base_lr in self.base_lrs]
         
 class ReduceLROnPlateau(Scheduler):
     def __init__(
