@@ -7,6 +7,7 @@ from .conv import Conv1d, Conv2d, Conv3d
 from .norm import (
     BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,
     InstanceNorm3d, GroupNorm, LayerNorm)
+from .composition import ModuleDict, ModuleList, Sequential
 from .activation import (
     ReLU, LeakyReLU, ELU, SELU, Sigmoid, Tanh, Softmax, LogSoftmax, GeLU, SiLU,
     Swish, Softplus, Mish, Hardtanh, Hardsigmoid, Hardswish, Softsign, Softmin)
