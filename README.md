@@ -110,7 +110,7 @@
         ❌ 2. Lion
         ❌ 3. Sophia
 
-### 🟡  LR Schedulers
+### ✅  LR Schedulers
 
     ✅ 1.  Base Scheduler
     ✅ 2.  StepLR
@@ -123,7 +123,7 @@
     ✅ 9.  CosineAnnealingWarmRestarts
     ✅ 10. ReduceLROnPlateau
     ✅ 11. CyclicLR
-    ❌ 12. OneCycleLR
+    ✅ 12. OneCycleLR
 
 ### ✅  Dataset
 

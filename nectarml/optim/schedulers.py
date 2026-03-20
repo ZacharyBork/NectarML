@@ -385,6 +385,7 @@ class OneCycleLR(Scheduler):
         base_momentum: float | list[float] = 0.85,
         max_momentum: float | list[float] = 0.95,
         div_factor: float = 25.0,
+        final_div_factor: float = 1e4,
         three_phase: bool = True,
         last_epoch: int = -1
     ) -> None:
@@ -395,15 +396,121 @@ class OneCycleLR(Scheduler):
         self.pct_start = pct_start
         self.anneal_strategy = anneal_strategy
         self.cycle_momentum = cycle_momentum
-        self.base_momentum = base_momentum
-        self.max_momentum = max_momentum
         self.div_factor = div_factor
-        self.three_phase = three_phase
+        self.final_div_factor = final_div_factor
+        
+        if total_steps is not None: self.total_steps = total_steps
+        elif epochs is not None and steps_per_epoch is not None:
+            self.total_steps = epochs * steps_per_epoch
+        else: raise ValueError(
+                'Must provide total_steps or both epochs and steps_per_epoch')
+
+        self._compute_phases(
+            optimizer, three_phase, pct_start, max_lr, base_momentum, 
+            max_momentum, div_factor, final_div_factor)
         super().__init__(optimizer, last_epoch)
         
-    def get_lr(self: OneCycleLR) -> list[float]:
-        raise NotImplementedError
+    def _compute_phases(
+        self: OneCycleLR,
+        optimizer: Optimizer,
+        three_phase: bool,
+        pct_start: float,
+        max_lr: float | list[float],
+        base_momentum: float | list[float],
+        max_momentum: float | list[float],
+        div_factor: float,
+        final_div_factor: float
+    ) -> None:
+        n_groups = len(optimizer.param_groups)
+        max_lrs = [max_lr] * n_groups if isinstance(max_lr, (int, float)) \
+                  else max_lr
+        base_momentums = [base_momentum] * n_groups \
+                         if isinstance(base_momentum, (int, float)) \
+                         else base_momentum
+        max_momentums = [max_momentum] * n_groups \
+                        if isinstance(max_momentum, (int, float)) \
+                        else max_momentum
+
+        if three_phase:
+            self.phases = [
+                {
+                    'end_step': pct_start * self.total_steps,
+                    'start_lrs': [lr / div_factor for lr in max_lrs],
+                    'end_lrs': max_lrs,
+                    'start_momentums': max_momentums,
+                    'end_momentums': base_momentums
+                },
+                {
+                    'end_step': 0.9 * self.total_steps,
+                    'start_lrs': max_lrs,
+                    'end_lrs': [lr / div_factor for lr in max_lrs],
+                    'start_momentums': base_momentums,
+                    'end_momentums': max_momentums
+                },
+                {
+                    'end_step': self.total_steps,
+                    'start_lrs': [lr / div_factor for lr in max_lrs],
+                    'end_lrs': [
+                        lr / (div_factor * final_div_factor) for lr in max_lrs
+                    ],
+                    'start_momentums': max_momentums,
+                    'end_momentums': max_momentums
+                }
+            ]
+        else:
+            self.phases = [
+                {
+                    'end_step': pct_start * self.total_steps,
+                    'start_lrs': [lr / div_factor for lr in max_lrs],
+                    'end_lrs':   max_lrs,
+                    'start_momentums': max_momentums,
+                    'end_momentums': base_momentums
+                },
+                {
+                    'end_step': self.total_steps,
+                    'start_lrs': max_lrs,
+                    'end_lrs': [
+                        lr / (div_factor * final_div_factor) for lr in max_lrs
+                    ],
+                    'start_momentums': max_momentums,
+                    'end_momentums': max_momentums
+                }
+            ]
         
+    def _anneal(
+        self: OneCycleLR,
+        start: float,
+        end: float,
+        pct: float
+    ) -> float:
+        if self.anneal_strategy == 'cos':
+            return end + (start - end) / 2 * (1 + math.cos(math.pi * pct))
+        else:
+            return start + (end - start) * pct
+        
+    def get_lr(self: OneCycleLR) -> list[float]:
+        step = self.last_epoch
+        start_step = 0
+        for phase in self.phases:
+            if step <= phase['end_step']:
+                phase_length = phase['end_step'] - start_step
+                pct = (step - start_step) / phase_length \
+                    if phase_length > 0 else 1.0
+                
+                lrs = [self._anneal(s, e, pct) 
+                    for s, e in zip(phase['start_lrs'], phase['end_lrs'])]
+                
+                if self.cycle_momentum:
+                    moms = [self._anneal(s, e, pct)
+                            for s, e in zip(phase['start_momentums'], 
+                                            phase['end_momentums'])]
+                    for group, mom in zip(self.optimizer.param_groups, moms):
+                        group['momentum'] = mom
+                
+                return lrs
+            start_step = phase['end_step']
+        return self.phases[-1]['end_lrs']
+                
         
         
         
