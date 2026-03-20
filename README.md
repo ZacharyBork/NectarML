@@ -118,9 +118,9 @@
     ✅ 4.  ConstantLR
     ✅ 5.  LinearLR
     ✅ 6.  ExponentialLR
-    ❌ 7.  PolynomialLR
-    ❌ 8.  CosineAnnealingLR
-    ❌ 9.  CosineAnnealingWarmRestarts
+    ✅ 7.  PolynomialLR
+    ✅ 8.  CosineAnnealingLR
+    ✅ 9.  CosineAnnealingWarmRestarts
     ❌ 10. ReduceLROnPlateau
     ❌ 11. CyclicLR
     ❌ 12. OneCycleLR
