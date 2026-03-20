@@ -4,7 +4,6 @@ import math
 from typing import Any, Literal
 from collections.abc import Callable
 
-from nectarml import Tensor
 from nectarml.optim.optimizer import Optimizer
 
 class Scheduler():
@@ -304,18 +303,61 @@ class CyclicLR(Scheduler):
         self.base_lr = base_lr
         self.max_lr = max_lr
         self.step_size_up = step_size_up
-        self.step_size_down = step_size_down
-        self.mode = mode
-        self.gamma = gamma
-        self.scale_fn = scale_fn
-        self.scale_mode = scale_mode
+        self.step_size_down = step_size_down if step_size_down is not None \
+                              else step_size_up
         self.cycle_momentum = cycle_momentum
         self.base_momentum = base_momentum
         self.max_momentum = max_momentum
+        
+        self._init_scale_fn(mode, gamma, scale_fn, scale_mode)
         super().__init__(optimizer, last_epoch)
         
+    def _init_scale_fn(
+        self: CyclicLR,
+        mode: Literal['triangular', 'triangular2', 'exp_range'],
+        gamma: float | None,
+        scale_fn: Callable | None,
+        scale_mode: Literal['cycle', 'iterations']
+    ) -> None:
+        if scale_fn is None:
+            if mode == 'triangular':
+                self.scale_fn = lambda x: 1.0
+                self.scale_mode = 'cycle'
+            elif mode == 'triangular2':
+                self.scale_fn = lambda x: 1.0 / (2.0 ** (x - 1))
+                self.scale_mode = 'cycle'
+            elif mode == 'exp_range':
+                assert gamma is not None, \
+                    'gamma must be provided when mode="exp_range".'
+                self.scale_fn = lambda x: gamma ** x
+                self.scale_mode = 'iterations'
+        else:
+            self.scale_fn = scale_fn
+            self.scale_mode = scale_mode
+        
     def get_lr(self: CyclicLR) -> list[float]:
-        raise NotImplementedError
+        cycle_size = self.step_size_up + self.step_size_down
+        pos_in_cycle = self.last_epoch % cycle_size
+        cycle = math.floor(1 + self.last_epoch / cycle_size)
+        if pos_in_cycle < self.step_size_up:
+            x = pos_in_cycle / self.step_size_up
+        else:
+            x = (pos_in_cycle - self.step_size_up) / self.step_size_down
+            x = 1 - x
+                
+        arg = cycle if self.scale_mode == 'cycle' else self.last_epoch
+        scale = self.scale_fn(arg)
+        lr_values = [base_lr + (self.max_lr - base_lr) * x * scale
+                     for base_lr in self.base_lrs]
+        
+        if self.cycle_momentum:
+            momentums = [
+                self.max_momentum - (self.max_momentum - self.base_momentum) 
+              * x * scale for _ in self.optimizer.param_groups]
+            for group, m in zip(self.optimizer.param_groups, momentums):
+                group['momentum'] = m
+        
+        return lr_values
         
 class OneCycleLR(Scheduler):
     def __init__(

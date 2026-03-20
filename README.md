@@ -121,8 +121,8 @@
     ✅ 7.  PolynomialLR
     ✅ 8.  CosineAnnealingLR
     ✅ 9.  CosineAnnealingWarmRestarts
-    ❌ 10. ReduceLROnPlateau
-    ❌ 11. CyclicLR
+    ✅ 10. ReduceLROnPlateau
+    ✅ 11. CyclicLR
     ❌ 12. OneCycleLR
 
 ### ✅  Dataset
