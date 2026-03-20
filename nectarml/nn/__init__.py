@@ -14,4 +14,10 @@ from .loss import (
     L1Loss, MAELoss, L2Loss, MSELoss, RMSELoss, HuberLoss, LogCoshLoss,
     BCELoss, CrossEntropyLoss, NLLLoss, HingeLoss, Hinge2Loss, 
     KLDivergenceLoss, BCEWithLogitsLoss, TripletMarginLoss)
+from .padding import (
+    ConstantPad1d, ConstantPad2d, ConstantPad3d, 
+    ReflectionPad1d, ReflectionPad2d, ReflectionPad3d,
+    ReplicationPad1d, ReplicationPad2d, ReplicationPad3d,
+    CircularPad1d, CircularPad2d, CircularPad3d,
+    ZeroPad1d, ZeroPad2d, ZeroPad3d)
 

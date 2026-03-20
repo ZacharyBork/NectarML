@@ -18,11 +18,9 @@ class Upsample(Module):
         ] = 'nearest',
         a: float = -0.75,
         align_corners: bool = False,
-        recompute_scale_factor: bool = False,
-        device: Literal['cpu', 'cuda'] = 'cpu',
-        dtype: DTypeLike = float32
+        recompute_scale_factor: bool = False
     ) -> None:
-        super().__init__(device, dtype)
+        super().__init__()
         self.mode = mode
         self.a = a
         self.align_corners = align_corners

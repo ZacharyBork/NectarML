@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-import numpy as np
-
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
 
@@ -24,7 +22,7 @@ class Module():
         self.device = device
         self.dtype = dtype
         
-        self.training:  bool = True
+        self.training:         bool = True
         self._device_id: int | None = None
                 
     # PROPERTIES
@@ -69,7 +67,7 @@ class Module():
             self.register_parameter(name, value)
         else: super().__setattr__(name, value)
         
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self: Module, name: str) -> Any:
         if '_buffers' in self.__dict__ and name in self._buffers:
             return self._buffers[name]
         if '_parameters' in self.__dict__ and name in self._parameters:
@@ -78,7 +76,7 @@ class Module():
             return self._submodules[name]
         else: raise AttributeError(
                 f'{type(self).__name__} has no attribute "{name}"')
-    
+        
     # SUBMODULES
     
     def _walk_module_tree(self: Module) -> list[tuple[str, Module]]:
@@ -142,6 +140,22 @@ class Module():
                 output.append((name, parameter))
         return output
     
+    def parameters(self: Module) -> dict[str, Any]:
+        output = []
+        modules = self._walk_module_tree()
+        for module_name, module in modules:
+            params = { 'params': [], 'param_names': [] }
+            
+            for parameter_name, parameter in module._parameters.items():
+                name = f'{module_name}.{parameter_name}' if module_name \
+                    else parameter_name
+                params['params'].append(parameter)
+                params['param_names'].append(name)
+                
+            output.append(params)
+        
+        return output
+    
     def list_submodules(self: Module) -> list[tuple[str, Module]]:
         return [(name, module) for name, module in self._walk_module_tree()]
     
@@ -169,10 +183,20 @@ class Module():
     
     # FORWARD
     
-    def forward(self: Module, *args, **kwargs): 
+    def forward(self: Module, *args, **kwargs) -> Any: 
         raise NotImplementedError('forward() not implemented by child class.')
 
-    def __call__(self: Module, *args, **kwargs):
+    def __call__(self: Module, *args, **kwargs) -> Any:
+        if self._parameters or self._buffers:
+            inputs = list(args) + list(kwargs.values())
+            tensors = [i for i in inputs if isinstance(i, Tensor)]
+            for t in tensors:
+                if t.device == self.device: continue
+                raise RuntimeError(
+                    f'Expected tensors to be on same device as module, but '
+                    f'found at least two devices: '
+                    f'{t.device} and {self.device}')
+        
         return self.forward(*args, **kwargs)
 
 
