@@ -83,6 +83,13 @@
     ✅ 11. Reductions
     ✅ 12. Shapes
     ✅ 13. Interpolation
+    ✅ 14. Dropout
+        ✅ 1. Dropout
+        ✅ 2. Alpha Dropout
+        ✅ 3. Feature Alpha Dropout
+        ✅ 4. Dropout1d
+        ✅ 5. Dropout2d
+        ✅ 6. Dropout3d
 
 ### ✅  Activation Modules (nectarml.nn.activation)
 
@@ -192,6 +199,13 @@
         ❌ 4. AvgPool1d
         ❌ 5. AvgPool2d
         ❌ 6. AvgPool3d
+    ❌ 9. Dropout
+        ❌ 1. Dropout
+        ❌ 2. Alpha Dropout
+        ❌ 3. Feature Alpha Dropout
+        ❌ 4. Dropout1d
+        ❌ 5. Dropout2d
+        ❌ 6. Dropout3d
 
 ### 🟡  Optimizers
 

@@ -12,6 +12,10 @@ from .combination import (
 
 from .conv import conv1d, conv2d, conv3d
 
+from .dropout import (
+    dropout, alpha_dropout, feature_alpha_dropout, 
+    dropout1d, dropout2d, dropout3d)
+
 from .indexing import (
     gather, scatter, where, masked_fill, index_select)
 
