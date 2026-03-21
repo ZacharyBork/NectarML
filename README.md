@@ -159,7 +159,7 @@
     ✅ 2. ModuleList
     ✅ 3. Sequential
 
-### 🟡  Layers:
+### 🟡  Layers
 
     ✅ 1. Linear
     ✅ 2. Upsample
@@ -277,7 +277,7 @@
     ❌ 6. Format / Type
     ✅ 7. Composition
 
-### 🟡  CUDA:
+### 🟡  CUDA
 
     🟡 1. Host
         🟡 1. Conv
@@ -319,13 +319,19 @@
     ✅ 4. CMakeLists
     ❌ 5. Organization and Cleanup
 
-### 🟡  Other:
+### 🟡  Other
 
     ✅ 1. Autocast Context
     ✅ 2. Nograd Context/Decorator
     ❌ 3. AMP flags for functions/methods
 
-### 🟡  Documentation:
+### 🟡  Compatibility Layersc
+
+    🟡 1. PyTorch
+    ❌ 2. ONNX
+    ❌ 3. Jax
+
+### 🟡  Documentation
 
     🟡 1. Class/Function/Method Docstrings
     ❌ 2. Markdown Documentation

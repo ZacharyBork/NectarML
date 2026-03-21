@@ -7,7 +7,7 @@ import nectarml.functional as F
 
 class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.ReLU(x)
+        return F.relu(x)
 
 class LeakyReLU(Module):
     def __init__(
@@ -20,7 +20,7 @@ class LeakyReLU(Module):
         self.negative_slope = negative_slope
     
     def forward(self, x: Tensor) -> Tensor:
-        return F.LeakyReLU(x, self.negative_slope)
+        return F.leaky_relu(x, self.negative_slope)
 
 class ELU(Module):
     def __init__(
@@ -33,19 +33,19 @@ class ELU(Module):
         self.alpha = alpha
     
     def forward(self, x: Tensor) -> Tensor:
-        return F.ELU(x, self.alpha)
+        return F.elu(x, self.alpha)
     
 class SELU(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.SELU(x)
+        return F.selu(x)
     
 class Sigmoid(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Sigmoid(x)
+        return F.sigmoid(x)
     
 class Tanh(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Tanh(x)
+        return F.tanh(x)
     
 class Softmax(Module):
     def __init__(
@@ -58,7 +58,7 @@ class Softmax(Module):
         self.dim = dim
     
     def forward(self, x: Tensor) -> Tensor:
-        return F.Softmax(x, self.dim)
+        return F.softmax(x, self.dim)
     
 class LogSoftmax(Module):
     def __init__(
@@ -71,27 +71,27 @@ class LogSoftmax(Module):
         self.dim = dim
     
     def forward(self, x: Tensor) -> Tensor:
-        return F.LogSoftmax(x, self.dim)
+        return F.log_softmax(x, self.dim)
     
 class GeLU(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.GeLU(x)
+        return F.gelu(x)
 
 class SiLU(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.SiLU(x)
+        return F.silu(x)
     
 class Swish(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Swish(x)
+        return F.swish(x)
     
 class Softplus(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Softplus(x)
+        return F.softplus(x)
 
 class Mish(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Mish(x)
+        return F.mish(x)
     
 class Hardtanh(Module):
     def __init__(
@@ -106,21 +106,21 @@ class Hardtanh(Module):
         self.max_value = max_value
     
     def forward(self, x: Tensor) -> Tensor:
-        return F.Hardtanh(x, self.min_value, self.max_value)
+        return F.hardtanh(x, self.min_value, self.max_value)
     
 class Hardsigmoid(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Hardsigmoid(x)
+        return F.hardsigmoid(x)
     
 class Hardswish(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Hardswish(x)
+        return F.hardswish(x)
     
 class Softsign(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Softsign(x)
+        return F.softsign(x)
     
 class Softmin(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return F.Softmin(x)
+        return F.softmin(x)
 

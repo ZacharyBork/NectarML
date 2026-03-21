@@ -2,17 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
-from nectarml.functional.common import _eval_core_function
 
-# def pad(
-#     input: Tensor, 
-#     pad: int | tuple[int, ...],
-#     mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
-#     value: float = 0.0
-# ) -> Tensor:
-#     return _eval_core_function(
-#         input, lambda x : padding.pad(x, pad, mode, value))
-    
 def _normalize_padding(
     pad: int | tuple[int, ...], 
     ndim: int

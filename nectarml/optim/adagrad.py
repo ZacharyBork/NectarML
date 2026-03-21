@@ -20,8 +20,8 @@ class Adagrad(Optimizer):
         initial_accumulator_value: float = 0.0,
         eps:                       float = 1e-8,
         maximize:                   bool = False,
-        foreach:                    bool = None,
-        fused:                      bool = False
+        foreach:                    bool = None, # NOT YET IMPLEMENTED
+        fused:                      bool = False # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 
@@ -53,12 +53,12 @@ class Adadelta(Optimizer):
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
         ),
-        lr:                        float = 0.003,
-        rho:                       float = 0.9,
-        eps:                       float = 1e-8,
-        weight_decay:              float = 0.0,
-        maximize:                   bool = False,
-        foreach:                    bool = None
+        lr:           float = 0.003,
+        rho:          float = 0.9,
+        eps:          float = 1e-8,
+        weight_decay: float = 0.0,
+        maximize:      bool = False,
+        foreach:       bool = None # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 

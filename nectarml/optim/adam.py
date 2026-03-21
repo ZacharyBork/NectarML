@@ -108,15 +108,15 @@ class AdamW(Optimizer):
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
         ),
-        lr:                    float = 0.003,
-        betas:   tuple[float, float] = (0.9, 0.999),
-        eps:                   float = 1e-8,
-        weight_decay:          float = 0.0,
-        amsgrad:                bool = False,
-        maximize:               bool = False,
-        foreach:                bool = None,
-        capturable:             bool = False,
-        fused:                  bool = False
+        lr:                  float = 0.003,
+        betas: tuple[float, float] = (0.9, 0.999),
+        eps:                 float = 1e-8,
+        weight_decay:        float = 0.0,
+        amsgrad:              bool = False,
+        maximize:             bool = False,
+        foreach:              bool = None,  # NOT YET IMPLEMENTED
+        capturable:           bool = False, # NOT YET IMPLEMENTED
+        fused:                bool = False  # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 
@@ -156,8 +156,8 @@ class NAdam(Optimizer):
         momentum_decay:        float = 0.004,
         decoupled_weight_decay: bool = False,
         maximize:               bool = False,
-        foreach:                bool = None,
-        capturable:             bool = False
+        foreach:                bool = None,  # NOT YET IMPLEMENTED
+        capturable:             bool = False  # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 
@@ -197,8 +197,8 @@ class RAdam(Optimizer):
         weight_decay:          float = 0.0,
         decoupled_weight_decay: bool = False,
         maximize:               bool = False,
-        foreach:                bool = None,
-        capturable:             bool = False
+        foreach:                bool = None, # NOT YET IMPLEMENTED
+        capturable:             bool = False # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 
@@ -230,13 +230,13 @@ class Adamax(Optimizer):
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
         ),
-        lr:                    float = 0.003,
-        betas:   tuple[float, float] = (0.9, 0.999),
-        eps:                   float = 1e-8,
-        weight_decay:          float = 0.0,
-        maximize:               bool = False,
-        foreach:                bool = None,
-        capturable:             bool = False
+        lr:                  float = 0.003,
+        betas: tuple[float, float] = (0.9, 0.999),
+        eps:                 float = 1e-8,
+        weight_decay:        float = 0.0,
+        maximize:             bool = False,
+        foreach:              bool = None, # NOT YET IMPLEMENTED
+        capturable:           bool = False # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 

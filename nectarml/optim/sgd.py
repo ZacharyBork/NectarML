@@ -14,14 +14,14 @@ class SGD(Optimizer):
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
         ),
-        lr:            float = 0.003,
-        momentum:      float = 0.0,
-        dampening:     float = 0.0,
-        weight_decay:  float = 0.0,
-        nesterov:       bool = False,
-        maximize:       bool = False,
-        foreach:        bool = None, # NOT YET IMPLEMENTED
-        fused:          bool = None  # NOT YET IMPLEMENTED
+        lr:           float = 0.003,
+        momentum:     float = 0.0,
+        dampening:    float = 0.0,
+        weight_decay: float = 0.0,
+        nesterov:      bool = False,
+        maximize:      bool = False,
+        foreach:       bool = None, # NOT YET IMPLEMENTED
+        fused:         bool = None  # NOT YET IMPLEMENTED
     ) -> None:
         super().__init__(
             parameters, 

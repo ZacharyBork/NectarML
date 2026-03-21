@@ -1,7 +1,11 @@
 from .activation import (
-    ReLU, LeakyReLU, ELU, SELU, Sigmoid, Tanh, Softmax, LogSoftmax, GeLU,
-    SiLU, Swish, Softplus, Mish, Hardtanh, Hardsigmoid, Hardswish, Softsign,
-    Softmin)
+    relu, leaky_relu, elu, selu, sigmoid, tanh, softmax, log_softmax, 
+    gelu, silu, swish, softplus, mish, hardtanh, hardsigmoid, 
+    hardswish, softsign, softmin,
+    
+    relu_, leaky_relu_, elu_, selu_, sigmoid_, tanh_, softmax_, log_softmax_, 
+    gelu_, silu_, swish_, softplus_, mish_, hardtanh_, hardsigmoid_, 
+    hardswish_, softsign_, softmin_)
 
 from .combination import (
     concatenate, cat, stack, unstack, unbind, split, chunk)
