@@ -21,6 +21,9 @@ def relu(input: Tensor) -> Tensor:
 def relu_(input: Tensor) -> Tensor:
     '''In-place rectified linear unit activation function.
     
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.
+    
     Returns the input value if the value is >= 0.0, otherwise returns 0.0.
     
     Equation: f(x) = max(0, x)
@@ -57,6 +60,9 @@ def leaky_relu(input: Tensor, negative_slope: float = 0.01) -> Tensor:
 def leaky_relu_(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     '''In-place leaky rectified linear unit activation function.
     
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.
+
     Variant of ReLU which allows small non-zero gradients. Helps keep neurons
     active even with very small gradients.
     
@@ -95,7 +101,10 @@ def elu(input: Tensor, alpha: float = 1.0) -> Tensor:
     
 def elu_(input: Tensor, alpha: float = 1.0) -> Tensor:
     '''In-place exponential linear unit activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     ReLU activation which applies an exponential curve to negative inputs
     rather than the linear curve of traditional ReLU. Can further help to avoid
     dying gradients, especially in deep networks.
@@ -134,7 +143,10 @@ def selu(input: Tensor) -> Tensor:
 
 def selu_(input: Tensor) -> Tensor:
     '''In-place scaled exponential linear unit activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Similar to ELU activation. SELU automatically normalizes gradients to a
     fixed constant to help stabilize training.
         
@@ -169,7 +181,10 @@ def sigmoid(input: Tensor) -> Tensor:
 
 def sigmoid_(input: Tensor) -> Tensor:
     '''In-place sigmoid activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Maps incoming gradients to an S-shaped curve where (0 <= x <= 1). Useful
     when converting inputs to probabilities for classifier networks.
         
@@ -205,7 +220,10 @@ def tanh(input: Tensor) -> Tensor:
     
 def tanh_(input: Tensor) -> Tensor:
     '''In-place tanh activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Maps input values along a 0-centered hyperbolic tangent curve.
         
     Equation: f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))
@@ -241,7 +259,10 @@ def softmax(input: Tensor, dim: int=-1) -> Tensor:
 
 def softmax_(input: Tensor, dim: int=-1) -> Tensor:
     '''In-place softmax activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Generally used in classification tasks. Converts raw output scores into
     [0:1] probabilities.
         
@@ -276,7 +297,10 @@ def softmin(input: Tensor) -> Tensor:
 
 def softmin_(input: Tensor) -> Tensor:
     '''In-place softmin activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Equation: f(x) = exp(-x_i) / sum(exp(-x_j))
     
     Args:
@@ -311,7 +335,10 @@ def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
 
 def log_softmax_(input: Tensor, dim: int=-1) -> Tensor:
     '''In-place log softmax activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Computes the logarithm of Softmax(x). Offers improved stability over the
     traditional Softmax activation.
         
@@ -356,6 +383,9 @@ def gelu(input: Tensor) -> Tensor:
 def gelu_(input: Tensor) -> Tensor:
     '''In-place approximate gaussian error linear unit activation function.
     
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.
+
     Smooth approximation of ReLU which scales inputs by the cumulative 
     distribution function of a Gaussian distribution. Enables better gradient
     flow and helps to reduce vanishing gradients in deep networks, and 
@@ -399,7 +429,10 @@ def silu(input: Tensor) -> Tensor:
 
 def silu_(input: Tensor) -> Tensor:
     '''In-place sigmoid-weighted linear unit activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Similar to ReLU, SiLU (or Swish) is a smooth, self-gated activation which 
     multiplies inputs by their own Sigmoid transformation. Allows for more
     precise weight accuracy in deep networks and helps to reduce the effects
@@ -442,7 +475,10 @@ def swish(input: Tensor) -> Tensor:
 
 def swish_(input: Tensor) -> Tensor: 
     '''In-place sigmoid-weighted linear unit activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Similar to ReLU, SiLU (or Swish) is a smooth, self-gated activation which 
     multiplies inputs by their own Sigmoid transformation. Allows for more
     precise weight accuracy in deep networks and helps to reduce the effects
@@ -478,7 +514,10 @@ def softplus(input: Tensor) -> Tensor:
 
 def softplus_(input: Tensor) -> Tensor: 
     '''In-place softplus activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Equation: f(x) = log(1 + exp(x))
     
     Args:
@@ -512,7 +551,10 @@ def mish(input: Tensor) -> Tensor:
 
 def mish_(input: Tensor) -> Tensor:
     '''In-place mish activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Equation: f(x) = x * tanh(log(1 + exp(x)))
     
     Args:
@@ -553,7 +595,10 @@ def hardtanh_(
     max_value: float = 1.0
 ) -> Tensor:
     '''In-place hardtanh activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+    
     Equation: f(x) = max(min_value, min(max_value, x))
     
     Args:
@@ -586,7 +631,10 @@ def hardsigmoid(input: Tensor) -> Tensor:
 
 def hardsigmoid_(input: Tensor) -> Tensor:
     '''In-place hardsigmoid activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+    
     Equation: f(x) = clamp((x + 1) / 2, 0, 1)
     
     Args:
@@ -615,7 +663,10 @@ def hardswish(input: Tensor) -> Tensor:
   
 def hardswish_(input: Tensor) -> Tensor:
     '''In-place hardswish activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+
     Equation: f(x) = x * max(0, min(1, (x + 1) / 2))
     
     Args:
@@ -644,7 +695,10 @@ def softsign(input: Tensor) -> Tensor:
     
 def softsign_(input: Tensor) -> Tensor:
     '''In-place softsign activation function.
-        
+    
+    NOTE: This operation will corrupt the gradients of any Tensor which relies
+    on the input Tensor for backpropagation.    
+    
     Equation: f(x) = x / (1 + |x|)
     
     Args:
