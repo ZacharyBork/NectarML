@@ -4,6 +4,9 @@ from .linear import Linear
 from .upsample import Upsample
 from .identity import Identity
 from .conv import Conv1d, Conv2d, Conv3d
+from .dropout import (
+    Dropout, AlphaDropout, FeatureAlphaDropout, 
+    Dropout1d, Dropout2d, Dropout3d)
 from .norm import (
     BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,
     InstanceNorm3d, GroupNorm, LayerNorm)
