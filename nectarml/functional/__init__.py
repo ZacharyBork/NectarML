@@ -7,6 +7,8 @@ from .activation import (
     gelu_, silu_, swish_, softplus_, mish_, hardtanh_, hardsigmoid_, 
     hardswish_, softsign_, softmin_)
 
+from .attention import scaled_dot_product_attention
+
 from .combination import (
     concatenate, cat, stack, unstack, unbind, split, chunk)
 

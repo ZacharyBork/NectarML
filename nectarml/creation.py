@@ -1,7 +1,7 @@
 from typing import Literal
 
 import numpy as np
-from numpy.typing import DTypeLike
+from nectarml.typing import DTypeLike, float32
 
 from nectarml.tensor import Tensor
 import nectarml.cuda as cuda
@@ -64,11 +64,21 @@ def empty_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
         return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
     else: return _build_tensor(input, np.empty_like(input.data), _grad)
 
+def tril(
+    size: int, 
+    dtype: DTypeLike = float32,
+    device: Literal['cpu', 'cuda'] = 'cpu',
+    requires_grad: bool = False
+) -> Tensor:
+    data = np.tril(np.ones((size, size), dtype=dtype))
+    out = Tensor(data, requires_grad=requires_grad)
+    return out.to(device=device, dtype=dtype)
+
 # FIXED SHAPE
 
 def zeros(
     shape: tuple[int, ...], 
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -78,7 +88,7 @@ def zeros(
 
 def ones(
     shape: tuple[int, ...], 
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -88,7 +98,7 @@ def ones(
 
 def rand(
     shape: tuple[int, ...], 
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -99,7 +109,7 @@ def rand(
 def randn(
     shape: tuple[int, ...], 
     seed: int | None = None,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -111,7 +121,7 @@ def randn(
 def full(
     shape: tuple[int, ...], 
     fill_value: float | int,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -121,7 +131,7 @@ def full(
 
 def empty(
     shape: tuple[int, ...], 
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -133,7 +143,7 @@ def eye(
     n: int,
     m: int | None = None,
     k: int = 0,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -145,7 +155,7 @@ def arange(
     start: float,
     stop: float | None = None,
     step: float = 1.0,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
@@ -158,7 +168,7 @@ def linspace(
     start: float,
     stop: float,
     num_elements: int = 50,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
