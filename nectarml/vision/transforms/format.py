@@ -30,11 +30,33 @@ class ToTensor(Transform):
         return output
 
 class ToPIL(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        normalize: bool = False,
+        value_range: tuple[int, int] = (0, 255)
+    ) -> None:
         super().__init__()
+        self.normalize = normalize
+        self.value_range = value_range
     
-    def forward(self, input: Tensor) -> Tensor:
-        pass
+    def forward(self, input: Tensor | np.ndarray) -> Image.Image:
+        assert input.ndim in [3, 4], \
+            'ToPIL expects input to be 3D ([C, H, W]) or 4D ([B, C, H, W])'
+        if input.ndim == 4:
+            assert input.shape[0] == 1, \
+                'ToPIL expects input to have only 1 batch ([1, H, W])'
+            input.squeeze(0) 
+        
+        x = np.array(input.data, input.dtype)
+        x.transpose()
+        
+        if isinstance(input, Tensor):
+            input = input.permute((1, 2, 0))
+            if normalize: input = _normalize(input, value_range)
+            return Image.fromarray(input.numpy().astype(dtype=uint8), 'RGB')
+        elif isinstance(input, np.ndarray):
+            input = input.transpose(1, 2, 0)
+        else: raise ValueError(f'Unsupported input type: {type(input)}')
 
 class ToNumpy(Transform):
     def __init__(self) -> None:

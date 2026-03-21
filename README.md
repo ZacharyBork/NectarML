@@ -287,8 +287,8 @@
     🟡 2. Color / Photometric
     ❌ 3. Blur / Noise
     ❌ 4. Dropout / Erasing
-    ❌ 5. Normalization
-    ❌ 6. Format / Type
+    ✅ 5. Normalization
+    🟡 6. Format / Type
     ✅ 7. Composition
 
 ### 🟡  CUDA
