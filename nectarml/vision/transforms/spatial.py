@@ -40,7 +40,7 @@ class Pad(Transform):
     def forward(self, input: Tensor) -> Tensor:
         return F.pad(input, self.padding, self.padding_mode, self.fill)
     
-class RandomCrop(Transform):
+class _Crop(Transform):
     def __init__(
         self,
         size: int | tuple[int, int],
@@ -79,6 +79,23 @@ class RandomCrop(Transform):
     def forward(self, input: Tensor) -> Tensor:
         if self.pad is None: out = self._validate_input_size(input)
         else: out = self.pad(input)
+        return out
+    
+class RandomCrop(_Crop):
+    def __init__(
+        self,
+        size: int | tuple[int, int],
+        padding: int | tuple[int, ...] | None = None,
+        pad_if_needed: bool = False,
+        fill: float = 0.0,
+        padding_mode: Literal[
+            'constant', 'edge', 'reflect', 'symmetric'
+        ] = 'constant'
+    ) -> None:
+        super().__init__(size, padding, pad_if_needed, fill, padding_mode)
+    
+    def forward(self, input: Tensor) -> Tensor:
+        out = super().forward(input)
 
         max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
         offset_h = int(random.random() * max_offset[0])
@@ -89,37 +106,104 @@ class RandomCrop(Transform):
             offset_h:offset_h+self.size[0], 
             offset_w:offset_w+self.size[1]]
         
-class CenterCrop(Transform):
-    def __init__(self) -> None:
-        super().__init__()
+class CenterCrop(_Crop):
+    def __init__(
+        self,
+        size: int | tuple[int, int],
+        padding: int | tuple[int, ...] | None = None,
+        pad_if_needed: bool = False,
+        fill: float = 0.0,
+        padding_mode: Literal[
+            'constant', 'edge', 'reflect', 'symmetric'
+        ] = 'constant'
+    ) -> None:
+        super().__init__(size, padding, pad_if_needed, fill, padding_mode)
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        out = super().forward(input)
+
+        offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
+        offset_h = offset[0] // 2
+        offset_w = offset[1] // 2
+        
+        return out[
+            :, :, 
+            offset_h:offset_h+self.size[0], 
+            offset_w:offset_w+self.size[1]]
     
-class RandomResizedCrop(Transform):
-    def __init__(self) -> None:
-        super().__init__()
+class RandomResizedCrop(_Crop):
+    def __init__(
+        self,
+        crop_size: int | tuple[int, int],
+        output_size: int | tuple[int, int] | None = None,
+        padding: int | tuple[int, ...] | None = None,
+        pad_if_needed: bool = False,
+        fill: float = 0.0,
+        padding_mode: Literal[
+            'constant', 'edge', 'reflect', 'symmetric'
+        ] = 'constant',
+        scaling_mode: Literal[
+            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
+        ] = 'nearest',
+        a: float = -0.75
+    ) -> None:
+        super().__init__(crop_size, padding, pad_if_needed, fill, padding_mode)
+        self.output_size = output_size
+        self.scaling_mode = scaling_mode
+        self.a = a
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        out = super().forward(input)
+
+        max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
+        offset_h = int(random.random() * max_offset[0])
+        offset_w = int(random.random() * max_offset[1])
+        
+        out = out[
+            :, :, 
+            offset_h:offset_h+self.size[0], 
+            offset_w:offset_w+self.size[1]]
+        out_size = input.shape[2:] if self.output_size is None \
+              else self.output_size
+        return F.upsample(
+            out, size=out_size, mode=self.scaling_mode, a=self.a)
     
 class Resize(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        size: int | tuple[int, ...] | None = None,
+        scale_factor: float | tuple[float, ...] | None = None,
+        mode: Literal[
+            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
+        ] = 'nearest',
+        a: float = -0.75,
+        align_corners: bool = False
+    ) -> None:
         super().__init__()
+        self.resize = lambda x : F.upsample(
+            x, size, scale_factor, mode, a, align_corners)
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return self.resize(input)
 
 class RandomHorizontalFlip(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
         pass
 
 class RandomVerticalFlip(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
         pass
