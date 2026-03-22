@@ -119,19 +119,29 @@ class RandomGamma(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class Grayscale(Transform):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    def forward(self, input: Tensor) -> Tensor:
-        pass
-
 class RandomGrayscale(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        chance: tuple[float, float] = (0.05, 0.2)
+    ) -> None:
         super().__init__()
+        self.chance = chance
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        rand = self.rng.random()
+        chance = rand * (self.chance[1]-self.chance[0]) + self.chance[0]
+        value = self.rng.random()
+        if value <= chance: 
+            ch = input.unbind(dim=1)
+            out = 0.2999 * ch[0] + 0.587 * ch[1] + 0.114 * ch[2]
+            out = out.unsqueeze(dim=0).expand(input.shape)
+            return out.to(input.device, input.dtype)
+        return input
+
+class Grayscale(Transform):
+    def forward(self, input: Tensor) -> Tensor:
+        gray = RandomGrayscale(chance=(1, 1))
+        return gray(input)
 
 class ToSepia(Transform):
     def __init__(self) -> None:

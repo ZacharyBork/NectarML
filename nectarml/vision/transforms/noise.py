@@ -45,18 +45,17 @@ class SaltAndPepperNoise(Transform):
         salt_vs_pepper: tuple[float, float] = (0.4, 0.6)
     ) -> None:
         super().__init__()
-        amt = _rng.random() * (amount[1] - amount[0]) + amount[0]
-        self.salt_vs_pepper = (
-            salt_vs_pepper[0] * amt,
-            salt_vs_pepper[1] * amt)
+        self.amount = amount
+        self.salt_vs_pepper = salt_vs_pepper
     
     def forward(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
+        amt = _rng.random() * (self.amount[1]-self.amount[0]) + self.amount[0]
 
         shape = (input.shape[0], 1) + input.shape[2:]
-        salt_arr = (_rng.random(size=shape) < self.salt_vs_pepper[0])
+        salt_arr = (_rng.random(size=shape) < self.salt_vs_pepper[0] * amt)
         salt_arr = salt_arr.astype(input.dtype)
-        pepper_arr = (_rng.random(size=shape) < self.salt_vs_pepper[1])
+        pepper_arr = (_rng.random(size=shape) < self.salt_vs_pepper[1] * amt)
         pepper_arr = (1 - pepper_arr).astype(input.dtype)
         
         salt = Tensor(salt_arr**10, shape) * max_value
