@@ -912,6 +912,27 @@ class Tensor():
         else: data = self.data >= other.data
         return Tensor(data, self.shape, typing.bool_, self.device)
     
+    ### ROUNDING ###
+    
+    def round(self, precision: int = 0) -> Tensor:
+        
+        # CUDA ROUND NEEDS PRECISION!
+        
+        self._bool_type_check('Tensor.round()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.round(self)
+        else: out_data = np.round(self.data, decimals=precision)
+        out = Tensor(out_data, self.shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad
+                
+        out._backward = _backward
+        return out
+    
     ### MATH DUNDERS ###
     
     def __iadd__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1747,12 +1768,6 @@ class Tensor():
         def _backward() -> None: pass
         out._backward = _backward
         return out
-       
-    ### SIGMOID ###
-        
-    def sigmoid(self: Tensor) -> Tensor: 
-        self._bool_type_check('Tensor.sigmoid()')
-        return ((-self).exp() + 1) ** -1
     
     ### REDUCTIONS ###
     
@@ -1957,6 +1972,19 @@ class Tensor():
         
         out._backward = _backward
         return out
+
+    def std(
+        self: Tensor, 
+        dim: int | tuple[int, ...] | None = None, 
+        keepdim: bool = False, 
+        correction: int = 1
+    ) -> Tensor:
+        mean = self.mean(dim=dim, keepdim=True)
+        variance = ((self - mean) ** 2).mean(dim=dim, keepdim=keepdim)
+        if correction == 1:
+            n = self.size if dim is None else self.shape[dim]
+            variance = variance * n / (n - 1)
+        return variance.sqrt()
 
     ### RESHAPING ###
     

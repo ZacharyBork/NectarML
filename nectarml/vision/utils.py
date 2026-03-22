@@ -70,8 +70,8 @@ def PIL_to_tensor(
 ) -> Tensor:
     data = np.array(input).astype(dtype)
     output = Tensor(data, dtype=dtype, device=device)
-    output = output.permute((2, 0, 1))
-    if batch_dim: output = output.reshape((1,) + output.shape)
+    output = output.permute((2, 0, 1)).contiguous()
+    if batch_dim: output = output.unsqueeze(0)
     return output
 
 def tensor_to_PIL(
@@ -116,7 +116,7 @@ def save_image(
     if not out_dir.exists():
         raise FileNotFoundError(
             f'Unable to locate output directory at path: {out_dir.as_posix()}')
-        
+    
     if isinstance(input, Sequence) or input.shape[0] > 1:
         input = make_grid(
             input, normalize=normalize, value_range=value_range, **kwargs)

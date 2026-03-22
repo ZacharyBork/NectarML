@@ -3,7 +3,7 @@ import math
 from nectarml.tensor import Tensor
 from nectarml.typing import bool_
 from nectarml.creation import tril
-from nectarml.functional import activation, combination, reductions
+from nectarml.functional import activation
 from nectarml.functional.dropout import dropout as dropout_fn
 
 def scaled_dot_product_attention(

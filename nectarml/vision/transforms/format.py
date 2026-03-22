@@ -26,7 +26,7 @@ class ToTensor(Transform):
         
         output = Tensor(data, dtype=self.dtype, device=self.device)
         output = output.permute((2, 0, 1))
-        if self.batch_dim: output = output.reshape((1,) + output.shape)
+        if self.batch_dim: output = output.unsqueeze(dim=0)
         return output
 
 class ToPIL(Transform):

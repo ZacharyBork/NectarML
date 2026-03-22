@@ -74,7 +74,7 @@ class Size(tuple[int, ...]):
         return Size(super().__add__(other))
     
     def __radd__(self: Size, other: Size | tuple[int, ...]) -> Size:
-        return Size(self + other)
+        return Size(tuple(other) + tuple(self))
     
     def __mul__(self: Size, other: int) -> Size:
         return Size(super().__mul__(other))
