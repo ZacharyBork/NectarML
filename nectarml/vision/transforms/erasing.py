@@ -4,6 +4,7 @@ from nectarml.vision.transforms import Transform
 
 class RandomErasing(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -11,6 +12,7 @@ class RandomErasing(Transform):
 
 class CoarseDropout(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -18,6 +20,7 @@ class CoarseDropout(Transform):
 
 class GridDropout(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -25,6 +28,7 @@ class GridDropout(Transform):
 
 class RandomSunFlare(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -32,6 +36,7 @@ class RandomSunFlare(Transform):
 
 class RandomFog(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -39,6 +44,7 @@ class RandomFog(Transform):
 
 class RandomRain(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -46,6 +52,7 @@ class RandomRain(Transform):
 
 class RandomSnow(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -53,6 +60,7 @@ class RandomSnow(Transform):
 
 class RandomShadow(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:

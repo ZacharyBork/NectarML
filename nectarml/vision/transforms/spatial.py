@@ -191,6 +191,7 @@ class RandomHorizontalFlip(Transform):
         self,
         p: float = 0.5
     ) -> None:
+        raise NotImplementedError
         super().__init__()
         self.p = p
     
@@ -202,6 +203,7 @@ class RandomVerticalFlip(Transform):
         self,
         p: float = 0.5
     ) -> None:
+        raise NotImplementedError
         super().__init__()
         self.p = p
     
@@ -210,6 +212,7 @@ class RandomVerticalFlip(Transform):
 
 class RandomRotation(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -217,6 +220,7 @@ class RandomRotation(Transform):
 
 class RandomAffine(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -224,6 +228,7 @@ class RandomAffine(Transform):
 
 class RandomPerspective(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -231,6 +236,7 @@ class RandomPerspective(Transform):
 
 class ElasticTransform(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -238,6 +244,7 @@ class ElasticTransform(Transform):
 
 class GridDistortion(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -245,6 +252,7 @@ class GridDistortion(Transform):
 
 class OpticalDistortion(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -252,6 +260,7 @@ class OpticalDistortion(Transform):
 
 class FiveCrop(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -259,6 +268,7 @@ class FiveCrop(Transform):
 
 class TenCrop(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -266,6 +276,7 @@ class TenCrop(Transform):
 
 class RandomCropNearBBox(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:

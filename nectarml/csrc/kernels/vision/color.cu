@@ -1,6 +1,9 @@
 #include "common.h"
 
-__device__ void rgb_to_hsv(float r, float g, float b, float& h, float& s, float& v) {
+__device__ void rgb_to_hsv(
+    float r, float g, float b, 
+    float& h, float& s, float& v
+) {
     float cmax = fmaxf(fmaxf(r, g), b);
     float cmin = fminf(fminf(r, g), b);
     float delta = cmax - cmin;
@@ -16,7 +19,10 @@ __device__ void rgb_to_hsv(float r, float g, float b, float& h, float& s, float&
     if (h < 0.0f) h += 1.0f;
 }
 
-__device__ void hsv_to_rgb(float h, float s, float v, float& r, float& g, float& b) {
+__device__ void hsv_to_rgb(
+    float h, float s, float v, 
+    float& r, float& g, float& b
+) {
     if (s == 0.0f) {
         r = g = b = v;
         return;
@@ -38,42 +44,62 @@ __device__ void hsv_to_rgb(float h, float s, float v, float& r, float& g, float&
     }
 }
 
-__global__ void hue_shift_kernel(
-    uint8_t* image,
-    int width,
-    int height,
-    float shift
+#include <iostream>
+
+template<typename T>
+__global__ void hsv_adjust_kernel(
+    T* d_in,
+    int B, int C, int H, int W,
+    float hue_shift, float saturation, float value
 ) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    if (x >= width || y >= height) return;
+    int b = blockIdx.z;
+    if (x >= W || y >= H || b >= B) return;
 
-    int idx = (y * width + x) * 3;
-    float r = image[idx]     / 255.0f;
-    float g = image[idx + 1] / 255.0f;
-    float b = image[idx + 2] / 255.0f;
+    int r_idx = b * (C * H * W) + 0 * (H * W) + y * W + x;
+    int g_idx = b * (C * H * W) + 1 * (H * W) + y * W + x;
+    int b_idx = b * (C * H * W) + 2 * (H * W) + y * W + x;
 
-    // To HSV
+    float scale;
+    if constexpr (std::is_same_v<T, uint8_t>) scale = 255.0f;
+    else scale = 1.0f;
+
+    float rc = static_cast<float>(d_in[r_idx]) / scale;
+    float gc = static_cast<float>(d_in[g_idx]) / scale;
+    float bc = static_cast<float>(d_in[b_idx]) / scale;
+
     float h, s, v;
-    rgb_to_hsv(r, g, b, h, s, v);
+    rgb_to_hsv(rc, gc, bc, h, s, v);
 
-    // Shift hue
-    h = fmodf(h + shift, 1.0f);
+    h = fmodf(h + hue_shift, 1.0f);
     if (h < 0.0f) h += 1.0f;
+    s = fmaxf(0.0f, fminf(1.0f, s * saturation));
+    v = fmaxf(0.0f, fminf(1.0f, v * value));
 
-    // To RGB
-    hsv_to_rgb(h, s, v, r, g, b);
+    hsv_to_rgb(h, s, v, rc, gc, bc);
 
-    // Write back result
-    image[idx]     = (uint8_t)(r * 255.0f);
-    image[idx + 1] = (uint8_t)(g * 255.0f);
-    image[idx + 2] = (uint8_t)(b * 255.0f);
+    d_in[r_idx] = static_cast<T>(rc * scale);
+    d_in[g_idx] = static_cast<T>(gc * scale);
+    d_in[b_idx] = static_cast<T>(bc * scale);
 }
 
-void launch_hue_shift(uint8_t* d_image, int width, int height, float shift) {
+template<typename T>
+void launch_hsv_adjust(
+    T* d_in,
+    int B, int C, int H, int W,
+    float hue_shift, float saturation, float value
+) {
     int BS2D = BLOCK_SIZE_2D;
-    dim3 block(BS2D, BS2D);
-    dim3 grid((width + (BS2D-1)) / BS2D, (height + (BS2D-1)) / BS2D);
-    hue_shift_kernel<<<grid, block>>>(d_image, width, height, shift);
+    dim3 block(BS2D, BS2D, 1);
+    dim3 grid((W + BS2D - 1) / BS2D, (H + BS2D - 1) / BS2D, B);
+    hsv_adjust_kernel<T><<<grid, block>>>(
+        d_in, B, C, H, W,
+        hue_shift, saturation, value);
 }
+
+template void launch_hsv_adjust<float>(float*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<half>(half*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<uint8_t>(uint8_t*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<int32_t>(int32_t*, int, int, int, int, float, float, float);
+

@@ -9,26 +9,42 @@ from nectarml.tensor import Tensor
 from nectarml.creation import full
 from nectarml.vision.transforms import Transform
 from nectarml.benchmark import benchmark_time
+from nectarml.cuda.utils import map_dtype
 
-def random_hue_shift(input: Tensor) -> Tensor:
+### UTILS ###
+
+def _hsv_adjust(
+    input: Tensor,
+    hue_shift: float = 0.0,
+    saturation: float = 1.0,
+    value: float = 1.0,
+    max_value: int | float | None = None
+) -> Tensor:
+    max_value = max_value or input.max().item()
+    input = input / max_value
     if input.device == 'cuda':
-        pass
-    else: pass
-    
-def random_brightness(input: Tensor) -> Tensor:
-    if input.device == 'cuda':
-        pass
-    else: pass
-    
-def random_contrast(input: Tensor) -> Tensor:
-    if input.device == 'cuda':
-        pass
-    else: pass
-    
-def random_color(input: Tensor) -> Tensor:
-    if input.device == 'cuda':
-        pass
-    else: pass
+        out_data = _nectarml.hsv_adjust(
+            input._data_ptr, list(input.shape),
+            hue_shift, saturation, value, map_dtype(input.dtype))
+    else:
+        img_array = (input.data).transpose((0, 2, 3, 1))
+        
+        hsv = np.vectorize(colorsys.rgb_to_hsv)(
+            img_array[..., 0], img_array[..., 1], img_array[..., 2])
+        
+        h = (hsv[0] + hue_shift) % 1.0
+        s = np.clip(hsv[1] * saturation, 0.0, 1.0)
+        v = np.clip(hsv[2] * value, 0.0, 1.0)
+
+        rgb = np.vectorize(colorsys.hsv_to_rgb)(h, s, v)
+        out_data = np.clip(np.stack(rgb, axis=-1), 0, 255)
+        out_data = out_data.transpose((0, 3, 1, 2)).astype(input.dtype)
+        
+    return Tensor(
+        out_data, input.shape, input.dtype, input.device, input.requires_grad
+    ) * max_value
+
+### TRANSFORMS ###
 
 class ColorJitter(Transform):
     def __init__(
@@ -49,75 +65,109 @@ class ColorJitter(Transform):
         self.saturation = saturation
         self.hue = hue
     
-    def _hue_shift(self, input: Image.Image) -> Image.Image:
-        shift = (self._random_in_range(self.hue) * 360.0 % 360)
-        arr = np.array(input.convert("RGB"), dtype=np.uint8)
-        with benchmark_time():
-            result = _nectarml.hue_shift(arr, shift)
-        return Image.fromarray(result)
-    
-        
-        # shift = (self._random_in_range(self.hue) * 360.0 % 360)
-        # img_array = np.array(input.convert("RGB"), dtype=np.float32) / 255.0
-        
-        # with benchmark_time():
-        #     hsv = np.vectorize(colorsys.rgb_to_hsv)(
-        #         img_array[..., 0], img_array[..., 1], img_array[..., 2])
-        #     shifted_h = (hsv[0] + shift) % 1.0
-            
-        #     rgb = np.vectorize(colorsys.hsv_to_rgb)(shifted_h, hsv[1], hsv[2])
-        #     result = (np.stack(rgb, axis=-1) * 255).astype(np.uint8)
-        
-        # return Image.fromarray(result)
-    
     def forward(self, input: Tensor) -> Tensor:
-        if not self.brightness == (1.0, 1.0):
-            input = ImageEnhance.Brightness(input).enhance(
-                self._random_in_range(self.brightness))
-        if not self.contrast == (1.0, 1.0):
-            input = ImageEnhance.Contrast(input).enhance(
-                self._random_in_range(self.contrast))
-        if not self.saturation == (1.0, 1.0):
-            input = ImageEnhance.Color(input).enhance(
-                self._random_in_range(self.saturation))
-        if not self.hue == (0.0, 0.0):
-            input = self._hue_shift(input)
-        return input
+        max_value = input.max().item()
+        if not np.allclose(list(self.contrast), [1, 1]):
+            _constrast = self._random_in_range(self.contrast)
+            input = input / max_value
+            input = ((input - 0.5) * _constrast + 0.5) * max_value
+            input = input.clamp(0.0, max_value)
+
+        _hue = self._random_in_range(self.hue)
+        _sat = self._random_in_range(self.saturation)
+        _val = self._random_in_range(self.brightness)
+        out = _hsv_adjust(input, _hue, _sat, _val, max_value)
+        
+        return out
         
 class RandomBrightness(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        value_range: tuple[float, float] = (0.9, 1.1),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.value_range = value_range
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        brightness = self._random_in_range(self.value_range)
+        return _hsv_adjust(input, 0.0, 1.0, brightness)
 
 class RandomContrast(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        value_range: tuple[float, float] = (0.9, 1.1),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.value_range = value_range
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance or np.allclose(list(self.value_range), [1, 1]): 
+            return input
+        
+        max_value = input.max().item()
+        out = input / max_value
+        constrast = self._random_in_range(self.value_range)
+        out = ((out - 0.5) * constrast + 0.5) * max_value
+        return out.clamp(0.0, max_value)
 
 class RandomSaturation(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        value_range: tuple[float, float] = (0.9, 1.1),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.value_range = value_range
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        saturation = self._random_in_range(self.value_range)
+        return _hsv_adjust(input, 0.0, saturation, 1.0)
     
 class RandomHue(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        value_range: tuple[float, float] = (0.9, 1.1),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.value_range = value_range
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        hue = self._random_in_range(self.value_range)
+        return _hsv_adjust(input, hue, 1.0, 1.0)
 
 class RandomGamma(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        value_range: tuple[float, float] = (0.9, 1.1),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.value_range = value_range
+        self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance or np.allclose(list(self.value_range), [1, 1]): 
+            return input
+        
+        max_value = input.max().item()
+        gamma = self._random_in_range(self.value_range)
+        out = (input / max_value) ** gamma * max_value
+        return out.clamp(0.0, max_value)
 
 class RandomGrayscale(Transform):
     def __init__(
@@ -145,6 +195,7 @@ class Grayscale(Transform):
 
 class ToSepia(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -152,6 +203,7 @@ class ToSepia(Transform):
 
 class Equalize(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -159,6 +211,7 @@ class Equalize(Transform):
 
 class AutoContrast(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -166,6 +219,7 @@ class AutoContrast(Transform):
 
 class Solarize(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -173,6 +227,7 @@ class Solarize(Transform):
 
 class Posterize(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -186,6 +241,7 @@ class Invert(Transform):
 
 class CLAHE(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -220,6 +276,7 @@ class ChannelDropout(Transform):
 
 class RGBShift(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -227,6 +284,7 @@ class RGBShift(Transform):
 
 class HueSaturationValue(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -234,6 +292,7 @@ class HueSaturationValue(Transform):
 
 class TonemapHDR(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:

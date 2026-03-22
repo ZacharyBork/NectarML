@@ -60,6 +60,7 @@ class ToPIL(Transform):
 
 class ToNumpy(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -67,6 +68,7 @@ class ToNumpy(Transform):
 
 class ConvertDtype(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -74,6 +76,7 @@ class ConvertDtype(Transform):
 
 class Permute(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:

@@ -4,17 +4,23 @@ namespace py = pybind11;
 
 /* TRANSFORMS */
 
-py::array_t<uint8_t> hue_shift(py::array_t<uint8_t> image, float shift);
+namespace nectar {
+    uintptr_t hsv_adjust(
+        uintptr_t in_ptr, std::vector<int> shape, 
+        float hue_shift, float saturation, float value,
+        DType dtype
+    );
+}
 
 void register_vision(py::module_& m) {
 
     /* TRANSFORMS */
 
-    m.def("hue_shift", &hue_shift,
-        py::arg("image"),
-        py::arg("shift"),
-        "Shift the hue of an RGB image by the given number of degrees."
-    );
+    m.def("hsv_adjust", &nectar::hsv_adjust,
+        py::arg("in_ptr"), py::arg("shape"),
+        py::arg("hue_shift"), py::arg("saturation"), py::arg("value"),
+        py::arg("dtype"),
+        "");
     
 }
 

@@ -4,6 +4,7 @@ from nectarml.vision.transforms import Transform
 
 class GaussianBlur(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -11,6 +12,7 @@ class GaussianBlur(Transform):
 
 class MotionBlur(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -18,6 +20,7 @@ class MotionBlur(Transform):
 
 class MedianBlur(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -25,6 +28,7 @@ class MedianBlur(Transform):
 
 class BoxBlur(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -32,6 +36,7 @@ class BoxBlur(Transform):
 
 class RandomBlur(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -39,6 +44,7 @@ class RandomBlur(Transform):
 
 class Sharpen(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -46,6 +52,7 @@ class Sharpen(Transform):
 
 class Emboss(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:
@@ -53,6 +60,7 @@ class Emboss(Transform):
 
 class UnsharpMask(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Image.Image) -> Image.Image:

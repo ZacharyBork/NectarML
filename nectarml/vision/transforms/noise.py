@@ -69,6 +69,7 @@ class SaltAndPepperNoise(Transform):
 
 class SpeckleNoise(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
@@ -80,6 +81,7 @@ class ISONoise(Transform):
         color_shift: tuple[float, float] = (0.01, 0.05),
         intensity: tuple[float, float] = (0.1, 0.5)
     ) -> None:
+        raise NotImplementedError
         super().__init__()
         self.color_shift = color_shift
         self.intensity = intensity
@@ -89,6 +91,7 @@ class ISONoise(Transform):
 
 class MultiplicativeNoise(Transform):
     def __init__(self) -> None:
+        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
