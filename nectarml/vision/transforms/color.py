@@ -228,18 +228,40 @@ class AutoContrast(Transform):
         pass
 
 class Solarize(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    '''
+    Reference:
+        - https://msameeruddin.hashnode.dev/solarizing-the-image-with-numpy
+    '''
+    def __init__(
+        self,
+        threshold_range: tuple[float, float] = (0.3, 0.7),
+        per_channel: bool = False
+    ) -> None:
         super().__init__()
+        self.threshold_range = threshold_range
+        self.per_channel = per_channel
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        
+        if self.per_channel:
+            thresholds = [
+                self._random_in_range(self.threshold_range)
+                for _ in range(3)]
+        else: thresholds = [self._random_in_range(self.threshold_range)] * 3
+        
+        r, g, b = (input / max_value).unbind(dim=1)
+        channels = [
+            F.where((r < thresholds[0]), r, 1-r),
+            F.where((g < thresholds[1]), g, 1-g),
+            F.where((b < thresholds[2]), b, 1-b)]
+        return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
 
 class Posterize(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
-    
+
     def forward(self, input: Tensor) -> Tensor:
         pass
 
@@ -293,12 +315,19 @@ class RGBShift(Transform):
         pass
 
 class HueSaturationValue(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        hue: float = 0.0,
+        saturation: float = 1.0,
+        value: float = 1.0
+    ) -> None:
         super().__init__()
+        self.hue = hue
+        self.saturation = saturation
+        self.value = value
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return _hsv_adjust(input, self.hue, self.saturation, self.value)
 
 class TonemapHDR(Transform):
     def __init__(self) -> None:
