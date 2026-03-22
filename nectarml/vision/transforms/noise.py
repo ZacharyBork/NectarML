@@ -73,11 +73,17 @@ class SpeckleNoise(Transform):
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        _rng.gamma()
 
 class ISONoise(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        color_shift: tuple[float, float] = (0.01, 0.05),
+        intensity: tuple[float, float] = (0.1, 0.5)
+    ) -> None:
         super().__init__()
+        self.color_shift = color_shift
+        self.intensity = intensity
     
     def forward(self, input: Tensor) -> Tensor:
         pass

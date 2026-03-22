@@ -1,9 +1,12 @@
+import random
 import colorsys
 from PIL import Image, ImageEnhance
 import numpy as np
 
 import _nectarml
+import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.creation import full
 from nectarml.vision.transforms import Transform
 from nectarml.benchmark import benchmark_time
 
@@ -166,11 +169,10 @@ class Posterize(Transform):
         pass
 
 class Invert(Transform):
-    def __init__(self) -> None:
-        super().__init__()
-    
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        base = full(input.shape, max_value, input.dtype).to(input.device)
+        return (base - input).clamp(0.0, max_value)
 
 class CLAHE(Transform):
     def __init__(self) -> None:
@@ -180,18 +182,31 @@ class CLAHE(Transform):
         pass
 
 class ChannelShuffle(Transform):
-    def __init__(self) -> None:
-        super().__init__()
-    
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        channels = input.unbind(dim=1)
+        random.shuffle(channels)
+        return F.stack(channels, dim=1).to(input.device, input.dtype)
 
 class ChannelDropout(Transform):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        range: tuple[int, int] = (1, 1),
+        fill: float = 0.0
+    ) -> None:
         super().__init__()
+        self.range = range
+        self.fill = fill
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        channels = input.unbind(dim=1)
+        
+        new_channel = full(channels[0].shape, self.fill) * max_value
+        new_channel = new_channel.to(input.device, input.dtype)
+        
+        index = random.randint(self.range[0], self.range[1])
+        channels[index] = new_channel
+        return F.stack(channels, dim=1).clamp(0.0, max_value)
 
 class RGBShift(Transform):
     def __init__(self) -> None:
