@@ -169,37 +169,47 @@ class RandomGamma(Transform):
         out = (input / max_value) ** gamma * max_value
         return out.clamp(0.0, max_value)
 
-class RandomGrayscale(Transform):
-    def __init__(
-        self,
-        chance: tuple[float, float] = (0.05, 0.2)
-    ) -> None:
+class ToGrayscale(Transform):
+    def __init__(self) -> None:
         super().__init__()
-        self.chance = chance
     
     def forward(self, input: Tensor) -> Tensor:
-        rand = self.rng.random()
-        chance = rand * (self.chance[1]-self.chance[0]) + self.chance[0]
-        value = self.rng.random()
-        if value <= chance: 
-            ch = input.unbind(dim=1)
-            out = 0.2999 * ch[0] + 0.587 * ch[1] + 0.114 * ch[2]
-            out = out.unsqueeze(dim=0).expand(input.shape)
-            return out.to(input.device, input.dtype)
-        return input
+        ch = input.unbind(dim=1)
+        out = 0.2999 * ch[0] + 0.587 * ch[1] + 0.114 * ch[2]
+        out = out.unsqueeze(dim=0).expand(input.shape)
+        return out.to(input.device, input.dtype)
 
-class Grayscale(Transform):
+class RandomGrayscale(Transform):
+    def __init__(self, p: float = 0.5) -> None:
+        super().__init__()
+        self.p = p
+        self.to_grayscale = ToGrayscale()
+    
     def forward(self, input: Tensor) -> Tensor:
-        gray = RandomGrayscale(chance=(1, 1))
-        return gray(input)
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        return self.to_grayscale(input)
 
 class ToSepia(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        in_r, in_g, in_b = input.unbind(dim=1)
+        r = (in_r * 0.393) + (in_g * 0.769) + (in_b * 0.189)
+        g = (in_r * 0.349) + (in_g * 0.686) + (in_b * 0.168)
+        b = (in_r * 0.272) + (in_g * 0.534) + (in_b * 0.131)
+        out = F.stack([r, g, b], dim=1).clamp(0.0, max_value)
+        return out.to(input.device, input.dtype)
+    
+class RandomSepia(Transform):
+    def __init__(self, p: float = 0.5) -> None:
+        super().__init__()
+        self.p = p
+        self.to_sepia = ToSepia()
+        
+    def forward(self, input: Tensor) -> Tensor:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        return self.to_sepia(input)
 
 class Equalize(Transform):
     def __init__(self) -> None:

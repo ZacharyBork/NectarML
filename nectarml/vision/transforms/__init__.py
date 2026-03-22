@@ -6,9 +6,9 @@ from .spatial import (
     TenCrop, RandomCropNearBBox)
 from .color import (
     ColorJitter, RandomBrightness, RandomContrast, RandomSaturation, RandomHue,
-    RandomGamma, Grayscale, RandomGrayscale, ToSepia, Equalize, AutoContrast,
-    Solarize, Posterize, Invert, CLAHE, ChannelShuffle, ChannelDropout, 
-    RGBShift, HueSaturationValue, TonemapHDR)
+    RandomGamma, ToGrayscale, RandomGrayscale, ToSepia, RandomSepia, Equalize, 
+    AutoContrast, Solarize, Posterize, Invert, CLAHE, ChannelShuffle, 
+    ChannelDropout, RGBShift, HueSaturationValue, TonemapHDR)
 from .blur import (
     GaussianBlur, MotionBlur, MedianBlur, BoxBlur, RandomBlur, Sharpen, 
     Emboss, UnsharpMask)
