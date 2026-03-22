@@ -183,8 +183,7 @@
         ✅ 4. CircularPad1d/2d/3d
         ✅ 5. ZeroPad1d/2d/3d
     ❌ 6. Attention
-        ❌ 1. ScaledDotProductAttention
-        ❌ 2. MultiheadAttention
+        ✅ 1. MultiheadAttention
     ❌ 7. Convolutions
         ❌ 1. Conv1d
         ❌ 2. Conv2d
