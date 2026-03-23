@@ -43,12 +43,8 @@ class Compose(Transform):
     def _generate_examples(
         self,
         input_image: PathLike,
-        output_directory: PathLike,
         num_examples: int,
-        allow_overwrite: bool,
-        benchmark: bool,
-        make_grid: bool,
-        **grid_kwargs
+        benchmark: bool
     ) -> list[Tensor]:
         input_image = utility.LoadImageFile(input_image)()
         outputs = []
@@ -59,22 +55,10 @@ class Compose(Transform):
 
             with iter_context:
                 output = self.forward(input_image)
-                output_path = Path(output_directory, f'example_{i+1}.jpg')
                 
-                if not allow_overwrite:
-                    assert not output_path.exists(), (
-                        f'Found existing file at path: '
-                        f'{output_path.as_posix()}\n'
-                        f'Remove existing file or run generate_examples '
-                        f'with allow_overwrite=True to continue.')
             
-            if not make_grid: utility.SaveImageFile(output_path)(output)
-            else: outputs.append(output)
-        
-        if len(outputs) > 0:
-            grid = utility.MakeGrid(**grid_kwargs)(outputs)
-            output_path = Path(output_directory, f'example_grid.jpg')
-            utility.SaveImageFile(output_path)(grid)
+            outputs.append(output)
+        return outputs
         
     def generate_examples(
         self, 
@@ -109,9 +93,23 @@ class Compose(Transform):
             if benchmark else nullcontext()
              
         with global_context:
-            self._generate_examples(
-                input_image, output_directory, num_examples,allow_overwrite,
-                benchmark, make_grid, **grid_kwargs)
+            outputs = self._generate_examples(
+                input_image, num_examples, benchmark)
+            
+        if make_grid:
+            grid = utility.MakeGrid(**grid_kwargs)(outputs)
+            output_path = Path(output_directory, f'example_grid.jpg')
+            utility.SaveImageFile(output_path)(grid)
+        else:
+            for i, output in enumerate(outputs):
+                output_path = Path(output_directory, f'example_{i+1}.jpg')
+                if not allow_overwrite:
+                    assert not output_path.exists(), (
+                        f'Found existing file at path: '
+                        f'{output_path.as_posix()}\n'
+                        f'Remove existing file or run generate_examples '
+                        f'with allow_overwrite=True to continue.')
+                utility.SaveImageFile(output_path)(output)
         
     def __call__(self, input: Tensor | None = None) -> Tensor:
         return self.forward(input)

@@ -56,7 +56,7 @@ class MakeGrid(Transform[Tensor | Sequence[Tensor], Tensor]):
                 
         canvas = full(
             (1, 3, size_h * rows, size_w * cols), 
-            fill_value=self.pad_value)
+            fill_value=self.pad_value, dtype=split[0].dtype)
             
         curr_row = curr_col = 0
         for i in range(count):        
@@ -69,7 +69,7 @@ class MakeGrid(Transform[Tensor | Sequence[Tensor], Tensor]):
             
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i]
+                canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i].cpu()
             
             if curr_col > cols - 2:
                 curr_col = 0

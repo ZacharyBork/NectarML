@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
+from nectarml.typing import DTypeLike, float32, uint8
 from nectarml.vision.transforms import Transform
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
@@ -31,7 +31,7 @@ class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
 class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
     def __init__(
         self,
-        normalize: bool = False,
+        normalize: bool = True,
         value_range: tuple[int, int] = (0, 255)
     ) -> None:
         super().__init__()
@@ -56,7 +56,7 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
         
         output = output.permute((1, 2, 0)).contiguous()
         if self.norm is not None: output = self.norm(output)
-        return Image.fromarray(output.numpy().astype(dtype=np.uint8), 'RGB')
+        return Image.fromarray(output.numpy().astype(uint8), 'RGB')
 
 class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
