@@ -1,11 +1,8 @@
-from typing import Any, Literal, TypeVar, Generic
+from typing import Literal, TypeVar, Generic
 
-from PIL import Image
 import numpy as np
 
 from nectarml.tensor import Tensor
-from nectarml.vision import utils
-from nectarml.typing import uint8
 
 TInputType  = TypeVar('TInputType')
 TOutputType = TypeVar('TOutputType')
@@ -13,10 +10,9 @@ TOutputType = TypeVar('TOutputType')
 class Transform(Generic[TInputType, TOutputType]):
     def __init__(
         self, 
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        device: Literal['cpu', 'cuda'] | None = None
     ) -> None:
         self.device = device
-        self.original_type: Literal['image', 'ndarray', 'tensor'] = None
         self.rng = np.random.default_rng()
     
     ### UTILS ###
@@ -37,5 +33,10 @@ class Transform(Generic[TInputType, TOutputType]):
     
     def __call__(self, input: TInputType) -> TOutputType:
         return self.forward(input)
+    
+    ### INSPECTION ###
+    
+    def __repr__(self) -> str:
+        return f'{self.__class__}'
     
 

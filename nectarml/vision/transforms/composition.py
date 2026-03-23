@@ -1,8 +1,12 @@
 import math
 import random
+from os import PathLike
+from pathlib import Path
+from contextlib import nullcontext
 
 from nectarml.tensor import Tensor
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms import Transform, format, utility
+from nectarml.benchmark import benchmark_time
 
 class Compose(Transform):
     def __init__(
@@ -17,8 +21,81 @@ class Compose(Transform):
             input = transform.forward(input)
         return input
     
+    def optimize(self) -> None:
+        optimized = []
+        f = format
+        for idx, xform in enumerate(self.transforms):
+            if idx == len(self.transforms): break
+            
+            datatypes = (f.ToTensor, f.ToPIL, f.ToNumpy)
+            if isinstance(xform, datatypes):
+                next_mod = self.transforms[idx+1]
+                if isinstance(next_mod, datatypes): continue
+            
+            casts = (f.ToCPU, f.ToCUDA, f.ChangeDevice)
+            if isinstance(xform, casts):
+                next_mod = self.transforms[idx+1]
+                if isinstance(next_mod, casts): continue
+            
+            optimized.append(xform)
+        self.transforms = optimized
+        
+    def generate_examples(
+        self, 
+        input_image: PathLike,
+        output_directory: PathLike,
+        num_examples: int = 5,
+        allow_overwrite: bool = False,
+        benchmark: bool = False
+    ) -> None:
+        input_image = Path(input_image).resolve()
+        assert input_image.exists(), \
+            f'Unable to locate image file at path: {input_image.as_posix()}'
+            
+        output_directory = Path(output_directory).resolve()
+        assert output_directory.exists(), (
+            f'Unable to locate output directory at path: '
+            f'{output_directory.as_posix()}')
+        
+        for xform in self.transforms:
+            if isinstance(xform, utility.LoadImageFile):
+                raise RuntimeError(
+                    'Unable to run example generation on Compose which '
+                    'contains LoadImageFile Transform.')
+            if isinstance(xform, utility.SaveImageFile):
+                raise RuntimeError(
+                    'Unable to run example generation on Compose which '
+                    'contains SaveImageFile Transform.')
+        
+        input_image = utility.LoadImageFile(input_image)()
+        
+        global_context = benchmark_time('Full Test') \
+            if benchmark else nullcontext()
+             
+        with global_context:
+            for i in range(num_examples):
+                iter_context = benchmark_time('Iteration') \
+                    if benchmark else nullcontext()
+
+                with iter_context:
+                    output = self.forward(input_image)
+                    output_path = Path(output_directory, f'example_{i+1}.jpg')
+                    if not allow_overwrite:
+                        assert not output_path.exists(), (
+                            f'Found existing file at path: '
+                            f'{output_path.as_posix()}\n'
+                            f'Remove existing file or run generate_examples '
+                            f'with allow_overwrite=True to continue.')
+                    utility.SaveImageFile(output_path)(output)
+    
     def __call__(self, input: Tensor | None = None) -> Tensor:
         return self.forward(input)
+    
+    def __repr__(self) -> str:
+        output = '\nCompose:\n\n'
+        for idx, xform in enumerate(self.transforms):
+            output += f'    {idx} : {xform}\n'
+        return output
 
 class RandomApply(Transform[Tensor, Tensor]):
     def __init__(

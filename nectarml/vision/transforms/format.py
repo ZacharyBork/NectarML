@@ -18,6 +18,8 @@ class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
         self.dtype = dtype
     
     def forward(self, input: np.ndarray | Image.Image) -> Tensor:
+        if isinstance(input, Tensor): return input
+        
         if isinstance(input, Image.Image):
             data = np.array(input).astype(self.dtype)
         elif isinstance(input, np.ndarray): data = input
@@ -37,6 +39,8 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
         else: self.norm = MinMaxNormalize(value_range[0], value_range[1])
     
     def forward(self, input: Tensor | np.ndarray) -> Image.Image:
+        if isinstance(input, Image.Image): return input
+        
         assert input.ndim in [3, 4], \
             'ToPIL expects input to be 3D ([C, H, W]) or 4D ([B, C, H, W])'
 
@@ -55,7 +59,12 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
         return Image.fromarray(output.numpy().astype(dtype=np.uint8), 'RGB')
 
 class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
+    def __init__(self) -> None:
+        super().__init__()
+
     def forward(self, input: Tensor | Image.Image) -> np.ndarray:
+        if isinstance(input, np.ndarray): return input
+        
         if isinstance(input, Tensor): return input.numpy()
         elif isinstance(input, Image.Image): return np.array(input)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
