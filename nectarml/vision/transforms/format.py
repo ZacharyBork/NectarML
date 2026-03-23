@@ -88,6 +88,14 @@ class ChangeDevice(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         return input.to(self.new_device)
     
+class ToCPU(Transform[Tensor, Tensor]):
+    def forward(self, input: Tensor) -> Tensor:
+        return input.cpu()
+    
+class ToCUDA(Transform[Tensor, Tensor]):
+    def forward(self, input: Tensor) -> Tensor:
+        return input.cuda()
+    
 class Cast(Transform[Tensor, Tensor]):
     def __init__(
         self,
@@ -99,28 +107,11 @@ class Cast(Transform[Tensor, Tensor]):
         self.new_dtype = new_dtype
         
     def forward(self, input: Tensor) -> Tensor:
-        dtype = input.dtype if self.new_dtype is None else self.new_dtype
+        dtype  = input.dtype  if self.new_dtype  is None else self.new_dtype
         device = input.device if self.new_device is None else self.new_device
         return input.to(device, dtype)
 
-class Permute(Transform[Tensor, Tensor]):
-    def __init__(self, dims: tuple[int, ...]) -> None:
-        super().__init__()
-        self.dims = dims
-    
+class ToContiguous(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
-        return input.permute(self.dims)
-    
-class Clamp(Transform[Tensor, Tensor]):
-    def __init__(
-        self, 
-        min_value: float | None = None,
-        max_value: float | None = None
-    ) -> None:
-        super().__init__()
-        self.min_value = min_value
-        self.max_value = max_value
-    
-    def forward(self, input: Tensor) -> Tensor:
-        return input.clamp(self.min_value, self.max_value)
+        return input.contiguous()
 

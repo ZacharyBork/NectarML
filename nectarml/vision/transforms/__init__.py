@@ -21,7 +21,10 @@ from .erasing import (
 from .filter import Sobel, Prewitt, Laplacian
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
-from .format import ToTensor, ToPIL, ToNumpy, ConvertDtype, Permute
+from .format import (
+    ToTensor, ToPIL, ToNumpy, ConvertDtype, ChangeDevice, ToCPU, ToCUDA, Cast,
+    ToContiguous)
 from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
+from .utility import Permute, Transpose, Clamp, MaskedFill
 
