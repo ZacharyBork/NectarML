@@ -682,25 +682,21 @@ class Tensor():
             elif isinstance(index, slice): normalized.append(index)
             else: raise ValueError(f'Index type not valid: {type(index)}')
         
-        if self.device == 'cuda':
-            out_data = cuda.indexing.slice_tensor(self, tuple(normalized))
-        else: out_data = self.data[tuple(normalized)]
-        
-        out_shape = []
+        starts, stops, steps, counts = [], [], [], []
         for i, s in enumerate(normalized):
-            start = s.start if s.start is not None else 0
-            stop  = s.stop  if s.stop  is not None else self.shape[i]
-            step  = s.step  if s.step  is not None else 1
-            
-            if start < 0: start = self.shape[i] + start
-            if stop < 0:  stop  = self.shape[i] + stop
-            
-            start = max(0, min(self.shape[i], start))
-            stop  = max(0, min(self.shape[i], stop))
-            
-            out_shape.append((stop - start + step - 1) // step)
-        
-        out_shape = typing.Size(out_shape)
+            start, stop, step = s.indices(self.shape[i])
+            count = len(range(start, stop, step))
+            starts.append(start)
+            stops.append(stop)
+            steps.append(step)
+            counts.append(count)
+
+        if self.device == 'cuda':
+            out_data = cuda.indexing.slice_tensor(
+                self, starts, counts, steps)
+        else: out_data = self.data[tuple(normalized)]
+
+        out_shape = typing.Size(counts)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
         for dim in reversed(squeeze_dims): out = out.squeeze(dim)
@@ -726,12 +722,37 @@ class Tensor():
             'Tensor in the autograd graph will corrupt the gradients of any '
             'Tensor which depends on it.')
         
+        if not isinstance(idx, tuple): idx = (idx,)
+        idx = list(idx)
+        while len(idx) < self.ndim: idx.append(slice(None))
+        
+        normalized = []
+        for i, index in enumerate(idx):
+            if isinstance(index, int):
+                if index < 0: index = self.shape[i] + index
+                normalized.append(slice(index, index + 1, 1))
+            elif isinstance(index, slice): normalized.append(index)
+            else: raise ValueError(f'Index type not valid: {type(index)}')
+        
+        starts, counts, steps = [], [], []
+        for i, s in enumerate(normalized):
+            start, stop, step = s.indices(self.shape[i])
+            count = len(range(start, stop, step))
+            starts.append(start)
+            counts.append(count)
+            steps.append(step)
+        
         if self.device == 'cuda':
-            new_ptr = cuda.indexing.index_put(self, idx, value)
+            if not isinstance(value, Tensor):
+                value = Tensor(
+                    np.full(counts, value, dtype=self.dtype), 
+                    counts, self.dtype, self.device)
+            new_ptr = cuda.indexing.index_put(
+                self, starts, counts, steps, value)
             self._buffer = CudaBuffer(new_ptr, self.dtype)
         else:
             if isinstance(value, Tensor): value = value.data
-            self.data[idx] = value
+            self.data[tuple(normalized)] = value
         
     def __str__(self: Tensor) -> str: 
         '''Returns Tensor info (data, device) as a formatted string.

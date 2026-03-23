@@ -30,7 +30,7 @@ namespace nectar {
         uintptr_t input_ptr,
         std::vector<int> input_shape,
         std::vector<int> start,
-        std::vector<int> stop,
+        std::vector<int> count,
         std::vector<int> step,
         DType dtype
     );
@@ -39,9 +39,8 @@ namespace nectar {
         uintptr_t input_ptr,
         std::vector<int> input_shape,
         uintptr_t src_ptr,
-        std::vector<int> src_shape,
         std::vector<int> start,
-        std::vector<int> stop,
+        std::vector<int> count,
         std::vector<int> step,
         DType dtype
     );
@@ -74,14 +73,13 @@ void register_indexing(py::module_& m) {
 
     m.def("slice", &nectar::slice, 
         py::arg("input_ptr"), py::arg("input_shape"),
-        py::arg("start"), py::arg("stop"), py::arg("step"),
+        py::arg("start"), py::arg("count"), py::arg("step"),
         py::arg("dtype"),
         "");
 
     m.def("index_put", &nectar::index_put, 
-        py::arg("input_ptr"), py::arg("input_shape"),
-        py::arg("src_ptr"), py::arg("src_shape"),
-        py::arg("start"), py::arg("stop"), py::arg("step"),
+        py::arg("input_ptr"), py::arg("input_shape"), py::arg("src_ptr"), 
+        py::arg("start"), py::arg("count"), py::arg("step"),
         py::arg("dtype"),
         "");
 

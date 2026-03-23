@@ -191,12 +191,14 @@ class RandomHorizontalFlip(Transform[Tensor, Tensor]):
         self,
         p: float = 0.5
     ) -> None:
-        raise NotImplementedError
         super().__init__()
         self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        output = input[:, :, :, ::-1]
+        return output
 
 class RandomVerticalFlip(Transform[Tensor, Tensor]):
     def __init__(

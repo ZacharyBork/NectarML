@@ -100,25 +100,39 @@ inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
 
 /* SLICING */
 
+// struct SliceIndex {
+//     int start[MAX_DIMS];
+//     int stop[MAX_DIMS];
+//     int step[MAX_DIMS];
+//     int ndim;
+
+//     __host__ __device__ SliceIndex() : ndim(0) { }
+
+//     __host__ __device__ SliceIndex(
+//         const int* start_,
+//         const int* stop_,
+//         const int* step_, 
+//         int ndim_
+//     ) : ndim(ndim_) {
+//         for (int i = 0; i < ndim; i++) {
+//             start[i] = start_[i];
+//             stop[i] = stop_[i];
+//             step[i] = step_[i];
+//         }
+//     }
+// };
+
 struct SliceIndex {
     int start[MAX_DIMS];
-    int stop[MAX_DIMS];
     int step[MAX_DIMS];
     int ndim;
-
-    __host__ __device__ SliceIndex() : ndim(0) { }
-
-    __host__ __device__ SliceIndex(
-        const int* start_,
-        const int* stop_,
-        const int* step_, 
-        int ndim_
-    ) : ndim(ndim_) {
+    
+    SliceIndex(int* start, int* step, int ndim) {
         for (int i = 0; i < ndim; i++) {
-            start[i] = start_[i];
-            stop[i] = stop_[i];
-            step[i] = step_[i];
+            this->start[i] = start[i];
+            this->step[i]  = step[i];
         }
+        this->ndim = ndim;
     }
 };
 

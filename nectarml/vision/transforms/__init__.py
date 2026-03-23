@@ -27,5 +27,6 @@ from .format import (
 from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
 from .utility import (
-    LoadImageFile, SaveImageFile, Permute, Transpose, Clamp, MaskedFill)
+    MakeGrid, LoadImageFile, SaveImageFile, Permute, Transpose, Clamp, 
+    MaskedFill)
 
