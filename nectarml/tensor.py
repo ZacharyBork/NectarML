@@ -914,6 +914,38 @@ class Tensor():
     
     ### ROUNDING ###
     
+    def floor(self) -> Tensor:
+        self._bool_type_check('Tensor.floor()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.floor(self)
+        else: out_data = np.floor(self.data).astype(self.dtype)
+        out = Tensor(out_data, self.shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad
+                
+        out._backward = _backward
+        return out
+    
+    def ceil(self) -> Tensor:
+        self._bool_type_check('Tensor.ceil()')
+        self_requires_grad = self.requires_grad
+        
+        if self.device == 'cuda': out_data = cuda.math.ceil(self)
+        else: out_data = np.ceil(self.data).astype(self.dtype)
+        out = Tensor(out_data, self.shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad
+                
+        out._backward = _backward
+        return out
+    
     def round(self, precision: int = 0) -> Tensor:
         
         # CUDA ROUND NEEDS PRECISION!

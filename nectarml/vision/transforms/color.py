@@ -324,12 +324,15 @@ class Solarize(Transform):
         return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
 
 class Posterize(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(self, levels: int = 10) -> None:
         super().__init__()
+        assert levels >= 2, 'levels must be >= 2'
+        self.levels = levels
 
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        step = max_value / self.levels
+        return (input / step).floor() * step
 
 class Invert(Transform):
     def forward(self, input: Tensor) -> Tensor:

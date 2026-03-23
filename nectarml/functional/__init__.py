@@ -31,7 +31,9 @@ from .loss import (
     KLDivergenceLoss, BCEWithLogitsLoss, TripletMarginLoss)
 
 from .math import (
-    minimum, maximum, abs, exp, log, sqrt, sin, cos, cosh, tanh, sigmoid)
+    add, subtract, multiply, pow, matmul, negate, floor, ceil, round, clamp, 
+    minimum, maximum, abs, exp, log, log2, log10, sqrt, rsqrt, sin, asin, sinh,
+    asinh, cos, acos, cosh, acosh, tan, tanh, atan, atanh, atan2, sigmoid)
 
 from .normalization import (
     BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,

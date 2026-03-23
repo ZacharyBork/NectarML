@@ -20,6 +20,17 @@ def matmul(a: Tensor, b: Tensor) -> Tensor:
 def negate(a: Tensor) -> Tensor:
     return -a
   
+### ROUNDING ###
+  
+def floor(input: Tensor) -> Tensor:
+    return input.floor()
+  
+def ceil(input: Tensor) -> Tensor:
+    return input.ceil()
+
+def round(input: Tensor, precision: int = 0) -> Tensor:
+    return input.round(precision)
+  
 ### OTHER ###
 
 def clamp(

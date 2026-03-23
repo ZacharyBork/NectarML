@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from PIL import Image
 import numpy as np
@@ -67,7 +67,7 @@ class Transform():
     def __call__(
         self, 
         input: Image.Image | np.ndarray | Tensor
-    ) -> Image.Image:
+    ) -> Any:
         tensor = self._to_tensor(input)
         output = self.forward(tensor)
         return self._from_tensor(output)
