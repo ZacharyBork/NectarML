@@ -1,13 +1,13 @@
-import random
 from typing import Literal
-from collections.abc import Sequence
 
-from PIL import Image, ImageOps
 import numpy as np
+from scipy.ndimage import rotate as scipy_rotate
 
+import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
+from nectarml.cuda.utils import map_dtype
 
 class Pad(Transform[Tensor, Tensor]):
     def __init__(
@@ -98,8 +98,8 @@ class RandomCrop(_Crop):
         out = super().forward(input)
 
         max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
-        offset_h = int(random.random() * max_offset[0])
-        offset_w = int(random.random() * max_offset[1])
+        offset_h = int(round(self._random_in_range((0, max_offset[0]))))
+        offset_w = int(round(self._random_in_range((0, max_offset[1]))))
         
         return out[
             :, :, 
@@ -156,8 +156,8 @@ class RandomResizedCrop(_Crop):
         out = super().forward(input)
 
         max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
-        offset_h = int(random.random() * max_offset[0])
-        offset_w = int(random.random() * max_offset[1])
+        offset_h = int(round(self._random_in_range((0, max_offset[0]))))
+        offset_w = int(round(self._random_in_range((0, max_offset[1]))))
         
         out = out[
             :, :, 
@@ -205,20 +205,75 @@ class RandomVerticalFlip(Transform[Tensor, Tensor]):
         self,
         p: float = 0.5
     ) -> None:
-        raise NotImplementedError
         super().__init__()
         self.p = p
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        output = input[:, :, ::-1, :]
+        return output
 
-class RandomRotation(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class Rotate(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        angle: float = 90.0,
+        fill_value: float = 0.0
+    ) -> None:
         super().__init__()
+        self.angle = angle
+        self.fill_value = fill_value
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        if input.device == 'cuda':
+            out_data = _nectarml.rotate(
+                input._data_ptr, list(input.shape),
+                self.angle, self.fill_value, map_dtype(input.dtype))
+        else:            
+            in_data = input.data
+            B, C, H, W = in_data.shape
+            out_data = np.zeros_like(in_data)
+            for b in range(B):
+                for c in range(C):
+                    out_data[b, c] = scipy_rotate(
+                        in_data[b, c], self.angle, reshape=False,
+                        order=1, mode='constant', cval=self.fill_value)
+        
+        return Tensor(out_data, input.shape, input.dtype, input.device)
+    
+class RandomRotation(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        rotation_range: tuple[float, float] = (-180.0, 180.0),
+        fill_value: float = 0.0
+    ) -> None:
+        super().__init__()
+        self.rotation_range = rotation_range
+        self.fill_value = fill_value
+    
+    def forward(self, input: Tensor) -> Tensor:
+        angle = self._random_in_range(self.rotation_range)
+        rotate = Rotate(angle, self.fill_value)
+        return rotate(input)
+    
+class RandomRotate90(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        mode: Literal['90', '180', '270', '360'] = '360',
+        fill_value: float = 0.0,
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.fill_value = fill_value
+        self.p = p
+        self.max_step = ['90', '180', '270', '360'].index(mode) + 1
+    
+    def forward(self, input: Tensor) -> Tensor:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        step = 90 * int(round(self._random_in_range((0, self.max_step))))
+        rotate = Rotate(step, self.fill_value)
+        return rotate(input)
 
 class RandomAffine(Transform[Tensor, Tensor]):
     def __init__(self) -> None:

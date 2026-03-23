@@ -56,7 +56,11 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
         
         output = output.permute((1, 2, 0)).contiguous()
         if self.norm is not None: output = self.norm(output)
-        return Image.fromarray(output.numpy().astype(uint8), 'RGB')
+        
+        arr = output.numpy()
+        if np.any(~np.isfinite(arr)):
+            arr = np.nan_to_num(arr, nan=0.0, posinf=255.0, neginf=0.0)
+        return Image.fromarray(arr.astype(uint8), 'RGB')
 
 class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
