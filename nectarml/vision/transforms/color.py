@@ -57,9 +57,12 @@ class ColorJitter(Transform[Tensor, Tensor]):
         hue: float | tuple[float, float] = (-0.1, 0.1)
     ) -> None:
         super().__init__()
-        for parameter in [brightness, contrast, saturation]:
-            if isinstance(parameter, float): 
-                parameter = (1.0 - parameter, parameter)
+        if isinstance(brightness, float): 
+            brightness = (1.0 - brightness, 1.0 + brightness)
+        if isinstance(contrast, float): 
+            contrast = (1.0 - contrast, 1.0 + contrast)
+        if isinstance(saturation, float): 
+            saturation = (1.0 - saturation, 1.0 + saturation)
         if isinstance(hue, float): hue = (-hue, hue)
         
         self.brightness = brightness
