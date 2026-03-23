@@ -267,6 +267,7 @@ class Equalize(Transform):
                 for ch in channels:
                     img = Image.fromarray(
                         ch.numpy().astype(dtype=np.uint8), 'L')
+                    img = ImageOps.equalize(img)
                     arrs.append(np.array(img).astype(input.dtype))
                 out_data = np.ascontiguousarray(np.stack(arrs, axis=0))
                 
@@ -281,7 +282,7 @@ class Equalize(Transform):
             case _: raise ValueError(f'Invalid Equalize mode: {self.mode}')
 
         return Tensor(
-            out_data.astype(input.dtype), input.shape, input.dtype, 
+            out_data, input.shape, input.dtype, 
             input.device, input.requires_grad)
 
 class AutoContrast(Transform):
