@@ -18,6 +18,7 @@ from .noise import (
 from .erasing import (
     RandomErasing, CoarseDropout, GridDropout, RandomSunFlare, RandomFog,
     RandomRain, RandomSnow, RandomShadow)
+from .filters import Sobel, Laplacian
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import ToTensor, ToPIL, ToNumpy, ConvertDtype, Permute
