@@ -1,14 +1,16 @@
 import random
 import colorsys
-from PIL import Image, ImageEnhance
+from typing import Literal
+
+import cv2
 import numpy as np
+from PIL import Image, ImageEnhance, ImageOps
 
 import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import full
 from nectarml.vision.transforms import Transform
-from nectarml.benchmark import benchmark_time
 from nectarml.cuda.utils import map_dtype
 
 ### UTILS ###
@@ -212,12 +214,75 @@ class RandomSepia(Transform):
         return self.to_sepia(input)
 
 class Equalize(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    # NOTE: Equalize always happens on CPU regardless of input Tensor's device.
+    
+    def __init__(
+        self,
+        mode: Literal['cv2', 'pil'] = 'pil',
+        by_channel: bool = True
+    ) -> None:
         super().__init__()
+        self.mode = mode
+        self.by_channel = by_channel
+    
+    def _eq_cv(self, input: Tensor) -> np.ndarray:
+        batches = input.unbind(dim=0)
+        outputs: list[np.ndarray] = []
+        
+        for batch in batches:
+            if not self.by_channel:
+                data = batch.permute((1, 2, 0))
+                img_yuv = cv2.cvtColor(data, cv2.COLOR_BGR2YUV)
+                img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
+                img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+                out_data = np.array(img_output).astype(input.dtype)
+                out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
+            else:
+                channels = batch.unbind(dim=0)
+                arrs = []
+                for ch in channels:
+                    equalized = cv2.equalizeHist(ch.numpy().astype(np.uint8))
+                    arrs.append(np.array(equalized).astype(input.dtype))
+                out_data = np.ascontiguousarray(np.stack(arrs, axis=0))
+            
+            outputs.append(out_data)
+
+        return np.concatenate(outputs, axis=0)
+    
+    def _eq_pil(self, input: Tensor) -> np.ndarray:
+        batches = input.unbind(dim=0)
+        outputs: list[np.ndarray] = []
+        
+        for batch in batches:
+            if not self.by_channel:
+                out = batch.permute((1, 2, 0))
+                img = Image.fromarray(
+                    out.numpy().astype(dtype=np.uint8), 'RGB')
+                img = ImageOps.equalize(img)
+                out_data = np.array(img).astype(input.dtype)
+                out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
+            else:
+                channels = batch.unbind(dim=0)
+                arrs = []
+                for ch in channels:
+                    img = Image.fromarray(
+                        ch.numpy().astype(dtype=np.uint8), 'L')
+                    arrs.append(np.array(img).astype(input.dtype))
+                out_data = np.ascontiguousarray(np.stack(arrs, axis=0))
+                
+            outputs.append(out_data)
+        
+        return np.concatenate(outputs, axis=0)
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        match self.mode.strip().casefold():
+            case 'cv2': out_data = self._eq_cv(input)
+            case 'pil': out_data = self._eq_pil(input)
+            case _: raise ValueError(f'Invalid Equalize mode: {self.mode}')
+
+        return Tensor(
+            out_data.astype(input.dtype), input.shape, input.dtype, 
+            input.device, input.requires_grad)
 
 class AutoContrast(Transform):
     def __init__(self) -> None:

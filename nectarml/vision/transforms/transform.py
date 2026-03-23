@@ -50,9 +50,11 @@ class Transform():
     
     def _from_tensor(
         self, 
-        tensor: Tensor
+        tensor: Tensor,
+        to_type: Literal['pil', 'numpy'] | None = None
     ) -> Image.Image | np.ndarray | Tensor:
-        match self.original_type:
+        to_type = to_type or self.original_type
+        match to_type:
             case 'image': return Image.fromarray(tensor.numpy())
             case 'ndarray': return tensor.numpy()
             case 'tensor': return tensor
