@@ -1,3 +1,4 @@
+import warnings
 from os import PathLike
 from pathlib import Path
 from typing import Literal
@@ -16,7 +17,7 @@ from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 ### IMAGE UTILS ###
 
-class MakeGrid(Transform[Tensor, Tensor]):
+class MakeGrid(Transform[Tensor | Sequence[Tensor], Tensor]):
     def __init__(
         self, 
         nrow: int = 8,
@@ -40,29 +41,35 @@ class MakeGrid(Transform[Tensor, Tensor]):
         if isinstance(input, Sequence): input = F.cat(input, dim=0)
         
         if self.scale_each:
-            split = F.split(input, sizes=input.shape[0])
+            split = F.unbind(input, dim=0)
             if self.norm is not None: split = [self.norm(i) for i in split]
         else:
             if self.norm is not None: input = self.norm(input)
-            split = F.split(input, sizes=input.shape[0])
+            split = F.unbind(input, dim=0)
+        split = [i.unsqueeze(dim=0) for i in split]
                         
         count = len(split)
         rows = int(np.ceil(count / self.nrow))
         cols = int(np.minimum(count, self.nrow))
-        size = split[0].shape[-1] + (self.padding * 2)
+        size_h = split[0].shape[-2] + (self.padding * 2)
+        size_w = split[0].shape[-1] + (self.padding * 2)
+                
         canvas = full(
-            (1, 3, size * rows, size * cols), 
+            (1, 3, size_h * rows, size_w * cols), 
             fill_value=self.pad_value)
             
         curr_row = curr_col = 0
         for i in range(count):        
             start = (
-                size * curr_row + self.padding, 
-                size * curr_col + self.padding)
+                size_h * curr_row + self.padding, 
+                size_w * curr_col + self.padding)
             end = (
-                size * (curr_row+1) - self.padding, 
-                size * (curr_col+1) - self.padding)
-            canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i]
+                size_h * (curr_row+1) - self.padding, 
+                size_w * (curr_col+1) - self.padding)
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i]
             
             if curr_col > cols - 2:
                 curr_col = 0
