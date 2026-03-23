@@ -373,13 +373,31 @@ class ChannelDropout(Transform):
         return F.stack(channels, dim=1).clamp(0.0, max_value)
 
 class RGBShift(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        r_shift_limit: tuple[int, int] = (-20, 20),
+        g_shift_limit: tuple[int, int] = (-20, 20),
+        b_shift_limit: tuple[int, int] = (-20, 20)
+    ) -> None:
         super().__init__()
+        self.r_shift_limit = r_shift_limit
+        self.g_shift_limit = g_shift_limit
+        self.b_shift_limit = b_shift_limit
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
-
+        max_value = input.max().item()
+        remapped = input / max_value * 255.0
+        r, g, b = remapped.unbind(dim=1)
+        
+        r += self._random_in_range(self.r_shift_limit)
+        g += self._random_in_range(self.g_shift_limit)
+        b += self._random_in_range(self.b_shift_limit)
+        
+        channels = [r, g, b]
+        out = F.stack(channels, dim=1)
+        out = (out / 255.0 * max_value).clamp(0.0, max_value)
+        return out
+    
 class HueSaturationValue(Transform):
     def __init__(
         self,
