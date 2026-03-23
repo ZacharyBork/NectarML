@@ -54,7 +54,7 @@ class Compose(Transform):
         outputs = []
         
         for i in range(num_examples):
-            iter_context = benchmark_time('Iteration') \
+            iter_context = benchmark_time(f'Iteration {i+1}') \
                 if benchmark else nullcontext()
 
             with iter_context:
