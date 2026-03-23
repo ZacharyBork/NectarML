@@ -4,8 +4,6 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
 
-_rng = np.random.default_rng()
-
 class GaussianNoise(Transform[Tensor, Tensor]):
     def __init__(
         self,
@@ -15,28 +13,27 @@ class GaussianNoise(Transform[Tensor, Tensor]):
         noise_scale_factor: float = 1.0    
     ) -> None:
         super().__init__()
-        self.std = std_range
-        self.mean = mean_range
+        self.std_range = std_range
+        self.mean_range = mean_range
         self.per_channel = per_channel
         self.noise_scale_factor = noise_scale_factor
     
     def forward(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
-        loc = _rng.random(()) * (self.mean[1] - self.mean[0]) + self.mean[0]
-        scale = _rng.random(()) * (self.std[1] - self.std[0]) + self.std[0]
-        loc *= max_value
-        scale *= max_value
+        norm = input / max_value
+        
+        loc = self._random_in_range(self.mean_range)
+        scale = self._random_in_range(self.std_range)
         
         if self.per_channel: noise_shape = input.shape
         else: noise_shape = (input.shape[0], 1) + input.shape[2:]
 
-        rand = _rng.normal(loc, scale, noise_shape).astype(input.dtype)        
+        rand = self.rng.normal(loc, scale, noise_shape).astype(input.dtype)        
         rand *= self.noise_scale_factor
         noise = Tensor(rand, rand.shape).to(input.device, input.dtype)
 
         if not self.per_channel: noise = noise.expand(input.shape)
-        output = (input + noise).clamp(0.0, max_value)
-        return output
+        return ((norm + noise) * max_value).clamp(0.0, max_value)
 
 class SaltAndPepperNoise(Transform[Tensor, Tensor]):
     def __init__(
@@ -50,21 +47,23 @@ class SaltAndPepperNoise(Transform[Tensor, Tensor]):
     
     def forward(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
-        amt = _rng.random() * (self.amount[1]-self.amount[0]) + self.amount[0]
+        norm = input / max_value
+        
+        amt = self._random_in_range(self.amount)
 
         shape = (input.shape[0], 1) + input.shape[2:]
-        salt_arr = (_rng.random(size=shape) < self.salt_vs_pepper[0] * amt)
+        salt_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[0]*amt)
         salt_arr = salt_arr.astype(input.dtype)
-        pepper_arr = (_rng.random(size=shape) < self.salt_vs_pepper[1] * amt)
+        pepper_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[1]*amt)
         pepper_arr = (1 - pepper_arr).astype(input.dtype)
         
-        salt = Tensor(salt_arr**10, shape) * max_value
-        pepper = Tensor(pepper_arr**10, shape) * max_value
+        salt = Tensor(salt_arr**10, shape)
+        pepper = Tensor(pepper_arr**10, shape)
         
         salt = salt.expand(input.shape).to(input.device, input.dtype)
         pepper = pepper.expand(input.shape).to(input.device, input.dtype)
         
-        output = (F.minimum(pepper, F.maximum(input, salt)))
+        output = (F.minimum(pepper, F.maximum(norm, salt))) * max_value
         return output.clamp(0.0, max_value)
 
 class SpeckleNoise(Transform[Tensor, Tensor]):
@@ -73,7 +72,7 @@ class SpeckleNoise(Transform[Tensor, Tensor]):
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:
-        _rng.gamma()
+        pass
 
 class ISONoise(Transform[Tensor, Tensor]):
     def __init__(
