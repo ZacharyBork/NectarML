@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, Generic
 
 from PIL import Image
 import numpy as np
@@ -7,7 +7,10 @@ from nectarml.tensor import Tensor
 from nectarml.vision import utils
 from nectarml.typing import uint8
 
-class Transform():
+TInputType  = TypeVar('TInputType')
+TOutputType = TypeVar('TOutputType')
+
+class Transform(Generic[TInputType, TOutputType]):
     def __init__(
         self, 
         device: Literal['auto', 'cpu', 'cuda'] = 'auto'
@@ -66,8 +69,8 @@ class Transform():
     
     def __call__(
         self, 
-        input: Image.Image | np.ndarray | Tensor
-    ) -> Any:
+        input: TInputType
+    ) -> TOutputType:
         tensor = self._to_tensor(input)
         output = self.forward(tensor)
         return self._from_tensor(output)

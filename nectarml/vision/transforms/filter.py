@@ -3,7 +3,7 @@ from nectarml.tensor import Tensor
 from nectarml.typing import float32
 from nectarml.vision.transforms import Transform
 
-class Sobel(Transform):
+class Sobel(Transform[Tensor, Tensor]):
     def __init__(
         self,
         per_channel: bool = False,
@@ -59,7 +59,7 @@ class Sobel(Transform):
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
 
-class Prewitt(Transform):
+class Prewitt(Transform[Tensor, Tensor]):
     def __init__(
         self,
         per_channel: bool = False
@@ -102,7 +102,7 @@ class Prewitt(Transform):
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
 
-class Laplacian(Transform):
+class Laplacian(Transform[Tensor, Tensor]):
     def __init__(
         self,
         per_channel: bool = False

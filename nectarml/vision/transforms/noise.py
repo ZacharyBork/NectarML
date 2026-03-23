@@ -6,7 +6,7 @@ from nectarml.vision.transforms import Transform
 
 _rng = np.random.default_rng()
 
-class GaussianNoise(Transform):
+class GaussianNoise(Transform[Tensor, Tensor]):
     def __init__(
         self,
         std_range: tuple[float, float] = (0.1, 0.2),
@@ -38,7 +38,7 @@ class GaussianNoise(Transform):
         output = (input + noise).clamp(0.0, max_value)
         return output
 
-class SaltAndPepperNoise(Transform):
+class SaltAndPepperNoise(Transform[Tensor, Tensor]):
     def __init__(
         self,
         amount: tuple[float, float] = (0.01, 0.06),
@@ -67,7 +67,7 @@ class SaltAndPepperNoise(Transform):
         output = (F.minimum(pepper, F.maximum(input, salt)))
         return output.clamp(0.0, max_value)
 
-class SpeckleNoise(Transform):
+class SpeckleNoise(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -75,7 +75,7 @@ class SpeckleNoise(Transform):
     def forward(self, input: Tensor) -> Tensor:
         _rng.gamma()
 
-class ISONoise(Transform):
+class ISONoise(Transform[Tensor, Tensor]):
     def __init__(
         self,
         color_shift: tuple[float, float] = (0.01, 0.05),
@@ -89,7 +89,7 @@ class ISONoise(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class MultiplicativeNoise(Transform):
+class MultiplicativeNoise(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()

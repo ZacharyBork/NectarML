@@ -5,7 +5,7 @@ from typing import Literal
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
 
-class Compose(Transform):
+class Compose(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -19,7 +19,7 @@ class Compose(Transform):
             input = transform.forward(input)
         return input
 
-class RandomApply(Transform):
+class RandomApply(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -37,7 +37,7 @@ class RandomApply(Transform):
                 input = transform.forward(input)
         return input
 
-class RandomChoice(Transform):
+class RandomChoice(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -60,7 +60,7 @@ class RandomChoice(Transform):
             if threshold <= p: input = xform.forward(input)
         return input
 
-class RandomOrder(Transform):
+class RandomOrder(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -75,7 +75,7 @@ class RandomOrder(Transform):
         for transform in xforms: input = transform.forward(input)
         return input
 
-class OneOf(Transform):
+class OneOf(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],

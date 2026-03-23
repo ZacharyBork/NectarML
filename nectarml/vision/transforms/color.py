@@ -4,7 +4,7 @@ from typing import Literal
 
 import cv2
 import numpy as np
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageOps
 
 import _nectarml
 import nectarml.functional as F
@@ -48,7 +48,7 @@ def _hsv_adjust(
 
 ### TRANSFORMS ###
 
-class ColorJitter(Transform):
+class ColorJitter(Transform[Tensor, Tensor]):
     def __init__(
         self,
         brightness: float | tuple[float, float] = (0.9, 1.1),
@@ -82,7 +82,7 @@ class ColorJitter(Transform):
         
         return out
         
-class RandomBrightness(Transform):
+class RandomBrightness(Transform[Tensor, Tensor]):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
@@ -98,7 +98,7 @@ class RandomBrightness(Transform):
         brightness = self._random_in_range(self.value_range)
         return _hsv_adjust(input, 0.0, 1.0, brightness)
 
-class RandomContrast(Transform):
+class RandomContrast(Transform[Tensor, Tensor]):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
@@ -119,7 +119,7 @@ class RandomContrast(Transform):
         out = ((out - 0.5) * constrast + 0.5) * max_value
         return out.clamp(0.0, max_value)
 
-class RandomSaturation(Transform):
+class RandomSaturation(Transform[Tensor, Tensor]):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
@@ -135,7 +135,7 @@ class RandomSaturation(Transform):
         saturation = self._random_in_range(self.value_range)
         return _hsv_adjust(input, 0.0, saturation, 1.0)
     
-class RandomHue(Transform):
+class RandomHue(Transform[Tensor, Tensor]):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
@@ -151,7 +151,7 @@ class RandomHue(Transform):
         hue = self._random_in_range(self.value_range)
         return _hsv_adjust(input, hue, 1.0, 1.0)
 
-class RandomGamma(Transform):
+class RandomGamma(Transform[Tensor, Tensor]):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
@@ -171,7 +171,7 @@ class RandomGamma(Transform):
         out = (input / max_value) ** gamma * max_value
         return out.clamp(0.0, max_value)
 
-class ToGrayscale(Transform):
+class ToGrayscale(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -181,7 +181,7 @@ class ToGrayscale(Transform):
         out = out.unsqueeze(dim=0).expand(input.shape)
         return out.to(input.device, input.dtype)
 
-class RandomGrayscale(Transform):
+class RandomGrayscale(Transform[Tensor, Tensor]):
     def __init__(self, p: float = 0.5) -> None:
         super().__init__()
         self.p = p
@@ -192,7 +192,7 @@ class RandomGrayscale(Transform):
         if self.p <= chance: return input
         return self.to_grayscale(input)
 
-class ToSepia(Transform):
+class ToSepia(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
         in_r, in_g, in_b = input.unbind(dim=1)
@@ -202,7 +202,7 @@ class ToSepia(Transform):
         out = F.stack([r, g, b], dim=1).clamp(0.0, max_value)
         return out.to(input.device, input.dtype)
     
-class RandomSepia(Transform):
+class RandomSepia(Transform[Tensor, Tensor]):
     def __init__(self, p: float = 0.5) -> None:
         super().__init__()
         self.p = p
@@ -213,7 +213,7 @@ class RandomSepia(Transform):
         if self.p <= chance: return input
         return self.to_sepia(input)
 
-class Equalize(Transform):
+class Equalize(Transform[Tensor, Tensor]):
     # NOTE: Equalize always happens on CPU regardless of input Tensor's device.
     
     def __init__(
@@ -285,7 +285,7 @@ class Equalize(Transform):
             out_data, input.shape, input.dtype, 
             input.device, input.requires_grad)
 
-class AutoContrast(Transform):
+class AutoContrast(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -293,7 +293,7 @@ class AutoContrast(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class Solarize(Transform):
+class Solarize(Transform[Tensor, Tensor]):
     '''
     Reference:
         - https://msameeruddin.hashnode.dev/solarizing-the-image-with-numpy
@@ -323,7 +323,7 @@ class Solarize(Transform):
             F.where((b < thresholds[2]), b, 1-b)]
         return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
 
-class Posterize(Transform):
+class Posterize(Transform[Tensor, Tensor]):
     def __init__(self, levels: int = 10) -> None:
         super().__init__()
         assert levels >= 2, 'levels must be >= 2'
@@ -334,13 +334,13 @@ class Posterize(Transform):
         step = max_value / self.levels
         return (input / step).floor() * step
 
-class Invert(Transform):
+class Invert(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
         base = full(input.shape, max_value, input.dtype).to(input.device)
         return (base - input).clamp(0.0, max_value)
 
-class CLAHE(Transform):
+class CLAHE(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -348,13 +348,13 @@ class CLAHE(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class ChannelShuffle(Transform):
+class ChannelShuffle(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         channels = input.unbind(dim=1)
         random.shuffle(channels)
         return F.stack(channels, dim=1).to(input.device, input.dtype)
 
-class ChannelDropout(Transform):
+class ChannelDropout(Transform[Tensor, Tensor]):
     def __init__(
         self,
         range: tuple[int, int] = (1, 1),
@@ -375,7 +375,7 @@ class ChannelDropout(Transform):
         channels[index] = new_channel
         return F.stack(channels, dim=1).clamp(0.0, max_value)
 
-class RGBShift(Transform):
+class RGBShift(Transform[Tensor, Tensor]):
     def __init__(
         self,
         r_shift_limit: tuple[int, int] = (-20, 20),
@@ -401,7 +401,7 @@ class RGBShift(Transform):
         out = (out / 255.0 * max_value).clamp(0.0, max_value)
         return out
     
-class HueSaturationValue(Transform):
+class HueSaturationValue(Transform[Tensor, Tensor]):
     def __init__(
         self,
         hue: float = 0.0,
@@ -416,7 +416,7 @@ class HueSaturationValue(Transform):
     def forward(self, input: Tensor) -> Tensor:
         return _hsv_adjust(input, self.hue, self.saturation, self.value)
 
-class TonemapHDR(Transform):
+class TonemapHDR(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()

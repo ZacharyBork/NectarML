@@ -6,7 +6,7 @@ from nectarml.tensor import Tensor
 from nectarml.typing import float16, float32, uint8
 from nectarml.vision.transforms import Transform
 
-class Normalize(Transform):
+class Normalize(Transform[Tensor, Tensor]):
     def __init__(
         self,
         mean: list[float],
@@ -38,7 +38,7 @@ class Normalize(Transform):
         if self.inplace: return input.copy_(out)
         return out
 
-class Denormalize(Transform):
+class Denormalize(Transform[Tensor, Tensor]):
     def __init__(
         self,
         mean: list[float],
@@ -64,7 +64,7 @@ class Denormalize(Transform):
         if self.inplace: return input.copy_(out)
         return out
 
-class MinMaxNormalize(Transform):
+class MinMaxNormalize(Transform[Tensor, Tensor]):
     def __init__(
         self,
         min_value: int | float = 0.0,
@@ -86,7 +86,7 @@ class MinMaxNormalize(Transform):
         if self.inplace: return input.copy_(out)
         return out
 
-class ToFloat(Transform):
+class ToFloat(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         half_precision: bool = False,
@@ -101,7 +101,7 @@ class ToFloat(Transform):
         if self.scale and input.dtype == uint8: out = out / 255.0
         return out
 
-class ToUint8(Transform):
+class ToUint8(Transform[Tensor, Tensor]):
     def __init__(self, scale: bool = False) -> None:
         super().__init__()
         self.norm = MinMaxNormalize(0.0, 255.0) if scale else None

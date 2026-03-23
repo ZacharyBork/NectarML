@@ -7,7 +7,7 @@ from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms import Transform
 
-class ToTensor(Transform):
+class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
     def __init__(
         self, 
         device: Literal['auto', 'cpu', 'cuda'] = 'auto',
@@ -29,7 +29,7 @@ class ToTensor(Transform):
         if self.batch_dim: output = output.unsqueeze(dim=0)
         return output
 
-class ToPIL(Transform):
+class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
     def __init__(
         self,
         normalize: bool = False,
@@ -58,27 +58,69 @@ class ToPIL(Transform):
             input = input.transpose(1, 2, 0)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
 
-class ToNumpy(Transform):
+class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor | Image.Image) -> np.ndarray:
         pass
 
-class ConvertDtype(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class ConvertDtype(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        new_dtype: DTypeLike = float32
+    ) -> None:
         super().__init__()
+        self.new_dtype = new_dtype
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return input.to(dtype=self.new_dtype)
 
-class Permute(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class ChangeDevice(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        new_device: Literal['cpu', 'cuda'] = 'cpu'
+    ) -> None:
+        super().__init__(new_device)
+        self.new_device = new_device
+        
+    def forward(self, input: Tensor) -> Tensor:
+        return input.to(self.new_device)
+    
+class Cast(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        new_device: Literal['cpu', 'cuda'] | None = None,
+        new_dtype: DTypeLike | None = None
+    ) -> None:
+        super().__init__(new_device)
+        self.new_device = new_device
+        self.new_dtype = new_dtype
+        
+    def forward(self, input: Tensor) -> Tensor:
+        dtype = input.dtype if self.new_dtype is None else self.new_dtype
+        device = input.device if self.new_device is None else self.new_device
+        return input.to(device, dtype)
+
+class Permute(Transform[Tensor, Tensor]):
+    def __init__(self, dims: tuple[int, ...]) -> None:
         super().__init__()
+        self.dims = dims
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return input.permute(self.dims)
+    
+class Clamp(Transform[Tensor, Tensor]):
+    def __init__(
+        self, 
+        min_value: float | None = None,
+        max_value: float | None = None
+    ) -> None:
+        super().__init__()
+        self.min_value = min_value
+        self.max_value = max_value
+    
+    def forward(self, input: Tensor) -> Tensor:
+        return input.clamp(self.min_value, self.max_value)
 

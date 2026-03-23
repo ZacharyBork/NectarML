@@ -9,7 +9,7 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
 
-class Pad(Transform):
+class Pad(Transform[Tensor, Tensor]):
     def __init__(
         self,
         padding: int | tuple[int, ...],
@@ -40,7 +40,7 @@ class Pad(Transform):
     def forward(self, input: Tensor) -> Tensor:
         return F.pad(input, self.padding, self.padding_mode, self.fill)
     
-class _Crop(Transform):
+class _Crop(Transform[Tensor, Tensor]):
     def __init__(
         self,
         size: int | tuple[int, int],
@@ -168,7 +168,7 @@ class RandomResizedCrop(_Crop):
         return F.upsample(
             out, size=out_size, mode=self.scaling_mode, a=self.a)
     
-class Resize(Transform):
+class Resize(Transform[Tensor, Tensor]):
     def __init__(
         self,
         size: int | tuple[int, ...] | None = None,
@@ -186,7 +186,7 @@ class Resize(Transform):
     def forward(self, input: Tensor) -> Tensor:
         return self.resize(input)
 
-class RandomHorizontalFlip(Transform):
+class RandomHorizontalFlip(Transform[Tensor, Tensor]):
     def __init__(
         self,
         p: float = 0.5
@@ -198,7 +198,7 @@ class RandomHorizontalFlip(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomVerticalFlip(Transform):
+class RandomVerticalFlip(Transform[Tensor, Tensor]):
     def __init__(
         self,
         p: float = 0.5
@@ -210,7 +210,7 @@ class RandomVerticalFlip(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomRotation(Transform):
+class RandomRotation(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -218,7 +218,7 @@ class RandomRotation(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomAffine(Transform):
+class RandomAffine(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -226,7 +226,7 @@ class RandomAffine(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomPerspective(Transform):
+class RandomPerspective(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -234,7 +234,7 @@ class RandomPerspective(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class ElasticTransform(Transform):
+class ElasticTransform(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -242,7 +242,7 @@ class ElasticTransform(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class GridDistortion(Transform):
+class GridDistortion(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -250,7 +250,7 @@ class GridDistortion(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class OpticalDistortion(Transform):
+class OpticalDistortion(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -258,7 +258,7 @@ class OpticalDistortion(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class FiveCrop(Transform):
+class FiveCrop(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -266,7 +266,7 @@ class FiveCrop(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class TenCrop(Transform):
+class TenCrop(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
@@ -274,7 +274,7 @@ class TenCrop(Transform):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomCropNearBBox(Transform):
+class RandomCropNearBBox(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
