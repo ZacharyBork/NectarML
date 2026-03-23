@@ -29,7 +29,7 @@ def make_grid(
     nrow: int = 8,
     padding: int = 2,
     normalize: bool = False,
-    value_range: tuple[int, int] = [0, 255],
+    value_range: tuple[int, int] = (0, 255),
     scale_each: bool = False,
     pad_value: float = 0.0
 ) -> Tensor:

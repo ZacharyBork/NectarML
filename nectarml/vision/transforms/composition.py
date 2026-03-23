@@ -1,32 +1,32 @@
 import math
 import random
-from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform
 
-class Compose(Transform[Tensor, Tensor]):
+class Compose(Transform):
     def __init__(
         self, 
-        transforms: list[Transform],
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        transforms: list[Transform]
     ) -> None:
-        super().__init__(device)
+        super().__init__()
         self.transforms = transforms
     
     def forward(self, input: Tensor) -> Tensor:
         for transform in self.transforms:
             input = transform.forward(input)
         return input
+    
+    def __call__(self, input: Tensor | None = None) -> Tensor:
+        return self.forward(input)
 
 class RandomApply(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
-        p: float = 0.5,
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        p: float = 0.5
     ) -> None:
-        super().__init__(device)
+        super().__init__()
         self.transforms = transforms
         self.probability = p
     
@@ -41,8 +41,7 @@ class RandomChoice(Transform[Tensor, Tensor]):
     def __init__(
         self, 
         transforms: list[Transform],
-        p: float | list[float] = 0.5,
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        p: float | list[float] = 0.5
     ) -> None:
         self.use_prob_list = isinstance(p, list)
         if self.use_prob_list:
@@ -50,7 +49,7 @@ class RandomChoice(Transform[Tensor, Tensor]):
                 'Probabilities list must be of equal length to xforms list.')
         else: p = [p] * len(transforms)
         
-        super().__init__(device)
+        super().__init__()
         self.transforms = transforms
         self.probabilities = p
     
@@ -63,10 +62,9 @@ class RandomChoice(Transform[Tensor, Tensor]):
 class RandomOrder(Transform[Tensor, Tensor]):
     def __init__(
         self, 
-        transforms: list[Transform],
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        transforms: list[Transform]
     ) -> None:
-        super().__init__(device)
+        super().__init__()
         self.transforms = transforms
     
     def forward(self, input: Tensor) -> Tensor:
@@ -78,10 +76,9 @@ class RandomOrder(Transform[Tensor, Tensor]):
 class OneOf(Transform[Tensor, Tensor]):
     def __init__(
         self, 
-        transforms: list[Transform],
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        transforms: list[Transform]
     ) -> None:
-        super().__init__(device)
+        super().__init__()
         self.transforms = transforms
     
     def forward(self, input: Tensor) -> Tensor:

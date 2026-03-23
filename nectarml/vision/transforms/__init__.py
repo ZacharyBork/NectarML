@@ -26,5 +26,6 @@ from .format import (
     ToContiguous)
 from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
-from .utility import Permute, Transpose, Clamp, MaskedFill
+from .utility import (
+    LoadImageFile, SaveImageFile, Permute, Transpose, Clamp, MaskedFill)
 

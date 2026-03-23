@@ -6,17 +6,16 @@ from PIL import Image
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
     def __init__(
         self, 
         device: Literal['auto', 'cpu', 'cuda'] = 'auto',
-        dtype: DTypeLike = float32,
-        batch_dim: bool = True
+        dtype: DTypeLike = float32
     ) -> None:
         super().__init__(device)
         self.dtype = dtype
-        self.batch_dim = batch_dim
     
     def forward(self, input: np.ndarray | Image.Image) -> Tensor:
         if isinstance(input, Image.Image):
@@ -25,9 +24,7 @@ class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
         output = Tensor(data, dtype=self.dtype, device=self.device)
-        output = output.permute((2, 0, 1))
-        if self.batch_dim: output = output.unsqueeze(dim=0)
-        return output
+        return output.permute((2, 0, 1)).unsqueeze(dim=0)
 
 class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
     def __init__(
@@ -36,35 +33,32 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
         value_range: tuple[int, int] = (0, 255)
     ) -> None:
         super().__init__()
-        self.normalize = normalize
-        self.value_range = value_range
+        if not normalize: self.norm = None
+        else: self.norm = MinMaxNormalize(value_range[0], value_range[1])
     
     def forward(self, input: Tensor | np.ndarray) -> Image.Image:
         assert input.ndim in [3, 4], \
             'ToPIL expects input to be 3D ([C, H, W]) or 4D ([B, C, H, W])'
+
+        if isinstance(input, np.ndarray):
+            output = Tensor(input, input.shape, input.dtype)
+        elif isinstance(input, Tensor): output = input.clone()
+        else: raise ValueError(f'Unsupported input type: {type(input)}')
+        
         if input.ndim == 4:
             assert input.shape[0] == 1, \
                 'ToPIL expects input to have only 1 batch ([1, H, W])'
-            input.squeeze(0) 
+            output = output.squeeze(0) 
         
-        x = np.array(input.data, input.dtype)
-        x.transpose()
-        
-        if isinstance(input, Tensor):
-            input = input.permute((1, 2, 0))
-            if normalize: input = _normalize(input, value_range)
-            return Image.fromarray(input.numpy().astype(dtype=uint8), 'RGB')
-        elif isinstance(input, np.ndarray):
-            input = input.transpose(1, 2, 0)
-        else: raise ValueError(f'Unsupported input type: {type(input)}')
+        output = output.permute((1, 2, 0)).contiguous()
+        if self.norm is not None: output = self.norm(output)
+        return Image.fromarray(output.numpy().astype(dtype=np.uint8), 'RGB')
 
 class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
     def forward(self, input: Tensor | Image.Image) -> np.ndarray:
-        pass
+        if isinstance(input, Tensor): return input.numpy()
+        elif isinstance(input, Image.Image): return np.array(input)
+        else: raise ValueError(f'Unsupported input type: {type(input)}')
 
 class ConvertDtype(Transform[Tensor, Tensor]):
     def __init__(
@@ -89,12 +83,18 @@ class ChangeDevice(Transform[Tensor, Tensor]):
         return input.to(self.new_device)
     
 class ToCPU(Transform[Tensor, Tensor]):
+    def __init__(self) -> None:
+        super().__init__()
+        
     def forward(self, input: Tensor) -> Tensor:
-        return input.cpu()
+        return input.contiguous().cpu()
     
 class ToCUDA(Transform[Tensor, Tensor]):
+    def __init__(self) -> None:
+        super().__init__()
+
     def forward(self, input: Tensor) -> Tensor:
-        return input.cuda()
+        return input.contiguous().cuda()
     
 class Cast(Transform[Tensor, Tensor]):
     def __init__(
@@ -112,6 +112,9 @@ class Cast(Transform[Tensor, Tensor]):
         return input.to(device, dtype)
 
 class ToContiguous(Transform[Tensor, Tensor]):
+    def __init__(self) -> None:
+        super().__init__()
+        
     def forward(self, input: Tensor) -> Tensor:
         return input.contiguous()
 
