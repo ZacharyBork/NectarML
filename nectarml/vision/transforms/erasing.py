@@ -142,9 +142,6 @@ class GridDropout(Transform[Tensor, Tensor]):
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
 
-
-import numpy as np
-
 class RandomLensFlare(Transform[Tensor, Tensor]):
     def __init__(
         self,
@@ -158,6 +155,7 @@ class RandomLensFlare(Transform[Tensor, Tensor]):
         streak_length: float = 0.3,
         chromatic_shift: float = 2.0,
         glow_radius: float = 0.05,
+        global_scale: float = 1.0,
         source_position: tuple[float, float] | None = None
     ) -> None:
         '''
@@ -166,15 +164,16 @@ class RandomLensFlare(Transform[Tensor, Tensor]):
         '''
         super().__init__()
         self.num_ghosts = num_ghosts
-        self.ghost_radius_range = ghost_radius_range
+        self.ghost_radius_range = tuple(
+            [i*global_scale for i in ghost_radius_range])
         self.ghost_alpha_range = ghost_alpha_range
-        self.halo_radius = halo_radius
+        self.halo_radius = halo_radius * global_scale
         self.halo_alpha = halo_alpha
         self.streak_count = streak_count
         self.streak_alpha = streak_alpha
-        self.streak_length = streak_length
+        self.streak_length = streak_length * global_scale
         self.chromatic_shift = chromatic_shift
-        self.glow_radius = glow_radius
+        self.glow_radius = glow_radius * global_scale
         self.source_position = source_position
 
     def _make_ghost(
@@ -273,7 +272,7 @@ class RandomLensFlare(Transform[Tensor, Tensor]):
                        + self._make_halo(sx, sy) \
                        + self._make_streaks(sx, sy)
 
-                for i in range(self.num_ghosts):
+                for _ in range(self.num_ghosts):
                     t = self.rng.uniform(0.3, 2.0)
                     gx, gy = (sx + axis_dx * t), (sy + axis_dy * t)
                     
