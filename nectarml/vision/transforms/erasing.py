@@ -89,12 +89,58 @@ class CoarseDropout(Transform[Tensor, Tensor]):
         return input * mask + self.fill * input.max().item() * (1 - mask)
 
 class GridDropout(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        ratio: float = 0.5,
+        random_offset: bool = True,
+        holes_number_xy: tuple[int, int] = (10, 10),
+        shift_xy: tuple[float, float] = (0.0, 0.0),
+        fill: float = 0.0
+    ) -> None:
         super().__init__()
+        self.ratio = ratio
+        self.random_offset = random_offset
+        self.holes_number_xy = holes_number_xy
+        self.shift_xy = shift_xy
+        self.fill = fill
+    
+    def _build_mask(self, input: Tensor) -> Tensor:
+        B, C, H, W = input.shape
+        mask = ones((B, 1, H, W), input.dtype, input.device)
+
+        for b in range(B):
+            for x in range(self.holes_number_xy[0]):
+                for y in range(self.holes_number_xy[1]):
+                    grid_y = H / self.holes_number_xy[1]
+                    grid_x = W / self.holes_number_xy[0]
+                    
+                    hole_h = int(grid_y * self.ratio)
+                    hole_w = int(grid_x * self.ratio)
+                    
+                    cy = int(y / (self.holes_number_xy[1]-1) * H)
+                    cx = int(x / (self.holes_number_xy[0]-1) * W)
+                    
+                    if not self.random_offset:
+                        cy += self.shift_xy[1] * H
+                        cx += self.shift_xy[0] * W
+                    else:
+                        offset_y = self._random_in_range((0, grid_y // 2))
+                        offset_x = self._random_in_range((0, grid_x // 2))
+                        cy += int((offset_y - (offset_y * 0.5)) * 2)
+                        cx += int((offset_x - (offset_x * 0.5)) * 2)
+                    
+                    pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
+                    pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
+                    
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+        
+        return mask
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        mask = self._build_mask(input)
+        return input * mask + self.fill * input.max().item() * (1 - mask)
 
 class RandomSunFlare(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
