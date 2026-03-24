@@ -16,8 +16,8 @@ from .noise import (
     GaussianNoise, SaltAndPepperNoise, SpeckleNoise, ISONoise, 
     MultiplicativeNoise)
 from .erasing import (
-    RandomErasing, CoarseDropout, GridDropout, RandomSunFlare, RandomFog,
-    RandomRain, RandomSnow, RandomShadow)
+    Erasing, CoarseDropout, GridDropout, RandomSunFlare, RandomFog, RandomRain, 
+    RandomSnow, RandomShadow)
 from .filter import Sobel, Prewitt, Laplacian
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)

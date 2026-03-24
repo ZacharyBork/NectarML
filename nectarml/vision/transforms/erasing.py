@@ -1,3 +1,4 @@
+import math
 import warnings
 from typing import Literal
 
@@ -7,13 +8,45 @@ from nectarml.typing import DTypeLike
 from nectarml.creation import zeros, rand, ones
 from nectarml.vision.transforms import Transform
 
-class RandomErasing(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class Erasing(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        scale: tuple[float, float] = (0.02, 0.33),
+        ratio: tuple[float, float] = (0.3, 3.3),
+        fill: float = 0.0
+    ) -> None:
         super().__init__()
+        self.scale = scale
+        self.ratio = ratio
+        self.fill = fill
+    
+    def _build_mask(self, input: Tensor) -> Tensor:
+        B, C, H, W = input.shape
+        mask = ones((B, 1, H, W), input.dtype, input.device)
+        image_area = H * W
+        
+        for b in range(B):
+            area = self._random_in_range(self.scale) * image_area
+            aspect_ratio = self._random_in_range(self.ratio)
+
+            hole_h = min(int(math.sqrt(area / aspect_ratio)), H)
+            hole_w = min(int(math.sqrt(area * aspect_ratio)), W)
+            
+            cy = self.rng.integers(0, H)
+            cx = self.rng.integers(0, W)
+            
+            pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
+            pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+        
+        return mask
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        mask = self._build_mask(input)
+        return input * mask + self.fill * input.max().item() * (1 - mask)
 
 class CoarseDropout(Transform[Tensor, Tensor]):
     def __init__(
