@@ -9,10 +9,14 @@ import numpy as np
 
 import _nectarml
 from nectarml.cuda.mapping import DTYPE_MAP
-from nectarml.typing import DTypeLike
+from nectarml.typing import DTypeLike, Size
+
+### PYTHON-SIDE UTILS ###
 
 def map_dtype(dtype: DTypeLike) -> Any:
     return DTYPE_MAP[dtype]
+
+### CUDA-SIDE UTILS ###
 
 def cast_tensor(input: Tensor, new_dtype: DTypeLike) -> int:
     return _nectarml.cast_tensor(
@@ -49,7 +53,7 @@ def compute_tensor_range(input: Tensor) -> list[float]:
     return _nectarml.compute_tensor_range(
         input._data_ptr, input.size, map_dtype(input.dtype))
     
-### INSPECTION ###
+### INSPECTION UTILS ###
     
 def is_inf(input: Tensor) -> bool:
     return _nectarml.is_inf(

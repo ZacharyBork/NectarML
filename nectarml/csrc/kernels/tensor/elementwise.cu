@@ -45,88 +45,168 @@ template void launch_elementwise_compare<int32_t, ElemWiseGeOp>(int32_t*, int32_
 /* MATH OPERATORS (2 TENSOR) */
 
 template<typename T, template<typename> class Op>
-__global__ void elementwise_math_2tensor_kernel(T* x, T* y, T* out, size_t n) {
+__global__ void elementwise_math_2tensor_kernel(
+    T* x, T* y, T* out, 
+    BroadcastIndex x_index, BroadcastIndex y_index,
+    ShapeArray out_shape, int ndim,
+    size_t n
+) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    out[idx] = Op<T>::operation(x[idx], y[idx]);
+
+    int coords[MAX_DIMS];
+    int remaining = idx;
+    for (int d = ndim - 1; d >= 0; d--) {
+        coords[d] = remaining % out_shape.dims[d];
+        remaining /= out_shape.dims[d];
+    }
+
+    int x_flat = x_index.get_flat(coords);
+    int y_flat = y_index.get_flat(coords);
+
+    out[idx] = Op<T>::operation(x[x_flat], y[y_flat]);
 }
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_math_2tensor(T* x, T* y, T* out, size_t n_elements) {
+void launch_elementwise_math_2tensor(
+    T* x, T* y, T* out, 
+    BroadcastIndex x_index, BroadcastIndex y_index,
+    ShapeArray out_shape, int ndim,
+    size_t n_elements
+) {
     int block = BLOCK_SIZE_1D;
     int grid = (n_elements + block - 1) / block;
-    elementwise_math_2tensor_kernel<T, Op><<<grid, block>>>(x, y, out, n_elements);
+
+    elementwise_math_2tensor_kernel<T, Op><<<grid, block>>>(
+        x, y, out, x_index, y_index, 
+        out_shape, ndim, n_elements);
 }
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseAddOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseAddOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseAddOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseAddOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseAddOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseAddOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseAddOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseAddOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseSubOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseSubOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseSubOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseSubOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseSubOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseSubOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseSubOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseSubOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseMulOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseMulOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMulOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseMulOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseMulOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseMulOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMulOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseMulOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseDivOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseDivOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseDivOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseDivOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseDivOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseDivOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseDivOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseDivOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseAtan2Op>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseAtan2Op>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseAtan2Op>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseAtan2Op>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseAtan2Op>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseAtan2Op>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseAtan2Op>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseAtan2Op>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseFModOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseFModOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseFModOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseFModOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseFModOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseFModOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseFModOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseFModOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseMinOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseMinOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMinOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseMinOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseMinOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseMinOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMinOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseMinOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseMaxOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseMaxOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMaxOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseMaxOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseMaxOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseMaxOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseMaxOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseMaxOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseCopysignOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseCopysignOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseCopysignOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseCopysignOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseCopysignOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseCopysignOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseCopysignOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseCopysignOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorEqMaskkOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorEqMaskkOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorEqMaskkOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorEqMaskkOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorEqMaskkOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorEqMaskkOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorEqMaskkOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorEqMaskkOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorLtMaskOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorLtMaskOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorLtMaskOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorLtMaskOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorLtMaskOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorLtMaskOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorLtMaskOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorLtMaskOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorLeMaskOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorLeMaskOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorLeMaskOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorLeMaskOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorLeMaskOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorLeMaskOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorLeMaskOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorLeMaskOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorGtMaskOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorGtMaskOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorGtMaskOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorGtMaskOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorGtMaskOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorGtMaskOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorGtMaskOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorGtMaskOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorGeMaskOp>(float*, float*, float*, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorGeMaskOp>(half*, half*, half*, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorGeMaskOp>(uint8_t*, uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorGeMaskOp>(int32_t*, int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorGeMaskOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorGeMaskOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorGeMaskOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorGeMaskOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
 /* MATH OPERATORS (1 TENSOR) */
 

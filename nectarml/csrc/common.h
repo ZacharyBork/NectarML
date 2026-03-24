@@ -98,29 +98,26 @@ inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
     return TensorIndex(shape.data(), shape.size());
 }
 
+/* BROADCASTING */
+
+struct BroadcastIndex {
+    int shape[MAX_DIMS];
+    int strides[MAX_DIMS];
+    int ndim;
+    
+    __device__ int get_flat(int coords[]) const {
+        int flat = 0;
+        for (int i = 0; i < ndim; i++) { flat += coords[i] * strides[i]; }
+        return flat;
+    }
+};
+
+struct ShapeArray {
+    int dims[MAX_DIMS];
+    int ndim;
+};
+
 /* SLICING */
-
-// struct SliceIndex {
-//     int start[MAX_DIMS];
-//     int stop[MAX_DIMS];
-//     int step[MAX_DIMS];
-//     int ndim;
-
-//     __host__ __device__ SliceIndex() : ndim(0) { }
-
-//     __host__ __device__ SliceIndex(
-//         const int* start_,
-//         const int* stop_,
-//         const int* step_, 
-//         int ndim_
-//     ) : ndim(ndim_) {
-//         for (int i = 0; i < ndim; i++) {
-//             start[i] = start_[i];
-//             stop[i] = stop_[i];
-//             step[i] = step_[i];
-//         }
-//     }
-// };
 
 struct SliceIndex {
     int start[MAX_DIMS];

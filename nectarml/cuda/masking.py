@@ -6,38 +6,68 @@ if TYPE_CHECKING:
 import _nectarml
 from nectarml.cuda.utils import map_dtype
 
-def eq_mask(a: Tensor, b: Tensor | float) -> int:
+def eq_mask(
+    a: Tensor, 
+    b: Tensor | float, 
+    out_shape: tuple[int, ...] | None = None
+) -> int:
     _dtype = map_dtype(a.dtype)
     if isinstance(b, Tensor):
+        assert out_shape is not None, \
+            'out_shape is required when input b is type Tensor.'
         return _nectarml.eq_mask_tensor(
-            a._data_ptr, b._data_ptr, a.size, _dtype)
+            a._data_ptr, b._data_ptr, a.shape, b.shape, out_shape, _dtype)
     return _nectarml.eq_mask_scalar(a._data_ptr, b, a.size, _dtype)
     
-def lt_mask(a: Tensor, b: Tensor | float) -> int:
+def lt_mask(
+    a: Tensor, 
+    b: Tensor | float, 
+    out_shape: tuple[int, ...] | None = None
+) -> int:
     _dtype = map_dtype(a.dtype)
     if isinstance(b, Tensor):
+        assert out_shape is not None, \
+            'out_shape is required when input b is type Tensor.'
         return _nectarml.lt_mask_tensor(
-            a._data_ptr, b._data_ptr, a.size, _dtype)
+            a._data_ptr, b._data_ptr, a.shape, b.shape, out_shape, _dtype)
     return _nectarml.lt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def le_mask(a: Tensor, b: Tensor | float) -> int:
+def le_mask(
+    a: Tensor, 
+    b: Tensor | float, 
+    out_shape: tuple[int, ...] | None = None
+) -> int:
     _dtype = map_dtype(a.dtype)
     if isinstance(b, Tensor):
+        assert out_shape is not None, \
+            'out_shape is required when input b is type Tensor.'
         return _nectarml.le_mask_tensor(
-            a._data_ptr, b._data_ptr, a.size, _dtype)
+            a._data_ptr, b._data_ptr, a.shape, b.shape, out_shape, _dtype)
     return _nectarml.le_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def gt_mask(a: Tensor, b: Tensor | float) -> int:
+def gt_mask(
+    a: Tensor, 
+    b: Tensor | float, 
+    out_shape: tuple[int, ...] | None = None
+) -> int:
     _dtype = map_dtype(a.dtype)
     if isinstance(b, Tensor):
+        assert out_shape is not None, \
+            'out_shape is required when input b is type Tensor.'
         return _nectarml.gt_mask_tensor(
-            a._data_ptr, b._data_ptr, a.size, _dtype)
+            a._data_ptr, b._data_ptr, a.shape, b.shape, out_shape, _dtype)
     return _nectarml.gt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
-def ge_mask(a: Tensor, b: Tensor | float) -> int:
+def ge_mask(
+    a: Tensor, 
+    b: Tensor | float, 
+    out_shape: tuple[int, ...] | None = None
+) -> int:
     _dtype = map_dtype(a.dtype)
     if isinstance(b, Tensor):
+        assert out_shape is not None, \
+            'out_shape is required when input b is type Tensor.'
         return _nectarml.ge_mask_tensor(
-            a._data_ptr, b._data_ptr, a.size, _dtype)
+            a._data_ptr, b._data_ptr, a.shape, b.shape, out_shape, _dtype)
     return _nectarml.ge_mask_scalar(a._data_ptr, b, a.size, _dtype)
 

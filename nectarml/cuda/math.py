@@ -37,21 +37,29 @@ def greater_than_or_equal(a: Tensor, b: Tensor) -> int:
 
 ### BASE ###
 
-def add(a: Tensor, b: Tensor) -> int:
+def add(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.add(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def subtract(a: Tensor, b: Tensor) -> int:
+def subtract(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.subtract(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def multiply(a: Tensor, b: Tensor) -> int:
+def multiply(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.multiply(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def divide(a: Tensor, b: Tensor) -> int:
+def divide(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.divide(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
 def negate(x: Tensor) -> int:
     return _nectarml.negate(x._data_ptr, x.size, map_dtype(x.dtype))
@@ -120,9 +128,11 @@ def atan(x: Tensor) -> int:
 def atanh(x: Tensor) -> int:
     return _nectarml.atanh(x._data_ptr, x.size, map_dtype(x.dtype))
 
-def atan2(y: Tensor, x: Tensor) -> int:
+def atan2(y: Tensor, x: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.atan2(
-        y._data_ptr, x._data_ptr, x.size, map_dtype(x.dtype))
+        y._data_ptr, x._data_ptr, 
+        y.shape, x.shape, out_shape,
+        map_dtype(x.dtype))
 
 ### POW ###
 
@@ -147,16 +157,25 @@ def round(x: Tensor) -> int:
 
 ### MODULO ###
 
-def fmod(x: Tensor, y: Tensor) -> int:
-    return _nectarml.fmod(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
+def fmod(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+    return _nectarml.fmod(
+        x._data_ptr, y._data_ptr, 
+        x.shape, y.shape, out_shape,
+        map_dtype(x.dtype))
 
 ### MIN / MAX ###
 
-def minimum(x: Tensor, y: Tensor) -> int:
-    return _nectarml.min(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
+def minimum(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+    return _nectarml.min(
+        x._data_ptr, y._data_ptr, 
+        x.shape, y.shape, out_shape,
+        map_dtype(x.dtype))
 
-def maximum(x: Tensor, y: Tensor) -> int:
-    return _nectarml.max(x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
+def maximum(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+    return _nectarml.max(
+        x._data_ptr, y._data_ptr, 
+        x.shape, y.shape, out_shape,
+        map_dtype(x.dtype))
 
 def clamp(x: Tensor, min_value: float | None, max_value: float | None) -> int:
     min_value = min_value or FLOAT_MIN
@@ -171,9 +190,11 @@ def sign(x: Tensor) -> int:
 
 ### COPYSIGN ###
 
-def copysign(x: Tensor, y: Tensor) -> int:
+def copysign(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
     return _nectarml.copysign(
-        x._data_ptr, y._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, y._data_ptr, 
+        x.shape, y.shape, out_shape,
+        map_dtype(x.dtype))
 
 ### TRUNCATE ###
 

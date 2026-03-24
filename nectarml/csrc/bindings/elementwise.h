@@ -9,10 +9,34 @@ namespace nectar {
     uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
     
-    uintptr_t add(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t subtract(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t multiply(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t divide(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t add(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t subtract(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t multiply(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t divide(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
     uintptr_t negate(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
     uintptr_t sqrt(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -37,7 +61,13 @@ namespace nectar {
     uintptr_t tanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atan(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t atanh(uintptr_t x_ptr, size_t n_elements, DType dtype);
-    uintptr_t atan2(uintptr_t y_ptr, uintptr_t x_ptr, size_t n_elements, DType dtype);
+    uintptr_t atan2(
+        uintptr_t b_ptr, uintptr_t a_ptr, 
+        std::vector<int> b_shape,
+        std::vector<int> a_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
 
     uintptr_t pow(uintptr_t base_ptr, float exponent, size_t n_elements, DType dtype);
 
@@ -47,15 +77,39 @@ namespace nectar {
     uintptr_t ceil(uintptr_t x_ptr, size_t n_elements, DType dtype);
     uintptr_t round(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
-    uintptr_t fmod(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t fmod(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
 
-    uintptr_t min(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
-    uintptr_t max(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t min(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t max(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
     uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
 
     uintptr_t sign(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
-    uintptr_t copysign(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t copysign(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
 
     uintptr_t trunc(uintptr_t x_ptr, size_t n_elements, DType dtype);
 
@@ -72,11 +126,41 @@ namespace nectar {
     uintptr_t gt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t ge_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 
-    uintptr_t eq_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
-    uintptr_t lt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
-    uintptr_t le_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
-    uintptr_t gt_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
-    uintptr_t ge_mask_tensor(uintptr_t x_ptr, uintptr_t y_ptr, size_t n_elements, DType dtype);
+    uintptr_t eq_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t lt_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t le_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t gt_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t ge_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
 }
 
 void register_elementwise(py::module_& m) {
@@ -121,30 +205,26 @@ void register_elementwise(py::module_& m) {
     /* BASIC */
 
     m.def("add", &nectar::add, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
     m.def("subtract", &nectar::subtract, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
     m.def("multiply", &nectar::multiply, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
     m.def("divide", &nectar::divide, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
@@ -273,9 +353,8 @@ void register_elementwise(py::module_& m) {
         "Calculates the inverse hyperbolid tangent of tensor data x and returns as new tensor data.");
 
     m.def("atan2", &nectar::atan2, 
-        py::arg("y_ptr"),
-        py::arg("x_ptr"),
-        py::arg("n_elements"),
+        py::arg("b_ptr"), py::arg("a_ptr"), 
+        py::arg("b_shape"), py::arg("a_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates the arctangent of the ratio of y and x and returns as new tensor data.");
 
@@ -326,25 +405,22 @@ void register_elementwise(py::module_& m) {
     //     "Calculates integer modulo of x and y and returns as new tensor data.");
 
     m.def("fmod", &nectar::fmod, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates floating point modulo of x and y and returns as new tensor data.");
 
     /* MIN / MAX */
 
     m.def("min", &nectar::min, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates the minimum of x and y and returns as new tensor data.");
 
     m.def("max", &nectar::max, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates the maximum of x and y and returns as new tensor data.");
 
@@ -359,9 +435,8 @@ void register_elementwise(py::module_& m) {
     /* COPYSIGN */
 
     m.def("copysign", &nectar::copysign, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns new tensor data with magnitude of x and sign of y.");
 
@@ -455,37 +530,32 @@ void register_elementwise(py::module_& m) {
         "Returns mask with value 1.0 where tensor data >= value, otherwise 0.0.");
 
     m.def("eq_mask_tensor", &nectar::eq_mask_tensor, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x == tensor data y, otherwise 0.0.");
 
     m.def("lt_mask_tensor", &nectar::lt_mask_tensor, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x < tensor data y, otherwise 0.0.");
 
     m.def("le_mask_tensor", &nectar::le_mask_tensor, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x <= tensor data y, otherwise 0.0.");
 
     m.def("gt_mask_tensor", &nectar::gt_mask_tensor, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x > tensor data y, otherwise 0.0.");
 
     m.def("ge_mask_tensor", &nectar::ge_mask_tensor, 
-        py::arg("x_ptr"),
-        py::arg("y_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x >= tensor data y, otherwise 0.0.");
 
