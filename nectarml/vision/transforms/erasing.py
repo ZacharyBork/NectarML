@@ -1,5 +1,4 @@
-import numpy as np
-from PIL import Image
+import warnings
 from typing import Literal
 
 import nectarml.functional as F
@@ -17,12 +16,44 @@ class RandomErasing(Transform[Tensor, Tensor]):
         pass
 
 class CoarseDropout(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        num_holes_range: tuple[int, int] = (1, 2),
+        holes_height_range: tuple[float, float] = (0.1, 0.2),
+        holes_width_range: tuple[float, float] = (0.1, 0.2),
+        fill: float = 0.0
+    ) -> None:
         super().__init__()
+        self.num_holes_range = num_holes_range
+        self.holes_height_range = holes_height_range
+        self.holes_width_range = holes_width_range
+        self.fill = fill
+    
+    def _build_mask(self, input: Tensor) -> Tensor:
+        B, C, H, W = input.shape
+        mask = ones((B, 1, H, W), input.dtype, input.device)
+        
+        for b in range(B):
+            num_holes = int(round(self._random_in_range(self.num_holes_range)))
+            for _ in range(num_holes):
+                hole_h = int(self._random_in_range(self.holes_height_range)*H)
+                hole_w = int(self._random_in_range(self.holes_width_range)*W)
+                
+                cy = self.rng.integers(0, H)
+                cx = self.rng.integers(0, W)
+                
+                pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
+                pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
+                
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+        
+        return mask
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        mask = self._build_mask(input)
+        return input * mask + self.fill * input.max().item() * (1 - mask)
 
 class GridDropout(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
