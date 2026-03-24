@@ -104,12 +104,30 @@ class RandomRain(Transform[Tensor, Tensor]):
         pass
 
 class RandomSnow(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        brighness_coef: float = 1.5,
+        snow_point_range: tuple[float, float] = (0.1, 0.3)
+    ) -> None:
         super().__init__()
+        self.brightness_coef = brighness_coef
+        self.snow_point_range = snow_point_range
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        norm = input / max_value
+        
+        r, g, b = norm.unbind(dim=1)
+        luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
+        
+        snow_point = self._random_in_range(self.snow_point_range)
+        snow_mask = ((luminance-snow_point) / (1.0-snow_point)).clamp(0.0, 1.0)
+        
+        noise = rand(snow_mask.shape, input.dtype, input.device)
+        snow_mask = (snow_mask + noise * 0.1).clamp(0.0, 1.0)
+        
+        out = norm + snow_mask * (1.0 - norm) * self.brightness_coef
+        return (out * max_value).clamp(0.0, max_value)
 
 class RandomShadow(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
