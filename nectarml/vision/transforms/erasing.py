@@ -5,7 +5,7 @@ from typing import Literal
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike
-from nectarml.creation import zeros, rand, ones
+from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms import Transform
 
 class Erasing(Transform[Tensor, Tensor]):
@@ -142,13 +142,151 @@ class GridDropout(Transform[Tensor, Tensor]):
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
 
-class RandomSunFlare(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+
+import numpy as np
+
+class RandomLensFlare(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        num_ghosts: int = 4,
+        ghost_radius_range: tuple[float, float] = (0.01, 0.06),
+        ghost_alpha_range: tuple[float, float] = (0.1, 0.4),
+        halo_radius: float = 0.15,
+        halo_alpha: float = 0.1,
+        streak_count: int = 6,
+        streak_alpha: float = 0.15,
+        streak_length: float = 0.3,
+        chromatic_shift: float = 2.0,
+        glow_radius: float = 0.05,
+        source_position: tuple[float, float] | None = None
+    ) -> None:
+        '''
+        Based on the lens flare algorithm described in this paper:
+            - https://resources.mpi-inf.mpg.de/lensflareRendering/pdf/flare.pdf
+        '''
         super().__init__()
-    
+        self.num_ghosts = num_ghosts
+        self.ghost_radius_range = ghost_radius_range
+        self.ghost_alpha_range = ghost_alpha_range
+        self.halo_radius = halo_radius
+        self.halo_alpha = halo_alpha
+        self.streak_count = streak_count
+        self.streak_alpha = streak_alpha
+        self.streak_length = streak_length
+        self.chromatic_shift = chromatic_shift
+        self.glow_radius = glow_radius
+        self.source_position = source_position
+
+    def _make_ghost(
+        self, 
+        cx: float, cy: float, 
+        radius: float, 
+        alpha: float,
+        chroma_shift: float
+    ) -> Tensor:
+        ghost = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+
+        for c, shift in enumerate([-chroma_shift, 0, chroma_shift]):
+            cx_c = cx + shift
+            dist = ((self.proj_x - cx_c)**2 + (self.proj_y - cy)**2).sqrt()
+            r_px = radius * self.smaller_side
+            mask = (1.0 - dist / r_px).clamp(0.0, 1.0) ** 2
+            ghost[c] = mask * alpha
+        
+        return ghost
+
+    def _make_halo(self, cx: float, cy: float) -> Tensor:
+        halo = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+        
+        dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
+        r_px = self.halo_radius * self.smaller_side
+        ring_width = r_px * 0.2
+        ring = (-((dist - r_px) ** 2) / (2 * ring_width ** 2)).exp()
+        halo[:] = ring.unsqueeze(0).expand(self.layer_shape) * self.halo_alpha
+        return halo
+
+    def _make_streaks(self, cx: float, cy: float) -> Tensor:
+        streaks = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+
+        for i in range(self.streak_count):
+            angle = (i / self.streak_count) * 3.1415926535
+            dx = math.cos(angle)
+            dy = math.sin(angle)
+            
+            proj = (self.proj_x - cx) * dx + (self.proj_y - cy) * dy
+            perp = (self.proj_x - cx) * (-dy) + (self.proj_y - cy) * dx
+            
+            length_px = self.streak_length * self.smaller_side
+            streak_width = 1.5
+            
+            length_mask = (1.0 - proj.abs() / length_px).clamp(0.0, 1.0) ** 2
+            width_mask = (-(perp ** 2) / (2 * streak_width ** 2)).exp()
+            
+            streak = length_mask * width_mask * self.streak_alpha
+            streaks[:] += streak.unsqueeze(0).expand(self.layer_shape)
+        
+        return streaks.clamp(0.0, 1.0)
+
+    def _make_glow(self, cx: float, cy: float, alpha: float) -> Tensor:
+        glow = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+                
+        dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
+        r_px = self.glow_radius * self.smaller_side
+        soft = (-(dist ** 2) / (2 * r_px ** 2)).exp()
+        glow[:] = soft.unsqueeze(0).expand(self.layer_shape) * alpha
+        return glow
+
+    def _build_projections(self, H: int, W: int) -> None:
+        self.proj_y = linspace(0, H-1, H, self.dtype, self.device)
+        self.proj_y = self.proj_y.reshape((H, 1)).expand((H, W))
+        self.proj_x = linspace(0, W-1, W, self.dtype, self.device)
+        self.proj_x = self.proj_x.reshape((1, W)).expand((H, W))
+
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        self.device = input.device
+        self.dtype = input.dtype
+        
+        B, C, H, W = input.shape
+        max_value = input.max().item()
+        
+        self._build_projections(H, W)
+        self.layer_shape = (3, H, W)
+        self.smaller_side = min(H, W)
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            
+            for b in range(B):
+                flare = zeros((3, H, W), dtype=self.dtype, device=self.device)
+                
+                if self.source_position is not None:
+                    sx = self.source_position[0] * W
+                    sy = self.source_position[1] * H
+                else:
+                    sx = self.rng.uniform(0.1, 0.9) * W
+                    sy = self.rng.uniform(0.0, 0.4) * H
+                
+                cx, cy = W/2, H/2
+                axis_dx, axis_dy = cx-sx, cy-sy
+
+                flare += self._make_glow(sx, sy, alpha=0.8) \
+                       + self._make_halo(sx, sy) \
+                       + self._make_streaks(sx, sy)
+
+                for i in range(self.num_ghosts):
+                    t = self.rng.uniform(0.3, 2.0)
+                    gx, gy = (sx + axis_dx * t), (sy + axis_dy * t)
+                    
+                    radius = self._random_in_range(self.ghost_radius_range)
+                    alpha  = self._random_in_range(self.ghost_alpha_range)
+                    shift  = self.rng.uniform(0, self.chromatic_shift)
+                    
+                    flare += self._make_ghost(gx, gy, radius, alpha, shift)
+
+                flare = flare.clamp(0.0, 1.0) * max_value
+                input[b] = (input[b] + flare).clamp(0.0, max_value)
+
+        return input
 
 class RandomFog(Transform[Tensor, Tensor]):
     def __init__(
