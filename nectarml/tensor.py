@@ -1022,12 +1022,13 @@ class Tensor():
         other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__iadd__()', other)
 
+        out_shape = self._broadcast_shape(self.shape, other.shape)
         if self.device == 'cuda': 
-            new_ptr = cuda.math.add(self, other)
+            new_ptr = cuda.math.add(self, other, out_shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
-            self.shape = self._broadcast_shape(self.shape, other.shape)
         else: self.data += other.data
+        self.shape = out_shape
         return self
     
     def __add__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1084,12 +1085,13 @@ class Tensor():
         other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__isub__()', other)
 
+        out_shape = self._broadcast_shape(self.shape, other.shape)
         if self.device == 'cuda': 
-            new_ptr = cuda.math.subtract(self, other)
+            new_ptr = cuda.math.subtract(self, other, out_shape)
             self._buffer.decrement()
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
-            self.shape = self._broadcast_shape(self.shape, other.shape)
+            self._buffer = CudaBuffer(new_ptr, self.dtype)    
         else: self.data -= other.data
+        self.shape = out_shape
         return self
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
@@ -1164,12 +1166,13 @@ class Tensor():
         other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__imul__()', other)
 
+        out_shape = self._broadcast_shape(self.shape, other.shape)
         if self.device == 'cuda': 
-            new_ptr = cuda.math.multiply(self, other)
+            new_ptr = cuda.math.multiply(self, other, out_shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
-            self.shape = self._broadcast_shape(self.shape, other.shape)
         else: self.data *= other.data
+        self.shape = out_shape
         return self
 
     def __mul__(self: Tensor, other: Tensor | int | float) -> Tensor:

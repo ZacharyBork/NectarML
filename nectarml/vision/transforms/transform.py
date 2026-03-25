@@ -1,4 +1,5 @@
-from typing import Literal, TypeVar, Generic
+from typing import Any, Literal, TypeVar, Generic
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -25,6 +26,18 @@ class Transform(Generic[TInputType, TOutputType]):
         _max = value_range[1]
         value = _min + (_max - _min) * self.rng.random() 
         return value
+    
+    def _random_index(
+        self, 
+        min_index: int = 0,
+        max_index: int = 5
+    ) -> float:
+        return int(round(self._random_in_range((min_index, max_index))))
+    
+    def _random_selection(self, items: Iterable) -> Any:
+        items = list(items)
+        index = self._random_index(max_index=len(items))
+        return items[index]
     
     ### FORWARD ###
     
