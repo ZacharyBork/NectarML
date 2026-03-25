@@ -67,12 +67,18 @@ class SaltAndPepperNoise(Transform[Tensor, Tensor]):
         return output.clamp(0.0, max_value)
 
 class SpeckleNoise(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        std_range: tuple[float, float] = (0.1, 0.2)
+    ) -> None:
         super().__init__()
+        self.std_range = std_range
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        std = self._random_in_range(self.std_range)
+        noise = Tensor(self.rng.normal(0, std, input.shape).astype(np.float32))
+        out = input + input * noise.to(input.device, input.dtype)
+        return out.clamp(0.0, input.max().item())
 
 class ISONoise(Transform[Tensor, Tensor]):
     def __init__(
@@ -80,19 +86,52 @@ class ISONoise(Transform[Tensor, Tensor]):
         color_shift: tuple[float, float] = (0.01, 0.05),
         intensity: tuple[float, float] = (0.1, 0.5)
     ) -> None:
-        raise NotImplementedError
         super().__init__()
         self.color_shift = color_shift
         self.intensity = intensity
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        max_value = input.max().item()
+        norm = input / max_value
+        
+        r, g, b = norm.unbind(dim=1)
+        luma = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
+        
+        luma_std = self._random_in_range(self.intensity)
+        luma_noise = Tensor(
+            self.rng.normal(0, luma_std, input.shape).astype(np.float32)
+        ).to(input.device, input.dtype)
+        luma_weight = (1.0 - luma).expand(input.shape)
+        
+        color_std = self._random_in_range(self.color_shift)
+        color_noise = Tensor(
+            self.rng.normal(0, color_std, input.shape).astype(np.float32)
+        ).to(input.device, input.dtype)
+        
+        out = norm + luma_noise * luma_weight + color_noise
+        return (out * max_value).clamp(0.0, max_value)
 
 class MultiplicativeNoise(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        multiplier_range: tuple[float, float] = (0.8, 1.2),
+        per_channel: bool = False
+    ) -> None:
         super().__init__()
+        self.multiplier_range = multiplier_range
+        self.per_channel = per_channel
     
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        if self.per_channel:
+            noise_shape = (input.shape[0], input.shape[1], 1, 1)
+        else: noise_shape = input.shape
+        
+        noise = Tensor(
+            self.rng.uniform(
+                self.multiplier_range[0], 
+                self.multiplier_range[1], 
+                noise_shape).astype(np.float32)
+        ).to(input.device, input.dtype)
+        
+        return (input * noise).clamp(0.0, input.max().item())
 
