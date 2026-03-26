@@ -1,5 +1,5 @@
 from . import (
-    combination, conv, indexing, interpolation, masking, math, padding,
+    combination, conv, indexing, interpolation, masking, math, matmul, padding,
     reductions, shapes, utils)
 from .mapping import DTYPE_MAP
 from .utils import (

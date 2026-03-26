@@ -48,7 +48,9 @@ namespace nectar {
 
 void register_indexing(py::module_& m) {
     
-    m.def("gather", &nectar::gather, 
+    auto m_indexing = m.def_submodule("indexing", "Tensor indexing submodule.");
+
+    m_indexing.def("gather", &nectar::gather, 
         py::arg("data_ptr"),
         py::arg("data_shape"),
         py::arg("indices_ptr"),
@@ -57,27 +59,27 @@ void register_indexing(py::module_& m) {
         py::arg("dtype"),
         "Takes values from input tensor by matching input indices.");
 
-    m.def("scatter", &nectar::scatter, 
+    m_indexing.def("scatter", &nectar::scatter, 
         py::arg("input_ptr"), py::arg("input_shape"),
         py::arg("src_ptr"), py::arg("src_shape"),
         py::arg("indices_ptr"), py::arg("indices_shape"),
         py::arg("dim"), py::arg("dtype"),
         "");
 
-    m.def("scatter_add", &nectar::scatter_add, 
+    m_indexing.def("scatter_add", &nectar::scatter_add, 
         py::arg("input_ptr"), py::arg("input_shape"),
         py::arg("src_ptr"), py::arg("src_shape"),
         py::arg("indices_ptr"), py::arg("indices_shape"),
         py::arg("dim"), py::arg("dtype"),
         "");
 
-    m.def("slice", &nectar::slice, 
+    m_indexing.def("slice", &nectar::slice, 
         py::arg("input_ptr"), py::arg("input_shape"),
         py::arg("start"), py::arg("count"), py::arg("step"),
         py::arg("dtype"),
         "");
 
-    m.def("index_put", &nectar::index_put, 
+    m_indexing.def("index_put", &nectar::index_put, 
         py::arg("input_ptr"), py::arg("input_shape"), py::arg("src_ptr"), 
         py::arg("start"), py::arg("count"), py::arg("step"),
         py::arg("dtype"),

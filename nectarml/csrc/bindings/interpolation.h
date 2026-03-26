@@ -118,23 +118,25 @@ namespace nectar {
 
 void register_interpolation(py::module_& m) {
 
+    auto m_interpolation = m.def_submodule("interpolation", "Tensor interpolation submodule.");
+
     /* Nearest Neighbor */
 
-    m.def("upsample_nearest_1d", &nectar::upsample_nearest_1d, 
+    m_interpolation.def("upsample_nearest_1d", &nectar::upsample_nearest_1d, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("L_in"), py::arg("L_out"),
         py::arg("dtype"),
         "");
 
-    m.def("upsample_nearest_1d_backward", &nectar::upsample_nearest_1d_backward, 
+    m_interpolation.def("upsample_nearest_1d_backward", &nectar::upsample_nearest_1d_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("L_in"), py::arg("L_out"),
         py::arg("dtype"),
         "");
 
-    m.def("upsample_nearest_2d", &nectar::upsample_nearest_2d, 
+    m_interpolation.def("upsample_nearest_2d", &nectar::upsample_nearest_2d, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),
@@ -142,7 +144,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_nearest_2d_backward", &nectar::upsample_nearest_2d_backward, 
+    m_interpolation.def("upsample_nearest_2d_backward", &nectar::upsample_nearest_2d_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),
@@ -150,7 +152,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_nearest_3d", &nectar::upsample_nearest_3d, 
+    m_interpolation.def("upsample_nearest_3d", &nectar::upsample_nearest_3d, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("D_in"), py::arg("H_in"), py::arg("W_in"),
@@ -158,7 +160,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_nearest_3d", &nectar::upsample_nearest_3d, 
+    m_interpolation.def("upsample_nearest_3d", &nectar::upsample_nearest_3d, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("D_in"), py::arg("H_in"), py::arg("W_in"),
@@ -168,7 +170,7 @@ void register_interpolation(py::module_& m) {
 
     /* Linear/Bilinear/Trilinear */
 
-    m.def("upsample_linear", &nectar::upsample_linear, 
+    m_interpolation.def("upsample_linear", &nectar::upsample_linear, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("L_in"), py::arg("L_out"),
@@ -176,7 +178,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_linear_backward", &nectar::upsample_linear_backward, 
+    m_interpolation.def("upsample_linear_backward", &nectar::upsample_linear_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("L_in"), py::arg("L_out"),
@@ -184,7 +186,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_bilinear", &nectar::upsample_bilinear, 
+    m_interpolation.def("upsample_bilinear", &nectar::upsample_bilinear, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),
@@ -193,7 +195,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_bilinear_backward", &nectar::upsample_bilinear_backward, 
+    m_interpolation.def("upsample_bilinear_backward", &nectar::upsample_bilinear_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),
@@ -202,7 +204,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_trilinear", &nectar::upsample_trilinear, 
+    m_interpolation.def("upsample_trilinear", &nectar::upsample_trilinear, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("D_in"), py::arg("H_in"), py::arg("W_in"),
@@ -211,7 +213,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_trilinear_backward", &nectar::upsample_trilinear_backward, 
+    m_interpolation.def("upsample_trilinear_backward", &nectar::upsample_trilinear_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("D_in"), py::arg("H_in"), py::arg("W_in"),
@@ -222,7 +224,7 @@ void register_interpolation(py::module_& m) {
 
     /* CUBIC */
     
-    m.def("upsample_bicubic", &nectar::upsample_bicubic, 
+    m_interpolation.def("upsample_bicubic", &nectar::upsample_bicubic, 
         py::arg("input_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),
@@ -231,7 +233,7 @@ void register_interpolation(py::module_& m) {
         py::arg("dtype"),
         "");
 
-    m.def("upsample_bicubic_backward", &nectar::upsample_bicubic_backward, 
+    m_interpolation.def("upsample_bicubic_backward", &nectar::upsample_bicubic_backward, 
         py::arg("grad_ptr"),
         py::arg("B"), py::arg("C"),
         py::arg("H_in"), py::arg("W_in"),

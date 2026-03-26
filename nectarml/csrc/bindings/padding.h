@@ -18,7 +18,9 @@ namespace nectar {
 
 void register_padding(py::module_& m) {
     
-    m.def("pad", &nectar::pad, 
+    auto m_padding = m.def_submodule("padding", "Padding submodule.");
+
+    m_padding.def("pad", &nectar::pad, 
         py::arg("input_ptr"), 
         py::arg("input_shape"), 
         py::arg("pad_before"),

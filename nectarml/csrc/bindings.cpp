@@ -18,6 +18,8 @@ namespace py = pybind11;
 
 void destroy_cublas_handle();
 
+namespace tensor { }
+
 PYBIND11_MODULE(_nectarml, m) {
     m.doc() = "NectarML C++ extension module";
 
@@ -31,18 +33,23 @@ PYBIND11_MODULE(_nectarml, m) {
     m.def("destroy_cublas_handle", &destroy_cublas_handle, 
         "Destroys cuBLAS handle. Registered atexit for Python module.");
 
+
+    auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");
+    register_combination(m_tensor);
+    register_conv(m_tensor);
+    register_elementwise(m_tensor);
+    register_indexing(m_tensor);
+    register_interpolation(m_tensor);
+    register_matmul(m_tensor);
+    register_padding(m_tensor);
+    register_reductions(m_tensor);
+    register_shapes(m_tensor);
+
+
     register_memory(m);
     register_device(m);
     register_utils(m);
-    register_elementwise(m);    
     register_vision(m);
-    register_reductions(m);
-    register_combination(m);
-    register_shapes(m);
-    register_matmul(m);
-    register_indexing(m);
     register_inspection(m);
-    register_conv(m);
-    register_interpolation(m);
-    register_padding(m);
+
 }

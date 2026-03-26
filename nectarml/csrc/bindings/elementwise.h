@@ -165,37 +165,39 @@ namespace nectar {
 
 void register_elementwise(py::module_& m) {
 
+    auto m_elementwise = m.def_submodule("elementwise", "Elementwise submodule.");
+
     /* COMPARISON */
 
-    m.def("equal", &nectar::equal, 
+    m_elementwise.def("equal", &nectar::equal, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Elementwise eq (a==b). Returns boolean tensor data.");
 
-    m.def("less_than", &nectar::less_than, 
+    m_elementwise.def("less_than", &nectar::less_than, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Elementwise lt (a<b). Returns boolean tensor data.");
 
-    m.def("less_than_or_equal", &nectar::less_than_or_equal, 
+    m_elementwise.def("less_than_or_equal", &nectar::less_than_or_equal, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Elementwise le (a<=b). Returns boolean tensor data.");
 
-    m.def("greater_than", &nectar::greater_than, 
+    m_elementwise.def("greater_than", &nectar::greater_than, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Elementwise gt (a>b). Returns boolean tensor data.");
 
-    m.def("greater_than_or_equal", &nectar::greater_than_or_equal, 
+    m_elementwise.def("greater_than_or_equal", &nectar::greater_than_or_equal, 
         py::arg("a_ptr"),
         py::arg("b_ptr"),
         py::arg("n_elements"),
@@ -204,31 +206,31 @@ void register_elementwise(py::module_& m) {
 
     /* BASIC */
 
-    m.def("add", &nectar::add, 
+    m_elementwise.def("add", &nectar::add, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
-    m.def("subtract", &nectar::subtract, 
+    m_elementwise.def("subtract", &nectar::subtract, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
-    m.def("multiply", &nectar::multiply, 
+    m_elementwise.def("multiply", &nectar::multiply, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
-    m.def("divide", &nectar::divide, 
+    m_elementwise.def("divide", &nectar::divide, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
-    m.def("negate", &nectar::negate, 
+    m_elementwise.def("negate", &nectar::negate, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -236,13 +238,13 @@ void register_elementwise(py::module_& m) {
 
     /* SQRT */
 
-    m.def("sqrt", &nectar::sqrt, 
+    m_elementwise.def("sqrt", &nectar::sqrt, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the square root of tensor data x and returns as new tensor data.");
 
-    m.def("rsqrt", &nectar::rsqrt, 
+    m_elementwise.def("rsqrt", &nectar::rsqrt, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -250,7 +252,7 @@ void register_elementwise(py::module_& m) {
 
     /* EXPONENT */
 
-    m.def("exp", &nectar::exp, 
+    m_elementwise.def("exp", &nectar::exp, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -258,19 +260,19 @@ void register_elementwise(py::module_& m) {
 
     /* LOG */
 
-    m.def("log", &nectar::log, 
+    m_elementwise.def("log", &nectar::log, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the logarithm of tensor data x and returns as new tensor data.");
 
-    m.def("log2", &nectar::log2, 
+    m_elementwise.def("log2", &nectar::log2, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the logarithm^2 of tensor data x and returns as new tensor data.");
 
-    m.def("log10", &nectar::log10, 
+    m_elementwise.def("log10", &nectar::log10, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -278,49 +280,49 @@ void register_elementwise(py::module_& m) {
     
     /* SIN / COS */
 
-    m.def("sin", &nectar::sin, 
+    m_elementwise.def("sin", &nectar::sin, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the sine of tensor data x and returns as new tensor data.");
 
-    m.def("asin", &nectar::asin, 
+    m_elementwise.def("asin", &nectar::asin, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the arc sine of tensor data x and returns as new tensor data.");
 
-    m.def("sinh", &nectar::sinh, 
+    m_elementwise.def("sinh", &nectar::sinh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the hyperbolic sine of tensor data x and returns as new tensor data.");
 
-    m.def("asinh", &nectar::asinh, 
+    m_elementwise.def("asinh", &nectar::asinh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the inverse hyperbolic sine of tensor data x and returns as new tensor data.");
 
-    m.def("cos", &nectar::cos, 
+    m_elementwise.def("cos", &nectar::cos, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the cosine of tensor data x and returns as new tensor data.");
 
-    m.def("acos", &nectar::acos, 
+    m_elementwise.def("acos", &nectar::acos, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the arc cosine of tensor data x and returns as new tensor data.");
 
-    m.def("cosh", &nectar::cosh, 
+    m_elementwise.def("cosh", &nectar::cosh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the hyperbolic cosine of tensor data x and returns as new tensor data.");
 
-    m.def("acosh", &nectar::acosh, 
+    m_elementwise.def("acosh", &nectar::acosh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -328,31 +330,31 @@ void register_elementwise(py::module_& m) {
 
     /* TAN / ATAN */
 
-    m.def("tan", &nectar::tan, 
+    m_elementwise.def("tan", &nectar::tan, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the tangent of tensor data x and returns as new tensor data.");
 
-    m.def("tanh", &nectar::tanh, 
+    m_elementwise.def("tanh", &nectar::tanh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the hyperbolic tangent of tensor data x and returns as new tensor data.");
 
-    m.def("atan", &nectar::atan, 
+    m_elementwise.def("atan", &nectar::atan, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the arctangent of tensor data x and returns as new tensor data.");
 
-    m.def("atanh", &nectar::atanh, 
+    m_elementwise.def("atanh", &nectar::atanh, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the inverse hyperbolid tangent of tensor data x and returns as new tensor data.");
 
-    m.def("atan2", &nectar::atan2, 
+    m_elementwise.def("atan2", &nectar::atan2, 
         py::arg("b_ptr"), py::arg("a_ptr"), 
         py::arg("b_shape"), py::arg("a_shape"), py::arg("out_shape"),
         py::arg("dtype"),
@@ -360,7 +362,7 @@ void register_elementwise(py::module_& m) {
 
     /* POW */
 
-    m.def("pow", &nectar::pow, 
+    m_elementwise.def("pow", &nectar::pow, 
         py::arg("x_ptr"),
         py::arg("exponent"),
         py::arg("n_elements"),
@@ -369,7 +371,7 @@ void register_elementwise(py::module_& m) {
 
     /* ABS */
 
-    m.def("abs", &nectar::abs, 
+    m_elementwise.def("abs", &nectar::abs, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -377,19 +379,19 @@ void register_elementwise(py::module_& m) {
 
     /* ROUNDING */
 
-    m.def("floor", &nectar::floor, 
+    m_elementwise.def("floor", &nectar::floor, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the largest integer less than or equal to x and returns as new tensor data.");
 
-    m.def("ceil", &nectar::ceil, 
+    m_elementwise.def("ceil", &nectar::ceil, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Calculates the largest integer greater than or equal to x and returns as new tensor data.");
 
-    m.def("round", &nectar::round, 
+    m_elementwise.def("round", &nectar::round, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -397,14 +399,14 @@ void register_elementwise(py::module_& m) {
 
     /* MODULO */
 
-    // m.def("mod", &nectar::mod, 
+    // m_elementwise.def("mod", &nectar::mod, 
     //     py::arg("x_ptr"),
     //     py::arg("y_ptr"),
     //     py::arg("n_elements"),
     //     py::arg("dtype"),
     //     "Calculates integer modulo of x and y and returns as new tensor data.");
 
-    m.def("fmod", &nectar::fmod, 
+    m_elementwise.def("fmod", &nectar::fmod, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
@@ -412,13 +414,13 @@ void register_elementwise(py::module_& m) {
 
     /* MIN / MAX */
 
-    m.def("min", &nectar::min, 
+    m_elementwise.def("min", &nectar::min, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates the minimum of x and y and returns as new tensor data.");
 
-    m.def("max", &nectar::max, 
+    m_elementwise.def("max", &nectar::max, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
@@ -426,7 +428,7 @@ void register_elementwise(py::module_& m) {
 
     /* SIGN */
 
-    m.def("sign", &nectar::sign, 
+    m_elementwise.def("sign", &nectar::sign, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -434,7 +436,7 @@ void register_elementwise(py::module_& m) {
 
     /* COPYSIGN */
 
-    m.def("copysign", &nectar::copysign, 
+    m_elementwise.def("copysign", &nectar::copysign, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
@@ -442,7 +444,7 @@ void register_elementwise(py::module_& m) {
 
     /* TRUNCATE */
 
-    m.def("trunc", &nectar::trunc, 
+    m_elementwise.def("trunc", &nectar::trunc, 
         py::arg("x_ptr"),
         py::arg("n_elements"),
         py::arg("dtype"),
@@ -450,42 +452,42 @@ void register_elementwise(py::module_& m) {
 
     /* TENSOR/SCALAR OPS */
 
-    m.def("scalaradd", &nectar::scalaradd, 
+    m_elementwise.def("scalaradd", &nectar::scalaradd, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Adds scalar value from all elements of tensor data.");
 
-    m.def("scalarsub", &nectar::scalarsub, 
+    m_elementwise.def("scalarsub", &nectar::scalarsub, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Subtracts scalar value from all elements of tensor data.");
 
-    m.def("scalarmul", &nectar::scalarmul, 
+    m_elementwise.def("scalarmul", &nectar::scalarmul, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Multiplies all elements of tensor data by scalar value.");
 
-    m.def("scalardiv", &nectar::scalardiv, 
+    m_elementwise.def("scalardiv", &nectar::scalardiv, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Divides all elements of tensor data by scalar value.");
 
-    m.def("scalarmin", &nectar::scalarmin, 
+    m_elementwise.def("scalarmin", &nectar::scalarmin, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Takes the minimum value of all elements of tensor data and a given scalar value.");
 
-    m.def("scalarmax", &nectar::scalarmax, 
+    m_elementwise.def("scalarmax", &nectar::scalarmax, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
@@ -494,66 +496,66 @@ void register_elementwise(py::module_& m) {
 
     /* MASKING */
 
-    m.def("eq_mask_scalar", &nectar::eq_mask_scalar, 
+    m_elementwise.def("eq_mask_scalar", &nectar::eq_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data == value, otherwise 0.0.");
 
-    m.def("lt_mask_scalar", &nectar::lt_mask_scalar, 
+    m_elementwise.def("lt_mask_scalar", &nectar::lt_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data < value, otherwise 0.0.");
 
-    m.def("le_mask_scalar", &nectar::le_mask_scalar, 
+    m_elementwise.def("le_mask_scalar", &nectar::le_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data <= value, otherwise 0.0.");
 
-    m.def("gt_mask_scalar", &nectar::gt_mask_scalar, 
+    m_elementwise.def("gt_mask_scalar", &nectar::gt_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data > value, otherwise 0.0.");
 
-    m.def("ge_mask_scalar", &nectar::ge_mask_scalar, 
+    m_elementwise.def("ge_mask_scalar", &nectar::ge_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data >= value, otherwise 0.0.");
 
-    m.def("eq_mask_tensor", &nectar::eq_mask_tensor, 
+    m_elementwise.def("eq_mask_tensor", &nectar::eq_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x == tensor data y, otherwise 0.0.");
 
-    m.def("lt_mask_tensor", &nectar::lt_mask_tensor, 
+    m_elementwise.def("lt_mask_tensor", &nectar::lt_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x < tensor data y, otherwise 0.0.");
 
-    m.def("le_mask_tensor", &nectar::le_mask_tensor, 
+    m_elementwise.def("le_mask_tensor", &nectar::le_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x <= tensor data y, otherwise 0.0.");
 
-    m.def("gt_mask_tensor", &nectar::gt_mask_tensor, 
+    m_elementwise.def("gt_mask_tensor", &nectar::gt_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x > tensor data y, otherwise 0.0.");
 
-    m.def("ge_mask_tensor", &nectar::ge_mask_tensor, 
+    m_elementwise.def("ge_mask_tensor", &nectar::ge_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
@@ -561,7 +563,7 @@ void register_elementwise(py::module_& m) {
 
     /* CLAMP */
 
-    m.def("clamp", &nectar::clamp, 
+    m_elementwise.def("clamp", &nectar::clamp, 
         py::arg("base_ptr"),
         py::arg("min_value"),
         py::arg("max_value"),

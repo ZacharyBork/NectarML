@@ -13,7 +13,9 @@ namespace nectar {
 
 void register_combination(py::module_& m) {
     
-    m.def("concatenate", &nectar::concatenate, 
+    auto m_combination = m.def_submodule("combination", "Tensor combination submodule.");
+    
+    m_combination.def("concatenate", &nectar::concatenate, 
         py::arg("ptrs"), 
         py::arg("shapes"), 
         py::arg("dim"),

@@ -608,6 +608,11 @@ class Tensor():
         
         build_graph(self)
         graph.reverse()
+        
+        for node in graph:
+            if node.requires_grad and node is not self:
+                node._allocate_grad(fill_value=0.0)
+        
         self._allocate_grad(fill_value=1.0)
         for node in graph: node._backward()
     
@@ -1232,16 +1237,16 @@ class Tensor():
         self_requires_grad = self.requires_grad
         other_requires_grad = other.requires_grad
         
-        if self.device == 'cuda': out_data = cuda.math.matmul(self, other)
+        if self.device == 'cuda': out_data = cuda.matmul.matmul(self, other)
         else: out_data = cpu.math.matmul(self.data, other.data)
         out = self._build_output_tensor(out_data, (self, other))
         
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += cuda.math.matmul(
+                self.grad += cuda.matmul.matmul(
                     out.grad, other.transpose(-2, -1))
             if other_requires_grad:
-                other.grad += cuda.math.matmul(
+                other.grad += cuda.matmul.matmul(
                     self.transpose(-2, -1), out.grad)
         
         out._backward = _backward

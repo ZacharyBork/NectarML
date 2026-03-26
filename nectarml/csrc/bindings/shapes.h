@@ -9,14 +9,16 @@ namespace nectar {
 
 void register_shapes(py::module_& m) {
     
-    m.def("permute", &nectar::permute, 
+    auto m_shapes = m.def_submodule("shapes", "Tensor shapes submodule.");
+
+    m_shapes.def("permute", &nectar::permute, 
         py::arg("in_ptr"), 
         py::arg("shape"), 
         py::arg("dims"),
         py::arg("dtype"),
         "Permutes tensor dimensions and returns as new tensor data.");
 
-    m.def("expand", &nectar::expand, 
+    m_shapes.def("expand", &nectar::expand, 
         py::arg("in_ptr"), 
         py::arg("in_shape"), 
         py::arg("target_shape"),

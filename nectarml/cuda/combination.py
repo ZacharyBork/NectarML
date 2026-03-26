@@ -13,5 +13,6 @@ def concatenate(
     _dtype = inputs[0].dtype
     in_ptrs = [i._data_ptr for i in inputs]
     shapes = [list(i.shape) for i in inputs]
-    return _nectarml.concatenate(in_ptrs, shapes, dim, map_dtype(_dtype))
+    return _nectarml.tensor.combination.concatenate(
+        in_ptrs, shapes, dim, map_dtype(_dtype))
 

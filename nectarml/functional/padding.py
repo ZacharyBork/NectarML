@@ -34,7 +34,7 @@ def pad(
 ) -> Tensor:
     if input.device == 'cuda':
         pad_before, pad_after = _normalize_padding(pad, input.ndim)
-        out_data = cuda.padding.pad(input, pad, mode, value)
+        out_data = cuda.padding.pad(input, pad_before, pad_after, mode, value)
         shape = _compute_pad_output_shape(input.shape, pad_before, pad_after)
     else:
         out_data = cpu.padding.pad(input, pad, mode, value)

@@ -3,6 +3,7 @@
 namespace py = pybind11;
 
 namespace nectar {
+
     uintptr_t matmul(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape, std::vector<int> b_shape,

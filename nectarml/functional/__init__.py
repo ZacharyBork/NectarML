@@ -12,7 +12,8 @@ from .attention import scaled_dot_product_attention
 from .combination import (
     concatenate, cat, stack, unstack, unbind, split, chunk)
 
-from .conv import conv1d, conv2d, conv3d
+from .conv import (
+    conv1d, conv_transpose1d, conv2d, conv_transpose2d, conv3d)
 
 from .dropout import (
     dropout, alpha_dropout, feature_alpha_dropout, 

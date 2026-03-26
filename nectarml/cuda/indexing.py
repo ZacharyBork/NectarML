@@ -3,8 +3,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nectarml import Tensor
 
-import numpy as np
-
 import _nectarml
 from nectarml import typing
 from nectarml.cuda.utils import map_dtype
@@ -16,7 +14,7 @@ def gather(
 ) -> int:
     if dim is None: dim = -1
     dim = dim if dim >= 0 else input.ndim + dim
-    return _nectarml.gather(
+    return _nectarml.tensor.indexing.gather(
         input._data_ptr, input.shape, 
         index._data_ptr, index.shape, 
         dim, map_dtype(input.dtype))
@@ -29,7 +27,7 @@ def scatter(
 ) -> int:
     if dim is None: dim = -1
     dim = dim if dim >= 0 else input.ndim + dim
-    return _nectarml.scatter(
+    return _nectarml.tensor.indexing.scatter(
         input._data_ptr, input.shape, 
         source._data_ptr, source.shape, 
         index._data_ptr, index.shape, 
@@ -54,7 +52,7 @@ def scatter_add(
                 
     if dim is None: dim = -1
     dim = dim if dim >= 0 else input.ndim + dim
-    output = _nectarml.scatter_add(
+    output = _nectarml.tensor.indexing.scatter_add(
         input._data_ptr, input.shape, 
         source._data_ptr, source.shape, 
         index._data_ptr, index.shape, 
@@ -72,7 +70,7 @@ def slice_tensor(
     counts: list[int],
     steps: list[int]
 ) -> int:
-    return _nectarml.slice(
+    return _nectarml.tensor.indexing.slice(
         input._data_ptr, input.shape, 
         starts, counts, steps, 
         map_dtype(input.dtype))
@@ -84,6 +82,6 @@ def index_put(
     steps: list[int],
     source: Tensor
 ) -> int:
-    return _nectarml.index_put(
+    return _nectarml.tensor.indexing.index_put(
         input._data_ptr, list(input.shape), source._data_ptr,
         starts, counts, steps, map_dtype(input.dtype))
