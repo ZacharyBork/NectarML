@@ -9,51 +9,127 @@ from nectarml.constants import FLOAT_MIN, FLOAT_MAX
 
 ### COMPARISON ###
 
-def equal(a: Tensor, b: Tensor) -> int:
+def equal(
+    a: Tensor, 
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.equal_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.equal(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def less_than(a: Tensor, b: Tensor) -> int:
+def less_than(
+    a: Tensor, 
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.less_than_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.less_than(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def less_than_or_equal(a: Tensor, b: Tensor) -> int:
+def less_than_or_equal(
+    a: Tensor, 
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.less_than_or_equal_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.less_than_or_equal(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def greater_than(a: Tensor, b: Tensor) -> int:
+def greater_than(
+    a: Tensor, 
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.greater_than_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.greater_than(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
-def greater_than_or_equal(a: Tensor, b: Tensor) -> int:
+def greater_than_or_equal(
+    a: Tensor,
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.greater_than_or_equal_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.greater_than_or_equal(
-        a._data_ptr, b._data_ptr, a.size, map_dtype(a.dtype))
+        a._data_ptr, b._data_ptr, 
+        a.shape, b.shape, out_shape,
+        map_dtype(a.dtype))
 
 ### BASE ###
 
-def add(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
+def add(
+    a: Tensor, 
+    b: Tensor | int | float, 
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.add_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.add(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
         map_dtype(a.dtype))
+    
 
-def subtract(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
+def subtract(
+    a: Tensor, 
+    b: Tensor | int | float, 
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.subtract_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.subtract(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
         map_dtype(a.dtype))
+    
 
-def multiply(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
+def multiply(
+    a: Tensor, 
+    b: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.multiply_ts(
+         a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.multiply(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
         map_dtype(a.dtype))
-
-def divide(a: Tensor, b: Tensor, out_shape: tuple[int, ...]) -> int:
+    
+def divide(
+    a: Tensor, 
+    b: Tensor | int | float, 
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(b, int | float):
+        return _nectarml.tensor.elementwise.divide_ts(
+            a._data_ptr, b, a.size, map_dtype(a.dtype))
     return _nectarml.tensor.elementwise.divide(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
         map_dtype(a.dtype))
+    
 
 def negate(x: Tensor) -> int:
     return _nectarml.tensor.elementwise.negate(
@@ -175,7 +251,14 @@ def round(x: Tensor) -> int:
 
 ### MODULO ###
 
-def fmod(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+def fmod(
+    x: Tensor, 
+    y: Tensor | int | float, 
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(y, int | float):
+        return _nectarml.tensor.elementwise.fmod_ts(
+            x._data_ptr, y, x.size, map_dtype(x.dtype))
     return _nectarml.tensor.elementwise.fmod(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
@@ -183,17 +266,33 @@ def fmod(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
 
 ### MIN / MAX ###
 
-def minimum(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+def minimum(
+    x: Tensor, 
+    y: Tensor | int | float, 
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(y, int | float):
+        return _nectarml.tensor.elementwise.min_ts(
+            x._data_ptr, y, x.size, map_dtype(x.dtype))
     return _nectarml.tensor.elementwise.min(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
         map_dtype(x.dtype))
+    
 
-def maximum(x: Tensor, y: Tensor, out_shape: tuple[int, ...]) -> int:
+def maximum(
+    x: Tensor, 
+    y: Tensor | int | float,
+    out_shape: tuple[int, ...] | None
+) -> int:
+    if isinstance(y, int | float):
+        return _nectarml.tensor.elementwise.max_ts(
+            x._data_ptr, y, x.size, map_dtype(x.dtype))
     return _nectarml.tensor.elementwise.max(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
         map_dtype(x.dtype))
+
 
 def clamp(x: Tensor, min_value: float | None, max_value: float | None) -> int:
     min_value = min_value or FLOAT_MIN

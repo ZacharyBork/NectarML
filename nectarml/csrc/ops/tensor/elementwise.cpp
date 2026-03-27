@@ -4,7 +4,15 @@
 /* KERNELS */
 
 template<typename T, template<typename> class Op>
-void launch_elementwise_compare(T* x, T* y, bool* out, size_t n_elements);
+void launch_elementwise_compare(
+    T* x, T* y, bool* out, 
+    BroadcastIndex x_index, BroadcastIndex y_index,
+    ShapeArray out_shape, int ndim,
+    size_t n_elements
+);
+
+template<typename T, template<typename> class Op>
+void launch_elementwise_compare_ts(T* x, float value, bool* out, size_t n_elements);
 
 template<typename T, template<typename> class Op>
 void launch_elementwise_math_1tensor(T* x, T* out, size_t n_elements);
@@ -24,18 +32,67 @@ void launch_elementwise_math_tensorscalar(T* x, T* out, float value, size_t n_el
 
 template<template<typename> class Op>
 uintptr_t call_elemwise_compare(
-    uintptr_t a_ptr, 
-    uintptr_t b_ptr, 
-    size_t n_elements, 
+    uintptr_t a_ptr, uintptr_t b_ptr,
+    std::vector<int> a_shape,
+    std::vector<int> b_shape,
+    std::vector<int> out_shape,
     DType dtype
 ) {
+    int ndim = out_shape.size();
+    size_t n_elements = 1;
+    for (int s : out_shape) n_elements *= s;
+
+    BroadcastIndex a_idx;
+    a_idx.ndim = ndim;
+    int a_offset = ndim - a_shape.size();
+    for (int i = 0; i < ndim; i++) {
+        a_idx.shape[i] = (i < a_offset) ? 1 : a_shape[i - a_offset];
+    }
+    int stride = 1;
+    for (int i = ndim - 1; i >= 0; i--) {
+        a_idx.strides[i] = (a_idx.shape[i] == 1) ? 0 : stride;
+        stride *= a_idx.shape[i];
+    }
+
+    BroadcastIndex b_idx;
+    b_idx.ndim = ndim;
+    int b_offset = ndim - b_shape.size();
+    for (int i = 0; i < ndim; i++) {
+        b_idx.shape[i] = (i < b_offset) ? 1 : b_shape[i - b_offset];
+    }
+    stride = 1;
+    for (int i = ndim - 1; i >= 0; i--) {
+        b_idx.strides[i] = (b_idx.shape[i] == 1) ? 0 : stride;
+        stride *= b_idx.shape[i];
+    }
+
+    ShapeArray out_shape_arr;
+    out_shape_arr.ndim = ndim;
+    for (int i = 0; i < ndim; i++) out_shape_arr.dims[i] = out_shape[i];
+
     DISPATCH_DTYPE(dtype, T, {
         bool* d_out;
         cudaMalloc(&d_out, n_elements * sizeof(bool));
         launch_elementwise_compare<T, Op>(
             reinterpret_cast<T*>(a_ptr),
             reinterpret_cast<T*>(b_ptr),
-            d_out, n_elements);
+            d_out, a_idx, b_idx, out_shape_arr, ndim, n_elements);
+        return reinterpret_cast<uintptr_t>(d_out);
+    });
+}
+
+template<template<typename> class Op>
+uintptr_t call_elemwise_compare_ts(
+    uintptr_t a_ptr, 
+    float value, 
+    size_t n_elements, 
+    DType dtype
+) {
+    DISPATCH_DTYPE(dtype, T, {
+        bool* d_out;
+        cudaMalloc(&d_out, n_elements * sizeof(bool));
+        launch_elementwise_compare_ts<T, Op>(
+            reinterpret_cast<T*>(a_ptr), value, d_out, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
     });
 }
@@ -78,7 +135,6 @@ uintptr_t call_elemwise_2tensor(
         a_idx.strides[i] = (a_idx.shape[i] == 1) ? 0 : stride;
         stride *= a_idx.shape[i];
     }
-
 
     BroadcastIndex b_idx;
     b_idx.ndim = ndim;
@@ -127,24 +183,94 @@ namespace nectar {
 
     /* COMPARISON */
 
-    uintptr_t equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_compare<ElemWiseEqOp>(a_ptr, b_ptr, n_elements, dtype);
+    uintptr_t equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseEqOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
     }
 
-    uintptr_t less_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_compare<ElemWiseLtOp>(a_ptr, b_ptr, n_elements, dtype);
+    uintptr_t equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseEqTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
     }
 
-    uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_compare<ElemWiseLeOp>(a_ptr, b_ptr, n_elements, dtype);
+    uintptr_t less_than(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseLtOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
     }
 
-    uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_compare<ElemWiseGtOp>(a_ptr, b_ptr, n_elements, dtype);
+    uintptr_t less_than_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseLtTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
     }
 
-    uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_compare<ElemWiseGeOp>(a_ptr, b_ptr, n_elements, dtype);
+    uintptr_t less_than_or_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseLeOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t less_than_or_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseLeTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
+    uintptr_t greater_than(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseGtOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t greater_than_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseGtTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
+    uintptr_t greater_than_or_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseGeOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t greater_than_or_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseGeTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
     }
 
     /* BASIC */
@@ -161,6 +287,17 @@ namespace nectar {
         );
     }
 
+    uintptr_t add_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseAddTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
     uintptr_t subtract(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
@@ -170,6 +307,17 @@ namespace nectar {
     ) {
         return call_elemwise_2tensor<ElemWiseSubOp>(
             a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t subtract_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseSubTSOp>(
+            in_ptr, value, n_elements, dtype
         );
     }
 
@@ -185,6 +333,17 @@ namespace nectar {
         );
     }
 
+    uintptr_t multiply_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseMulTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
     uintptr_t divide(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
@@ -194,6 +353,17 @@ namespace nectar {
     ) {
         return call_elemwise_2tensor<ElemWiseDivOp>(
             a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t divide_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseDivTSOp>(
+            in_ptr, value, n_elements, dtype
         );
     }
 
@@ -334,6 +504,17 @@ namespace nectar {
         );
     }
 
+    uintptr_t fmod_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseFmodfTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
     /* MIN / MAX */
 
     uintptr_t min(
@@ -348,6 +529,17 @@ namespace nectar {
         );
     }
 
+    uintptr_t min_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseMinfTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
     uintptr_t max(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
@@ -357,6 +549,17 @@ namespace nectar {
     ) {
         return call_elemwise_2tensor<ElemWiseMaxOp>(
             a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t max_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    ) {
+        return call_elemwise_tensorscalar<ElemWiseMaxTSOp>(
+            in_ptr, value, n_elements, dtype
         );
     }
 

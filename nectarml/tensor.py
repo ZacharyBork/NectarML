@@ -787,8 +787,12 @@ class Tensor():
         Returns:
             str : The Tensor info string.
         '''
-        data_str = np.array2string(
-            self.numpy(), separator=', ', precision=4)
+        data = self.numpy()
+        if data.size == 1: 
+            data = data.tolist()
+            if isinstance(data, list): data = data[0]
+            data_str = str(data)
+        else: data_str = np.array2string(data, separator=', ', precision=4)
         data_str = data_str.replace('\n', '\n' + ' ' * 7)
         device_str = f'{self.device}' 
         if self.device == 'cuda' and self._device_id is not None:
@@ -796,12 +800,20 @@ class Tensor():
         return f'Tensor({data_str}, device=\'{device_str}\')'
     
     def __repr__(self: Tensor) -> str:
+        data = self.numpy()
+        if data.size == 1: 
+            data = data.tolist()
+            if isinstance(data, list): data = data[0]
+            data_str = str(data)
+        else: data_str = np.array2string(data, separator=', ', precision=4)
         return (
-            f'shape: {self.shape}\n'
-            f'data: {self.numpy()}\n'
-            f'grad: {self.grad}\n'
-            f'requires_grad: {self.requires_grad}\n'
-            f'_prev: {self._prev}')
+            f'Tensor: [\n'
+            f'    shape: {self.shape},\n'
+            f'    requires_grad: {self.requires_grad},\n'
+            f'    data: {data_str},\n'
+            f'    _prev: {self._prev}\n'
+            f']'
+        )
     
     def __len__(self) -> int: 
         '''Gets the length (in elements) of the Tensor's data.
@@ -853,10 +865,15 @@ class Tensor():
                     mask = (x == y).to(x.device, x.dtype)
         '''
         self._bool_type_check('Tensor.__eq__()', other)
-        other, _ = self._handle_tensor_or_numerical(other)
-        if self.device == 'cuda': data = cuda.math.equal(self, other)
-        else: data = self.data == other.data
-        return Tensor(data, self.shape, typing.bool_, self.device)
+        
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
+        if self.device == 'cuda': 
+            data = cuda.math.equal(self, other, out_shape)
+        else: data = cpu.math.equal(self, other)
+        return Tensor(data, out_shape, typing.bool_, self.device)
     
     def __lt__(self: Tensor, other: Tensor | int | float) -> Tensor:
         '''Tensor elementwise less than operator.
@@ -877,11 +894,15 @@ class Tensor():
                     mask = (x < y).to(x.device, x.dtype)
         '''
         self._bool_type_check('Tensor.__lt__()', other)
-        other, _ = self._handle_tensor_or_numerical(other)
+        
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
         if self.device == 'cuda':
-            data = cuda.math.less_than(self, other)
-        else: data = self.data < other.data
-        return Tensor(data, self.shape, typing.bool_, self.device)
+            data = cuda.math.less_than(self, other, out_shape)
+        else: data = cpu.math.less_than(self, other)
+        return Tensor(data, out_shape, typing.bool_, self.device)
     
     def __le__(self: Tensor, other: Tensor | int | float) -> Tensor:
         '''Tensor elementwise less than or equal operator.
@@ -903,11 +924,15 @@ class Tensor():
                     mask = (x <= y).to(x.device, x.dtype)
         '''
         self._bool_type_check('Tensor.__le__()', other)
-        other, _ = self._handle_tensor_or_numerical(other)
+
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+
         if self.device == 'cuda':
-            data = cuda.math.less_than_or_equal(self, other)
-        else: data = self.data <= other.data
-        return Tensor(data, self.shape, typing.bool_, self.device)
+            data = cuda.math.less_than_or_equal(self, other, out_shape)
+        else: data = cpu.math.less_than_or_equal(self, other)
+        return Tensor(data, out_shape, typing.bool_, self.device)
     
     def __gt__(self: Tensor, other: Tensor | int | float) -> Tensor:
         '''Tensor elementwise greater than operator.
@@ -928,11 +953,15 @@ class Tensor():
                     mask = (x > y).to(x.device, x.dtype)
         '''
         self._bool_type_check('Tensor.__gt__()', other)
-        other, _ = self._handle_tensor_or_numerical(other)
+        
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
         if self.device == 'cuda':
-            data = cuda.math.greater_than(self, other)
-        else: data = self.data > other.data
-        return Tensor(data, self.shape, typing.bool_, self.device)
+            data = cuda.math.greater_than(self, other, out_shape)
+        else: data = cpu.math.greater_than(self, other)
+        return Tensor(data, out_shape, typing.bool_, self.device)
     
     def __ge__(self: Tensor, other: Tensor | int | float) -> Tensor:
         '''Tensor elementwise greater than or equal operator.
@@ -954,11 +983,15 @@ class Tensor():
                     mask = (x >= y).to(x.device, x.dtype)
         '''
         self._bool_type_check('Tensor.__ge__()', other)
-        other, _ = self._handle_tensor_or_numerical(other)
+        
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
         if self.device == 'cuda':
-            data = cuda.math.greater_than_or_equal(self, other)
-        else: data = self.data >= other.data
-        return Tensor(data, self.shape, typing.bool_, self.device)
+            data = cuda.math.greater_than_or_equal(self, other, out_shape)
+        else: data = cpu.math.greater_than_or_equal(self, other)
+        return Tensor(data, out_shape, typing.bool_, self.device)
     
     ### ROUNDING ###
     
@@ -1024,15 +1057,17 @@ class Tensor():
         Returns:
             Tensor : A reference to the Tensor being added to.
         '''
-        other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__iadd__()', other)
 
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+
         if self.device == 'cuda': 
             new_ptr = cuda.math.add(self, other, out_shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
-        else: self.data += other.data
+        else: self.data = cpu.math.add(self, other)
         self.shape = out_shape
         return self
     
@@ -1045,16 +1080,22 @@ class Tensor():
         Returns:
             Tensor : Resulting Tensor from addition operation.
         '''
-        other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__add__()', other)
 
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+            
         if self.device == 'cuda': 
             out_data = cuda.math.add(self, other, out_shape)
-        else: out_data = cpu.math.add(self.data, other.data)
+        else: out_data = cpu.math.add(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1087,15 +1128,17 @@ class Tensor():
         Returns:
             Tensor : A reference to the Tensor being subtracted from.
         '''
-        other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__isub__()', other)
 
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
         if self.device == 'cuda': 
             new_ptr = cuda.math.subtract(self, other, out_shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)    
-        else: self.data -= other.data
+        else: self.data = cpu.math.subtract(self, other)
         self.shape = out_shape
         return self
 
@@ -1108,16 +1151,22 @@ class Tensor():
         Returns:
             Tensor : Resulting Tensor from addition operation.
         '''
-        other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__sub__()', other)
         
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+        
         if self.device == 'cuda': 
             out_data = cuda.math.subtract(self, other, out_shape)   
-        else: out_data = cpu.math.subtract(self.data, other.data)
+        else: out_data = cpu.math.subtract(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1150,7 +1199,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.negate(self)
-        else: out_data = cpu.math.negate(self.data)
+        else: out_data = cpu.math.negate(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1168,15 +1217,17 @@ class Tensor():
         Returns:
             Tensor : A reference to the Tensor being multiplied.
         '''
-        other, _ = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__imul__()', other)
 
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+        else: out_shape = self.shape
+        
         if self.device == 'cuda': 
             new_ptr = cuda.math.multiply(self, other, out_shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
-        else: self.data *= other.data
+        else: self.data = cpu.math.multiply(self, other)
         self.shape = out_shape
         return self
 
@@ -1189,15 +1240,21 @@ class Tensor():
         Returns:
             Tensor : Resulting Tensor from multiplication operation.
         '''
-        other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.__mul__()', other)
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+        
         if self.device == 'cuda': 
             out_data = cuda.math.multiply(self, other, out_shape)
-        else: out_data = cpu.math.multiply(self.data, other.data)
+        else: out_data = cpu.math.multiply(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1238,7 +1295,7 @@ class Tensor():
         other_requires_grad = other.requires_grad
         
         if self.device == 'cuda': out_data = cuda.matmul.matmul(self, other)
-        else: out_data = cpu.math.matmul(self.data, other.data)
+        else: out_data = cpu.math.matmul(self, other)
         out = self._build_output_tensor(out_data, (self, other))
         
         def _backward() -> None:
@@ -1276,7 +1333,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.pow(self, exponent)
-        else: out_data = cpu.math.pow(self.data, exponent)
+        else: out_data = cpu.math.pow(self, exponent)
         out = self._build_output_tensor(out_data, (self,))
         
         def _backward() -> None:
@@ -1323,13 +1380,13 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.abs(self)
-        else: out_data = cpu.math.abs(self.data)
-        
-        def _backward(out_grad: Tensor) -> None:
-            if self_requires_grad: 
-                self.grad += self.sign() * out_grad
-        
+        else: out_data = cpu.math.abs(self)
         out = self._build_output_tensor(out_data, (self,))
+        
+        def _backward() -> None:
+            if self_requires_grad: 
+                self.grad += self.sign() * out.grad
+        
         out._backward = _backward
         return out
     
@@ -1349,16 +1406,22 @@ class Tensor():
         Returns:
             Tensor : Resulting Tensor from the minimum operation.
         ''' 
-        other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.minimum()', other)
         
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+        
         if self.device == 'cuda': 
             out_data = cuda.math.minimum(self, other, out_shape)
-        else: out_data = cpu.math.minimum(self.data, other.data)
+        else: out_data = cpu.math.minimum(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1388,16 +1451,22 @@ class Tensor():
         Returns:
             Tensor : Resulting Tensor from the maximum operation.
         ''' 
-        other, children = self._handle_tensor_or_numerical(other)
         self._bool_type_check('Tensor.maximum()', other)
         
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+        
         if self.device == 'cuda': 
             out_data = cuda.math.maximum(self, other, out_shape)
-        else: out_data = cpu.math.maximum(self.data, other.data)
+        else: out_data = cpu.math.maximum(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1436,7 +1505,7 @@ class Tensor():
         
         if self.device == 'cuda': 
             out_data = cuda.math.clamp(self, min_value, max_value)
-        else: out_data = cpu.math.clamp(self.data, min_value, max_value)
+        else: out_data = cpu.math.clamp(self, min_value, max_value)
         out = self._build_output_tensor(out_data, (self,))
                     
         def _backward() -> None:
@@ -1470,7 +1539,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.exp(self)
-        else:  out_data = cpu.math.exp(self.data)
+        else:  out_data = cpu.math.exp(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1491,7 +1560,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log(self)
-        else: out_data = cpu.math.log(self.data)
+        else: out_data = cpu.math.log(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1510,7 +1579,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log2(self)
-        else: out_data = cpu.math.log2(self.data)
+        else: out_data = cpu.math.log2(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1529,7 +1598,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.log10(self)
-        else: out_data = cpu.math.log10(self.data)
+        else: out_data = cpu.math.log10(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1550,7 +1619,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.sqrt(self)
-        else: out_data = cpu.math.sqrt(self.data)
+        else: out_data = cpu.math.sqrt(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1570,7 +1639,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda':out_data = cuda.math.rsqrt(self)
-        else: out_data = cpu.math.rsqrt(self.data)
+        else: out_data = cpu.math.rsqrt(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1591,7 +1660,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.sin(self)
-        else: out_data = cpu.math.sin(self.data)
+        else: out_data = cpu.math.sin(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1612,7 +1681,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.asin(self)
-        else: out_data = cpu.math.asin(self.data)
+        else: out_data = cpu.math.asin(self)
         
         def _backward() -> None:
             if self_requires_grad:
@@ -1633,7 +1702,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.sinh(self)
-        else: out_data = cpu.math.sinh(self.data)
+        else: out_data = cpu.math.sinh(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1653,7 +1722,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.asinh(self)
-        else: out_data = cpu.math.asinh(self.data)
+        else: out_data = cpu.math.asinh(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1673,7 +1742,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.cos(self)
-        else: out_data = cpu.math.cos(self.data)
+        else: out_data = cpu.math.cos(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1694,7 +1763,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.acos(self)
-        else: out_data = cpu.math.acos(self.data)
+        else: out_data = cpu.math.acos(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1715,7 +1784,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.cosh(self)
-        else: out_data = cpu.math.cosh(self.data)
+        else: out_data = cpu.math.cosh(self)
         out = self._build_output_tensor(out_data, (self,))
         
         def _backward() -> None:
@@ -1735,7 +1804,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.acosh(self)
-        else: out_data = cpu.math.acosh(self.data)
+        else: out_data = cpu.math.acosh(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1758,7 +1827,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.tan(self)
-        else: out_data = cpu.math.tan(self.data)
+        else: out_data = cpu.math.tan(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None:
@@ -1778,7 +1847,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.tanh(self)
-        else: out_data = cpu.math.tanh(self.data)
+        else: out_data = cpu.math.tanh(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1798,7 +1867,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.atan(self)
-        else: out_data = cpu.math.atan(self.data)
+        else: out_data = cpu.math.atan(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1819,7 +1888,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.atanh(self)
-        else: out_data = cpu.math.atanh(self.data)
+        else: out_data = cpu.math.atanh(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward():
@@ -1844,7 +1913,7 @@ class Tensor():
         out_shape = self._broadcast_shape(self.shape, other.shape)
         if self.device == 'cuda': 
             out_data = cuda.math.atan2(other, self, out_shape)
-        else: out_data = cpu.math.atan2(other.data, self.data)
+        else: out_data = cpu.math.atan2(other, self)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=(self, other))
@@ -1872,24 +1941,31 @@ class Tensor():
         self._bool_type_check('Tensor.sign()')
                 
         if self.device == 'cuda': out_data = cuda.math.sign(self)
-        else: out_data = cpu.math.sign(self.data)
+        else: out_data = cpu.math.sign(self)
         out = self._build_output_tensor(out_data, (self,))
 
         def _backward() -> None: pass
         out._backward = _backward
         return out
     
-    def copysign(self: Tensor, other: Tensor | int | float) -> Tensor:
-        other, children = self._handle_tensor_or_numerical(other)
+    def copysign(self: Tensor, other: Tensor) -> Tensor:
+        self._validate_other(other)
         self._bool_type_check('Tensor.copysign()', other)
 
         self_requires_grad = self.requires_grad
-        other_requires_grad = other.requires_grad
         
-        out_shape = self._broadcast_shape(self.shape, other.shape)
+        if isinstance(other, Tensor):
+            out_shape = self._broadcast_shape(self.shape, other.shape)
+            children = (self, other)
+            other_requires_grad = other.requires_grad
+        else:
+            out_shape = self.shape
+            children = (self,)
+            other_requires_grad = False
+            
         if self.device == 'cuda': 
             out_data = cuda.math.copysign(self, other, out_shape)
-        else: out_data = cpu.math.copysign(self.data, other.data)
+        else: out_data = cpu.math.copysign(self, other)
         out = Tensor(out_data, out_shape, self.dtype, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=children)
@@ -1912,7 +1988,7 @@ class Tensor():
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': data = cuda.reductions.min(self, dim)
-        else: data = cpu.reductions.min(self.data, dim, keepdim)
+        else: data = cpu.reductions.min(self, dim, keepdim)
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad,
@@ -1943,8 +2019,7 @@ class Tensor():
             data = cuda.reductions.max(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data = cpu.reductions.max(
-                self.data, dim, keepdim)
+            data = cpu.reductions.max(self, dim, keepdim)
             output_shape = typing.Size(data.shape)
         out = Tensor(
             data, output_shape, self.dtype, self.device, self.requires_grad,
@@ -1972,7 +2047,7 @@ class Tensor():
         if self.device == 'cuda':
             raise RuntimeError(
                 'argmin currently not supported for CUDA tensors.')
-        return cpu.reductions.argmin(self.data, dim=dim, keepdim=keepdim)
+        return cpu.reductions.argmin(self, dim=dim, keepdim=keepdim)
         
     def argmax(
         self: Tensor, 
@@ -1983,7 +2058,7 @@ class Tensor():
         if self.device == 'cuda':
             raise RuntimeError(
                 'argmax currently not supported for CUDA tensors.')
-        return cpu.reductions.argmax(self.data, dim=dim, keepdim=keepdim)
+        return cpu.reductions.argmax(self, dim=dim, keepdim=keepdim)
     
     def mean(
         self: Tensor, 
@@ -2005,8 +2080,7 @@ class Tensor():
             data = cuda.reductions.mean(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
-            data = cpu.reductions.mean(
-                self.data, dim, keepdim)
+            data = cpu.reductions.mean(self, dim, keepdim)
             output_shape = typing.Size(data.shape)
 
         out = Tensor(
@@ -2044,7 +2118,7 @@ class Tensor():
                 return result
             
             data = cuda.reductions.sum(self, dim, initial)
-        else: data = cpu.reductions.sum(self.data, dim, keepdim, initial)
+        else: data = cpu.reductions.sum(self, dim, keepdim, initial)
 
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(
@@ -2079,7 +2153,7 @@ class Tensor():
                 return result
             
             data = cuda.reductions.prod(self, dim, initial)
-        else: data = cpu.reductions.prod(self.data, dim, keepdim, initial)
+        else: data = cpu.reductions.prod(self, dim, keepdim, initial)
         
         output_shape = self.shape.reduce(dim, keepdim)
         out = Tensor(

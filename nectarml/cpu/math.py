@@ -1,102 +1,138 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+
 import numpy as np
+
+### COMPARISON ###
+
+def equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data == b
+
+def less_than(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data < b
+
+def less_than_or_equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data <= b
+
+def greater_than(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data > b
+
+def greater_than_or_equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data >= b
 
 ### BASIC ###
 
-def add(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return a + b
+def add(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data + b
 
-def subtract(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return a - b
+def subtract(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return a.data - b
 
-def multiply(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return  a * b
+def multiply(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return  a.data * b
 
-def pow(a: np.ndarray, exponent: float | int) -> np.ndarray:
-    return a ** exponent
+def pow(a: Tensor, exponent: float | int) -> np.ndarray:
+    return a.data ** exponent
 
-def matmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return np.matmul(a, b)
+def matmul(a: Tensor, b: Tensor) -> np.ndarray:
+    return np.matmul(a.data, b.data)
 
-def negate(a: np.ndarray) -> np.ndarray:
-    return -a
+def negate(a: Tensor) -> np.ndarray:
+    return -a.data
 
-def sign(a: np.ndarray) -> np.ndarray:
-    return np.sign(a)
+def sign(a: Tensor) -> np.ndarray:
+    return np.sign(a.data)
+
+def copysign(a: Tensor, b: Tensor) -> np.ndarray:
+    return np.copysign(a.data, b.data)
 
 ### OTHER ###
 
 def clamp(
-    a: np.ndarray, 
+    a: Tensor, 
     min_value: float | None = None, 
     max_value: float | None = None
 ) -> np.ndarray:
-    if min_value is not None: a = np.maximum(a, min_value)
-    if max_value is not None: a = np.minimum(a, max_value)
-    return a
+    out = a.data
+    if min_value is not None: out = np.maximum(out, min_value)
+    if max_value is not None: out = np.minimum(out, max_value)
+    return out
 
-def minimum(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return np.minimum(a, b)
+def minimum(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return np.minimum(a.data, b)
 
-def maximum(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    return np.maximum(a, b)
+def maximum(a: Tensor, b: Tensor | int | float) -> np.ndarray:
+    if not isinstance(b, int | float): b = b.data
+    return np.maximum(a.data, b)
     
-def abs(input: np.ndarray) -> np.ndarray:
-    return np.abs(input)
+def abs(input: Tensor) -> np.ndarray:
+    return np.abs(input.data)
 
-def exp(input: np.ndarray) -> np.ndarray:
-    return np.exp(input)
+def exp(input: Tensor) -> np.ndarray:
+    return np.exp(input.data)
 
-def log(input: np.ndarray) -> np.ndarray:
-    return np.log(input)
+def log(input: Tensor) -> np.ndarray:
+    return np.log(input.data)
 
-def log2(input: np.ndarray) -> np.ndarray:
-    return np.log2(input)
+def log2(input: Tensor) -> np.ndarray:
+    return np.log2(input.data)
 
-def log10(input: np.ndarray) -> np.ndarray:
-    return np.log10(input)
+def log10(input: Tensor) -> np.ndarray:
+    return np.log10(input.data)
 
-def sqrt(input: np.ndarray) -> np.ndarray:
-    return np.sqrt(input)
+def sqrt(input: Tensor) -> np.ndarray:
+    return np.sqrt(input.data)
 
-def rsqrt(input: np.ndarray) -> np.ndarray:
-    return 1 / np.sqrt(input)
+def rsqrt(input: Tensor) -> np.ndarray:
+    return 1 / np.sqrt(input.data)
 
-def sin(input: np.ndarray) -> np.ndarray:
-    return np.sin(input)
+def sin(input: Tensor) -> np.ndarray:
+    return np.sin(input.data)
 
-def asin(input: np.ndarray) -> np.ndarray:
-    return np.asin(input)
+def asin(input: Tensor) -> np.ndarray:
+    return np.asin(input.data)
 
-def sinh(input: np.ndarray) -> np.ndarray:
-    return np.sinh(input)
+def sinh(input: Tensor) -> np.ndarray:
+    return np.sinh(input.data)
 
-def asinh(input: np.ndarray) -> np.ndarray:
-    return np.asinh(input)
+def asinh(input: Tensor) -> np.ndarray:
+    return np.asinh(input.data)
 
-def cos(input: np.ndarray) -> np.ndarray:
-    return np.cos(input)
+def cos(input: Tensor) -> np.ndarray:
+    return np.cos(input.data)
 
-def acos(input: np.ndarray) -> np.ndarray:
-    return np.acos(input)
+def acos(input: Tensor) -> np.ndarray:
+    return np.acos(input.data)
 
-def cosh(input: np.ndarray) -> np.ndarray:
-    return np.cosh(input)
+def cosh(input: Tensor) -> np.ndarray:
+    return np.cosh(input.data)
 
-def acosh(input: np.ndarray) -> np.ndarray:
-    return np.acosh(input)
+def acosh(input: Tensor) -> np.ndarray:
+    return np.acosh(input.data)
 
-def tan(input: np.ndarray) -> np.ndarray:
-    return np.tan(input)
+def tan(input: Tensor) -> np.ndarray:
+    return np.tan(input.data)
 
-def tanh(input: np.ndarray) -> np.ndarray:
-    return np.tanh(input)
+def tanh(input: Tensor) -> np.ndarray:
+    return np.tanh(input.data)
 
-def atan(input: np.ndarray) -> np.ndarray:
-    return np.atan(input)
+def atan(input: Tensor) -> np.ndarray:
+    return np.atan(input.data)
 
-def atanh(input: np.ndarray) -> np.ndarray:
-    return np.atanh(input)
+def atanh(input: Tensor) -> np.ndarray:
+    return np.atanh(input.data)
 
-def atan2(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    return np.atan2(y, x)
+def atan2(y: Tensor, x: Tensor) -> np.ndarray:
+    return np.atan2(y.data, x.data)
 

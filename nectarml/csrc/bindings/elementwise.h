@@ -3,17 +3,62 @@
 namespace py = pybind11;
 
 namespace nectar {
-    uintptr_t equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t less_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t less_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t greater_than(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
-    uintptr_t greater_than_or_equal(uintptr_t a_ptr, uintptr_t b_ptr, size_t n_elements, DType dtype);
+    uintptr_t equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
     
+    uintptr_t less_than(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t less_than_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
+    
+    uintptr_t less_than_or_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t less_than_or_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
+   
+    uintptr_t greater_than(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t greater_than_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
+    
+    uintptr_t greater_than_or_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t greater_than_or_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
+
     uintptr_t add(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
         std::vector<int> b_shape,
         std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t add_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
         DType dtype
     );
     uintptr_t subtract(
@@ -23,6 +68,12 @@ namespace nectar {
         std::vector<int> out_shape,
         DType dtype
     );
+    uintptr_t subtract_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    );
     uintptr_t multiply(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
@@ -30,11 +81,23 @@ namespace nectar {
         std::vector<int> out_shape,
         DType dtype
     );
+    uintptr_t multiply_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    );
     uintptr_t divide(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
         std::vector<int> b_shape,
         std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t divide_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
         DType dtype
     );
     uintptr_t negate(uintptr_t x_ptr, size_t n_elements, DType dtype);
@@ -84,6 +147,13 @@ namespace nectar {
         std::vector<int> out_shape,
         DType dtype
     );
+    
+    uintptr_t fmod_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    );
 
     uintptr_t min(
         uintptr_t a_ptr, uintptr_t b_ptr,
@@ -92,11 +162,23 @@ namespace nectar {
         std::vector<int> out_shape,
         DType dtype
     );
+    uintptr_t min_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
+        DType dtype
+    );
     uintptr_t max(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
         std::vector<int> b_shape,
         std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t max_ts(
+        uintptr_t in_ptr, 
+        float value, 
+        size_t n_elements, 
         DType dtype
     );
     uintptr_t clamp(uintptr_t base_ptr, float min_value, float max_value, size_t n_elements, DType dtype);
@@ -170,39 +252,69 @@ void register_elementwise(py::module_& m) {
     /* COMPARISON */
 
     m_elementwise.def("equal", &nectar::equal, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
-        py::arg("n_elements"),
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Elementwise eq (a==b). Returns boolean tensor data.");
 
-    m_elementwise.def("less_than", &nectar::less_than, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
+    m_elementwise.def("equal_ts", &nectar::equal_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
         py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise tensor-scalar eq (in_tensor==value). Returns boolean tensor data.");
+
+    m_elementwise.def("less_than", &nectar::less_than, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Elementwise lt (a<b). Returns boolean tensor data.");
 
-    m_elementwise.def("less_than_or_equal", &nectar::less_than_or_equal, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
+    m_elementwise.def("less_than_ts", &nectar::less_than_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
         py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise tensor-scalar lt (in_tensor<value). Returns boolean tensor data.");
+
+    m_elementwise.def("less_than_or_equal", &nectar::less_than_or_equal, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Elementwise le (a<=b). Returns boolean tensor data.");
 
-    m_elementwise.def("greater_than", &nectar::greater_than, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
+    m_elementwise.def("less_than_or_equal_ts", &nectar::less_than_or_equal_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
         py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise tensor-scalar le (in_tensor<=value). Returns boolean tensor data.");
+
+    m_elementwise.def("greater_than", &nectar::greater_than, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Elementwise gt (a>b). Returns boolean tensor data.");
 
-    m_elementwise.def("greater_than_or_equal", &nectar::greater_than_or_equal, 
-        py::arg("a_ptr"),
-        py::arg("b_ptr"),
+    m_elementwise.def("greater_than_ts", &nectar::greater_than_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
         py::arg("n_elements"),
         py::arg("dtype"),
+        "Elementwise tensor-scalar le (in_tensor>value). Returns boolean tensor data.");
+
+    m_elementwise.def("greater_than_or_equal", &nectar::greater_than_or_equal, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
+        py::arg("dtype"),
         "Elementwise ge (a>=b). Returns boolean tensor data.");
+
+    m_elementwise.def("greater_than_or_equal_ts", &nectar::greater_than_or_equal_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise tensor-scalar le (in_tensor>=value). Returns boolean tensor data.");
 
     /* BASIC */
 
@@ -212,23 +324,51 @@ void register_elementwise(py::module_& m) {
         py::arg("dtype"),
         "Adds tensor data a and b, then returns as new tensor data.");
 
+    m_elementwise.def("add_ts", &nectar::add_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Adds tensor data a and scalar value, then returns as new tensor data.");
+
     m_elementwise.def("subtract", &nectar::subtract, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
-        "Adds tensor data a and b, then returns as new tensor data.");
+        "Subtracts tensor data b from a, then returns as new tensor data.");
+
+    m_elementwise.def("subtract_ts", &nectar::subtract_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Subtracts scalar value from tensor a, then returns as new tensor data.");
 
     m_elementwise.def("multiply", &nectar::multiply, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
-        "Adds tensor data a and b, then returns as new tensor data.");
+        "Multiplies tensor data a by b, then returns as new tensor data.");
+
+    m_elementwise.def("multiply_ts", &nectar::multiply_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Mutiplies tensor a by scalar value, then returns as new tensor data.");
 
     m_elementwise.def("divide", &nectar::divide, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
-        "Adds tensor data a and b, then returns as new tensor data.");
+        "Divides tensor data a by b, then returns as new tensor data.");
+
+    m_elementwise.def("divide_ts", &nectar::divide_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Divides tensor a by scalar value, then returns as new tensor data.");
 
     m_elementwise.def("negate", &nectar::negate, 
         py::arg("x_ptr"),
@@ -412,6 +552,13 @@ void register_elementwise(py::module_& m) {
         py::arg("dtype"),
         "Calculates floating point modulo of x and y and returns as new tensor data.");
 
+    m_elementwise.def("fmod_ts", &nectar::fmod_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Calculates the floating point modulo of input tensor and scalar value, then returns as new tensor data.");
+
     /* MIN / MAX */
 
     m_elementwise.def("min", &nectar::min, 
@@ -420,11 +567,25 @@ void register_elementwise(py::module_& m) {
         py::arg("dtype"),
         "Calculates the minimum of x and y and returns as new tensor data.");
 
+    m_elementwise.def("min_ts", &nectar::min_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Calculates the minimum of input tensor data and scalar value and returns as new tensor data.");
+
     m_elementwise.def("max", &nectar::max, 
         py::arg("a_ptr"), py::arg("b_ptr"),
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Calculates the maximum of x and y and returns as new tensor data.");
+
+    m_elementwise.def("max_ts", &nectar::max_ts, 
+        py::arg("in_ptr"), 
+        py::arg("value"),
+        py::arg("n_elements"), 
+        py::arg("dtype"),
+        "Calculates the maximum of input tensor data and scalar value and returns as new tensor data.");
 
     /* SIGN */
 

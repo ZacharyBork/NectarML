@@ -11,10 +11,24 @@ struct ElemWiseEqOp {
 };
 
 template<typename T>
+struct ElemWiseEqTSOp {
+    __device__ static bool operation(T x, float value) {
+        return static_cast<float>(x) == value;
+    }
+};
+
+template<typename T>
 struct ElemWiseLtOp {
     __device__ static bool operation(T x, T y) {
         if constexpr (std::is_same_v<T, half>) { return __hlt(x, y); } 
         else { return x < y; }
+    }
+};
+
+template<typename T>
+struct ElemWiseLtTSOp {
+    __device__ static bool operation(T x, float value) {
+        return static_cast<float>(x) < value;
     }
 };
 
@@ -27,6 +41,13 @@ struct ElemWiseLeOp {
 };
 
 template<typename T>
+struct ElemWiseLeTSOp {
+    __device__ static bool operation(T x, float value) {
+        return static_cast<float>(x) <= value;
+    }
+};
+
+template<typename T>
 struct ElemWiseGtOp {
     __device__ static bool operation(T x, T y) {
         if constexpr (std::is_same_v<T, half>) { return __hgt(x, y); } 
@@ -35,10 +56,24 @@ struct ElemWiseGtOp {
 };
 
 template<typename T>
+struct ElemWiseGtTSOp {
+    __device__ static bool operation(T x, float value) {
+        return static_cast<float>(x) > value;
+    }
+};
+
+template<typename T>
 struct ElemWiseGeOp {
     __device__ static bool operation(T x, T y) {
         if constexpr (std::is_same_v<T, half>) { return __hge(x, y); } 
         else { return x >= y; }
+    }
+};
+
+template<typename T>
+struct ElemWiseGeTSOp {
+    __device__ static bool operation(T x, float value) {
+        return static_cast<float>(x) >= value;
     }
 };
 
@@ -245,6 +280,55 @@ struct ElemWiseTruncOp {
 };
 
 /* MATH (TENSOR/SCALAR) */
+
+template<typename T>
+struct ElemWiseAddTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) + value);
+    }
+};
+
+template<typename T>
+struct ElemWiseSubTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) - value);
+    }
+};
+
+template<typename T>
+struct ElemWiseMulTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) * value);
+    }
+};
+
+template<typename T>
+struct ElemWiseDivTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(static_cast<float>(x) / value);
+    }
+};
+
+template<typename T>
+struct ElemWiseFmodfTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(fmodf(static_cast<float>(x), value));
+    }
+};
+
+template<typename T>
+struct ElemWiseMinfTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(fminf(static_cast<float>(x), value));
+    }
+};
+
+template<typename T>
+struct ElemWiseMaxTSOp {
+    __device__ static T operation(T x, float value) {
+        return static_cast<T>(fmaxf(static_cast<float>(x), value));
+    }
+};
 
 template<typename T>
 struct ElemWisePowOp {
