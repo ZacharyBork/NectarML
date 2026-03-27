@@ -27,4 +27,6 @@ from .padding import (
     ReplicationPad1d, ReplicationPad2d, ReplicationPad3d,
     CircularPad1d, CircularPad2d, CircularPad3d,
     ZeroPad1d, ZeroPad2d, ZeroPad3d)
+from .pooling import (
+    AvgPool1d, AvgPool2d, AvgPool3d, MaxPool1d, MaxPool2d, MaxPool3d)
 
