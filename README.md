@@ -38,13 +38,13 @@
         ✅ 4. ConvTranspose1d
         ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
-    ❌ 3.  Pooling
-        ❌ 1. MaxPool1d
-        ❌ 2. MaxPool2d
-        ❌ 3. MaxPool3d
-        ❌ 4. AvgPool1d
-        ❌ 5. AvgPool2d
-        ❌ 6. AvgPool3d
+    ✅ 3.  Pooling
+        ✅ 1. MaxPool1d
+        ✅ 2. MaxPool2d
+        ✅ 3. MaxPool3d
+        ✅ 4. AvgPool1d
+        ✅ 5. AvgPool2d
+        ✅ 6. AvgPool3d
     ✅ 4.  Indexing
     ✅ 5.  Masking
     ✅ 6.  Math
@@ -67,13 +67,13 @@
         ✅ 4. ConvTranspose1d
         ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
-    ❌ 5.  Pooling
-        ❌ 1. MaxPool1d
-        ❌ 2. MaxPool2d
-        ❌ 3. MaxPool3d
-        ❌ 4. AvgPool1d
-        ❌ 5. AvgPool2d
-        ❌ 6. AvgPool3d
+    ✅ 5.  Pooling
+        ✅ 1. MaxPool1d
+        ✅ 2. MaxPool2d
+        ✅ 3. MaxPool3d
+        ✅ 4. AvgPool1d
+        ✅ 5. AvgPool2d
+        ✅ 6. AvgPool3d
     ✅ 6.  Indexing
     ✅ 7.  Loss
     ✅ 8.  Math
@@ -198,13 +198,13 @@
         ✅ 4. ConvTranspose1d
         ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
-    ❌ 8. Pooling
-        ❌ 1. MaxPool1d
-        ❌ 2. MaxPool2d
-        ❌ 3. MaxPool3d
-        ❌ 4. AvgPool1d
-        ❌ 5. AvgPool2d
-        ❌ 6. AvgPool3d
+    ✅ 8. Pooling
+        ✅ 1. MaxPool1d
+        ✅ 2. MaxPool2d
+        ✅ 3. MaxPool3d
+        ✅ 4. AvgPool1d
+        ✅ 5. AvgPool2d
+        ✅ 6. AvgPool3d
     ✅ 9. Dropout
         ✅ 1. Dropout
         ✅ 2. Alpha Dropout
@@ -313,7 +313,7 @@
             ✅ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
         ✅ 2.  Upsample
-        ❌ 3.  Pooling
+        ✅ 3.  Pooling
         ✅ 4.  Elementwise
         ✅ 5.  Indexing
         ✅ 6.  Matmul
@@ -331,7 +331,7 @@
             ✅ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
         ✅ 2.  Upsample
-        ❌ 3.  Pooling
+        ✅ 3.  Pooling
         ✅ 4.  Elementwise
         ✅ 5.  Indexing
         ✅ 6.  Matmul
@@ -342,7 +342,7 @@
         🟡 11. Vision
     🟡 3. Bindings
     ✅ 4. CMakeLists
-    ❌ 5. Organization and Cleanup
+    🟡 5. Organization and Cleanup
 
 ### 🟡  Other
 
