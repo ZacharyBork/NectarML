@@ -1,24 +1,24 @@
 #include "common.h"
-#include "bindings/memory.h"
-#include "bindings/device.h"
-#include "bindings/utils.h"
-#include "bindings/elementwise.h"
-#include "bindings/vision.h"
-#include "bindings/reductions.h"
+
 #include "bindings/combination.h"
-#include "bindings/shapes.h"
-#include "bindings/matmul.h"
+#include "bindings/conv.h"
+#include "bindings/device.h"
+#include "bindings/elementwise.h"
 #include "bindings/indexing.h"
 #include "bindings/inspection.h"
-#include "bindings/conv.h"
 #include "bindings/interpolation.h"
+#include "bindings/matmul.h"
+#include "bindings/memory.h"
 #include "bindings/padding.h"
+#include "bindings/pooling.h"
+#include "bindings/reductions.h"
+#include "bindings/shapes.h"
+#include "bindings/utils.h"
+#include "bindings/vision.h"
 
 namespace py = pybind11;
 
 void destroy_cublas_handle();
-
-namespace tensor { }
 
 PYBIND11_MODULE(_nectarml, m) {
     m.doc() = "NectarML C++ extension module";
@@ -33,7 +33,6 @@ PYBIND11_MODULE(_nectarml, m) {
     m.def("destroy_cublas_handle", &destroy_cublas_handle, 
         "Destroys cuBLAS handle. Registered atexit for Python module.");
 
-
     auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");
     register_combination(m_tensor);
     register_conv(m_tensor);
@@ -42,6 +41,7 @@ PYBIND11_MODULE(_nectarml, m) {
     register_interpolation(m_tensor);
     register_matmul(m_tensor);
     register_padding(m_tensor);
+    register_pooling(m_tensor);
     register_reductions(m_tensor);
     register_shapes(m_tensor);
 
