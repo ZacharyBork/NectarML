@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros
@@ -11,7 +9,7 @@ from nectarml.nn.linear import Linear
 
 class MultiheadAttention(Module):
     def __init__(
-        self, 
+        self: MultiheadAttention, 
         embed_dim: int,
         num_heads: int,
         dropout: float = 0.0,
@@ -21,10 +19,9 @@ class MultiheadAttention(Module):
         kdim: int | None = None,
         vdim: int | None = None,
         batch_first: bool = False,
-        device: Literal['cpu', 'cuda'] = 'cpu',
         dtype: DTypeLike = float32
     ) -> None:
-        super().__init__(device, dtype)
+        super().__init__(dtype)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.dropout = dropout
@@ -35,14 +32,15 @@ class MultiheadAttention(Module):
         self.vdim = vdim or embed_dim
         self.batch_first = batch_first
         
-        self.W_q = Linear(embed_dim, embed_dim, bias=bias)
-        self.W_k = Linear(self.kdim, embed_dim, bias=bias)
-        self.W_v = Linear(self.vdim, embed_dim, bias=bias)
-        self.W_o = Linear(embed_dim, embed_dim, bias=bias)
+        self.W_q = Linear(embed_dim, embed_dim, bias=bias, dtype=dtype)
+        self.W_k = Linear(self.kdim, embed_dim, bias=bias, dtype=dtype)
+        self.W_v = Linear(self.vdim, embed_dim, bias=bias, dtype=dtype)
+        self.W_o = Linear(embed_dim, embed_dim, bias=bias, dtype=dtype)
         
         if add_bias_kv:
-            self.bias_k = zeros((1, 1, embed_dim), requires_grad=True)
-            self.bias_v = zeros((1, 1, embed_dim), requires_grad=True)
+            bias_shape = (1, 1, embed_dim)
+            self.bias_k = zeros(bias_shape, dtype=dtype, requires_grad=True)
+            self.bias_v = zeros(bias_shape, dtype=dtype, requires_grad=True)
 
     def forward(
         self: MultiheadAttention, 

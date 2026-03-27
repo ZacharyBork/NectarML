@@ -1,19 +1,18 @@
-from typing import Literal
+from __future__ import annotations
 
+from nectarml.nn import Module
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
-import nectarml.nn as nn
 
-class Identity(nn.Module):
+class Identity(Module):
     def __init__(
-        self,
-        device: Literal['cpu', 'cuda'] = 'cpu',
+        self: Identity,
         dtype: DTypeLike = float32,
         *args,
         **kwargs
     ) -> None:
-        super().__init__(device, dtype)
+        super().__init__(dtype)
         
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self: Identity, x: Tensor) -> Tensor:
         return x
     

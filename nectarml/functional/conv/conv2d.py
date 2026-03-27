@@ -1,7 +1,5 @@
 from typing import Literal
 
-import numpy as np
-
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
 

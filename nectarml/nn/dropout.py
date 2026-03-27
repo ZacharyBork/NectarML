@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.nn.module import Module
-import nectarml.functional as F
 
 class Dropout(Module):
     def __init__(

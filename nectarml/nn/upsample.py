@@ -4,7 +4,6 @@ from typing import Literal
 import numpy as np
 
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
 from nectarml.nn.module import Module
 from nectarml.functional.interpolation import upsample
 

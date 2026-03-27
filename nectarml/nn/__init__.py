@@ -3,7 +3,10 @@ from .module import Module
 from .linear import Linear
 from .upsample import Upsample
 from .identity import Identity
-from .conv import Conv1d, Conv2d, Conv3d
+from .conv import (
+    Conv1d, ConvTranspose1d,
+    Conv2d, ConvTranspose2d, 
+    Conv3d, ConvTranspose3d)
 from .dropout import (
     Dropout, AlphaDropout, FeatureAlphaDropout, 
     Dropout1d, Dropout2d, Dropout3d)

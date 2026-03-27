@@ -12,14 +12,12 @@ class Module():
     
     def __init__(
         self: Module,
-        device: Literal['cpu', 'cuda'] = 'cpu',
         dtype: DTypeLike = float32
     ) -> None:
         super().__setattr__('_parameters', {})
         super().__setattr__('_submodules', {})
         super().__setattr__('_buffers', {})
         
-        self.device = device
         self.dtype = dtype
         
         self.training:         bool = True
@@ -28,22 +26,12 @@ class Module():
     # PROPERTIES
     
     @property
-    def device(self: Module) -> str:
-        return self._device
-
-    @device.setter
-    def device(self: Module, value: str) -> None:
-        self._device = value
-        
-    @property
     def dtype(self: Module) -> DTypeLike:
         return self._dtype
     
     @dtype.setter
     def dtype(self: Module, value: DTypeLike) -> None:
         self._dtype = value
-        for parameter in self._parameters.values():
-            parameter.dtype = value
             
     # REGISTRATION
     
@@ -104,17 +92,44 @@ class Module():
     
     def to(
         self: Module,
-        device: Literal['cpu', 'cuda'],
+        device: Literal['cpu', 'cuda'] | None = None,
         dtype: DTypeLike | None = None
     ) -> Module: 
         modules = self._walk_module_tree()
         for _, module in modules:
-            module.device = device
-            if dtype is not None: module.dtype = dtype
-            for buffer in module._buffers.values():  buffer.to(device, dtype)
-            for parm in module._parameters.values(): parm.to(device, dtype)
-       
+            for name, buffer in module._buffers.items():
+                module._buffers[name] = buffer.to(
+                    device or buffer.device,
+                    dtype or buffer.dtype)
+            for name, parm in module._parameters.items():
+                module._parameters[name] = parm.to(
+                    device or parm.device,
+                    dtype or parm.dtype)
+        if dtype is not None:
+            self.dtype = dtype
         return self
+    
+    def cuda(self: Module) -> Module: 
+        '''Convenience function to cast given Module to CUDA device.
+        
+        When called on a Module who's device is already "cuda", this method 
+        will return a reference to the original Module object.
+        
+        Returns:
+            Module : The resulting CUDA Module from the cast operation.
+        '''
+        return self.to(device='cuda')
+
+    def cpu(self: Module) -> Module: 
+        '''Convenience function to cast given Module to CPU device.
+        
+        When called on a Module who's device is already "cpu", this method 
+        will return a reference to the original Module object.
+        
+        Returns:
+            Module : The resulting CPU Module from the cast operation.
+        '''
+        return self.to(device='cpu')
     
     # STATES
     
@@ -187,16 +202,6 @@ class Module():
         raise NotImplementedError('forward() not implemented by child class.')
 
     def __call__(self: Module, *args, **kwargs) -> Any:
-        if self._parameters or self._buffers:
-            inputs = list(args) + list(kwargs.values())
-            tensors = [i for i in inputs if isinstance(i, Tensor)]
-            for t in tensors:
-                if t.device == self.device: continue
-                raise RuntimeError(
-                    f'Expected tensors to be on same device as module, but '
-                    f'found at least two devices: '
-                    f'{t.device} and {self.device}')
-        
         return self.forward(*args, **kwargs)
 
 
