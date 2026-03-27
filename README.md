@@ -28,25 +28,32 @@
         ✅ 8. Arange
         ✅ 9. Linspace
 
-### ✅  CPU Library (nectarml.cpu)
+### 🟡  CPU Library (nectarml.cpu)
 
-    ✅ 1. Combinations
-    🟡 2. Conv
+    ✅ 1.  Combinations
+    🟡 2.  Conv
         ✅ 1. Conv1d
         ✅ 2. Conv2d
         ❌ 3. Conv3d
-        ❌ 4. ConvTranspose1d
-        ❌ 5. ConvTranspose2d
+        ✅ 4. ConvTranspose1d
+        ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
-    ✅ 3. Indexing
-    ✅ 4. Masking
-    ✅ 5. Math
-    ✅ 6. Padding
-    ✅ 7. Reductions
-    ✅ 8. Shapes
-    ✅ 9. Interpolation
+    ❌ 3.  Pooling
+        ❌ 1. MaxPool1d
+        ❌ 2. MaxPool2d
+        ❌ 3. MaxPool3d
+        ❌ 4. AvgPool1d
+        ❌ 5. AvgPool2d
+        ❌ 6. AvgPool3d
+    ✅ 4.  Indexing
+    ✅ 5.  Masking
+    ✅ 6.  Math
+    ✅ 7.  Padding
+    ✅ 8.  Reductions
+    ✅ 9.  Shapes
+    ✅ 10. Interpolation
 
-### ✅  Functional Library
+### 🟡  Functional Library
 
     ✅ 1.  Activation
     ✅ 2.  Attention
@@ -57,8 +64,8 @@
         ✅ 1. Conv1d
         ✅ 2. Conv2d
         ❌ 3. Conv3d
-        ❌ 4. ConvTranspose1d
-        ❌ 5. ConvTranspose2d
+        ✅ 4. ConvTranspose1d
+        ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
     ❌ 5.  Pooling
         ❌ 1. MaxPool1d
@@ -182,14 +189,14 @@
         ✅ 3. ReplicationPad1d/2d/3d
         ✅ 4. CircularPad1d/2d/3d
         ✅ 5. ZeroPad1d/2d/3d
-    ❌ 6. Attention
+    ✅ 6. Attention
         ✅ 1. MultiheadAttention
-    ❌ 7. Convolutions
-        ❌ 1. Conv1d
-        ❌ 2. Conv2d
+    🟡 7. Convolutions
+        ✅ 1. Conv1d
+        ✅ 2. Conv2d
         ❌ 3. Conv3d
-        ❌ 4. ConvTranspose1d
-        ❌ 5. ConvTranspose2d
+        ✅ 4. ConvTranspose1d
+        ✅ 5. ConvTranspose2d
         ❌ 6. ConvTranspose3d
     ❌ 8. Pooling
         ❌ 1. MaxPool1d
@@ -246,7 +253,7 @@
     ✅ 11. CyclicLR
     ✅ 12. OneCycleLR
 
-### ✅  Data Utils
+### 🟡  Data Utils
 
     🟡 1. Dataloader
     ✅ 2. Default Collate Function
@@ -282,13 +289,18 @@
 
 ### 🟡  Image Transform/Augmentation Utilities
 
-    🟡 1. Spatial / Geometric
-    🟡 2. Color / Photometric
-    ❌ 3. Blur / Noise
-    ❌ 4. Dropout / Erasing
-    ✅ 5. Normalization
-    🟡 6. Format / Type
-    ✅ 7. Composition
+    ✅ 1. Base Transform Class
+    🟡 2. Categories
+        ❌ 1.  Blur
+        🟡 2.  Color
+        ✅ 3.  Composition
+        🟡 4.  Erasing
+        ✅ 5.  Filter
+        ✅ 6.  Format
+        ✅ 7.  Noise
+        ✅ 8.  Normalization
+        🟡 9.  Spatial
+        ✅ 10. Utility
 
 ### 🟡  CUDA
 
@@ -297,8 +309,8 @@
             ✅ 1. Conv1d
             ✅ 2. Conv2d
             ❌ 3. Conv3d
-            ❌ 4. ConvTranspose1d
-            ❌ 5. ConvTranspose2d
+            ✅ 4. ConvTranspose1d
+            ✅ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
         ✅ 2.  Upsample
         ❌ 3.  Pooling
@@ -315,8 +327,8 @@
             ✅ 1. Conv1d
             ✅ 2. Conv2d
             ❌ 3. Conv3d
-            ❌ 4. ConvTranspose1d
-            ❌ 5. ConvTranspose2d
+            ✅ 4. ConvTranspose1d
+            ✅ 5. ConvTranspose2d
             ❌ 6. ConvTranspose3d
         ✅ 2.  Upsample
         ❌ 3.  Pooling
