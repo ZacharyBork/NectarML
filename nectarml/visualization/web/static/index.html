@@ -7,92 +7,31 @@
 </head>
 
 <body>
+    <div id="button-container">
+        <button type="button" id="ClearButton"><img src="resource/broom.svg"></button>
+    </div>
+
+    <details open id="graph-dropdown">
+        <summary id="graph-dropdown-label">Graphs</summary>
+        <div id="graph-layout-options" style="text-align: right;">
+            <button type="button" id="GraphLayoutRows"><img src="resource/rows.svg"></button>
+            <button type="button" id="GraphLayoutTabs"><img src="resource/tabs.svg"></button>
+        </div>
+
+        <div id="graph-container"></div>
+    </details>
+
+    <details open id="image-dropdown">
+        <summary id="image-dropdown-label">Images</summary>
+        <div id="image-container"></div>
+    </details>
+
     <div id="pane-container"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script>
-        const panes = {};
-
-        function createPane(win, title) {
-            const div = document.createElement("div");
-            div.className = "pane";
-            div.innerHTML = `<h3>${title || win}</h3><canvas></canvas>`;
-            document.getElementById("pane-container").appendChild(div);
-
-            panes[win] = { el: div, chart: null };
-
-            const chart = new Chart(div.querySelector("canvas"), {
-                type: "line",
-                data: { labels: [], datasets: [] },
-                options: {
-                    animation: false,
-                    responsive: true,
-                    scales: {
-                        x: { title: { display: true, text: "" } },
-                        y: { title: { display: true, text: "" } }
-                    }
-                }
-            });
-
-            panes[win].chart = chart;
-        }
-
-        function updateLine(msg) {
-            const { win, title, X, Y, opts = {} } = msg;
-
-            if (!panes[win]) createPane(win, title);
-
-            const chart = panes[win].chart;
-            chart.data.labels = X;
-            chart.data.datasets = Y.map((series, i) => ({
-                label: (opts.legend || [])[i] ?? `series ${i}`,
-                data: series,
-                borderWidth: 2,
-                pointRadius: 2,
-                tension: 0.1,
-                fill: true,
-            }));
-
-            if (opts.xlabel) chart.options.scales.x.title.text = opts.xlabel;
-            if (opts.ylabel) chart.options.scales.y.title.text = opts.ylabel;
-
-            chart.update();
-        }
-
-        const ws = new WebSocket(`ws://${location.host}/ws`);
-        ws.onmessage = ({ data }) => {
-            const msg = JSON.parse(data);
-            if (msg.type === "line" || msg.type === "line_update") {
-                updateLine(msg);
-            }
-        };
-
-        function createImagePane(win, title) {
-            const div = document.createElement("div");
-            div.className = "pane";
-            div.innerHTML = `<h3>${title || win}</h3><img></img>`;
-            document.getElementById("pane-container").appendChild(div);
-            panes[win] = { el: div, chart: null };
-        }
-
-        function updateImage(msg) {
-            const { win, title, data } = msg;
-
-            if (!panes[win]) createImagePane(win, title);
-
-            panes[win].el.querySelector("img").src = `data:image/png;base64,${data}`;
-        }
-
-        ws.onmessage = ({ data }) => {
-            const msg = JSON.parse(data);
-            if (msg.type === "line" || msg.type === "line_update") {
-                updateLine(msg);
-            } else if (msg.type === "image") {
-                updateImage(msg);
-            }
-        };
-        
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>

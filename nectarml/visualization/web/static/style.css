@@ -1,6 +1,109 @@
 
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
 body {
     color: rgb(200 200 200);
     background-color: rgb(30 30 30);
 }
 
+#button-container {
+    background-color: rgb(50 50 50);
+    padding: 10px;
+    border-radius: 15px;
+    margin: 5px;
+}
+
+button {
+    background-color: rgb(170 170 170);
+    border-radius: 5px;
+}
+
+#ClearButton {
+    background-color: rgb(170 170 170);
+    border-radius: 5px;
+}
+
+#GraphLayoutTabs,
+#GraphLayoutRows,
+#GraphLayoutGrid {
+    background-color: rgb(100 100 100);
+    border-radius: 5px;
+    scale: 70%;
+    margin: 0px -5px 0px -10px;
+}
+
+#graph-dropdown, #image-dropdown {
+    background-color: rgb(50 50 50);
+    padding: 15px;
+    border-radius: 15px;
+    margin: 5px 5px 10px 5px;
+    user-select: none;
+}
+
+#graph-dropdown-label, #image-dropdown-label {
+    background-color: rgb(65 65 65);
+    padding: 15px;
+    border-radius: 15px;
+    margin: -15px -15px -5px -15px;
+}
+
+#graph-layout-options {
+    background: none;
+    border-radius: 10px;
+    border: 1px solid rgb(150 150 150);
+    padding: 2px;
+    margin: 10px 0px 10px 0px;
+}
+
+.graph-pane {
+    background-color: rgb(65 65 65);
+    padding: 5px;
+    margin: -5px;
+    border-radius: 10px;
+    resize: vertical;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 200px;
+    height: 400px;
+}
+
+.chart-container {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.graph-pane canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.graph-settings {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#image-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, max-content));
+    gap: 16px;
+    padding: 16px;
+    align-items: start;
+    width: 100%;
+    box-sizing: border-box;
+    }
+
+.image-pane {
+    width: fit-content;
+}
+
+.image-pane img {
+    display: block;
+    max-width: none;
+}

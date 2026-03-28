@@ -33,6 +33,12 @@ class VizServer:
         data = await request.json()
         win = data.get('win', 'default')
         
+        if data['type'] == 'clear':
+            self._state.clear()
+            for ws in self._clients:
+                await ws.send_str(json.dumps({'type': 'clear'}))
+            return web.json_response({'ok': True})
+        
         if data['type'] == 'line_update' and win in self._state:
             existing = self._state[win]
             existing['X'].extend(data['X'])
@@ -60,8 +66,8 @@ class VizServer:
 
     def run(self) -> None:
         app = web.Application(client_max_size=50 * 1024 * 1024)
-        app.router.add_get("/favicon.ico", self._favicon_handler)
-        app.router.add_get("/", self._index_handler)
+        app.router.add_get('/favicon.ico', self._favicon_handler)
+        app.router.add_get('/', self._index_handler)
         app.router.add_get('/ws', self._ws_handler)
         app.router.add_post('/push', self._push_handler)
         app.router.add_static('/', STATIC_DIR)

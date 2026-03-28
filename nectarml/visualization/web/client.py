@@ -29,6 +29,9 @@ class Viz:
         )
         urllib.request.urlopen(req, timeout=2)
 
+    def clear(self):
+        self._post({'type': 'clear'})
+
     def image(
         self, 
         tensor: Tensor, 
@@ -36,18 +39,21 @@ class Viz:
         sampling_mode: Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        win: str = 'image', 
+        preserve_aspect_ratio: bool = True,
+        window: str = 'image', 
         title: str = '', 
         opts: dict[str, Any] | None = None
     ) -> None:
-        resampled = Resample(size=size, mode=sampling_mode)(tensor)
-        img = ToPIL()(resampled)
+        resample = Resample(
+            size=size, mode=sampling_mode, 
+            preserve_aspect_ratio=preserve_aspect_ratio)
+        img = ToPIL()(resample(tensor))
         
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         png_b64 = base64.b64encode(buf.getvalue()).decode()
         self._post({
-            'type': 'image', 'win': win,
+            'type': 'image', 'win': window,
             'title': title, 'data': png_b64,
             'opts': opts or {}
         })
@@ -55,8 +61,13 @@ class Viz:
     def images(
         self, 
         tensors: Iterable[Tensor], 
+        size: int | tuple[int, int],
         nrow: int = 8, 
-        win: str = 'images', 
+        sampling_mode: Literal[
+            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
+        ] = 'nearest',
+        preserve_aspect_ratio: bool = True,
+        window: str = 'images', 
         title: str = '', 
         opts: dict[str, Any] | None = None
     ) -> None:
@@ -72,27 +83,38 @@ class Viz:
             y0, x0 = r*(h+pad), c*(w+pad)
             grid[y0:y0+h, x0:x0+w] = np.asarray(t)[:, :, :3]
     
-        self.image(grid, win=win, title=title, opts=opts)
+        self.image(grid, size, sampling_mode=sampling_mode,
+                   preserve_aspect_ratio=preserve_aspect_ratio,
+                   window=window, title=title, opts=opts)
 
     def line(
         self, 
-        Y: int, 
-        X: int | None = None, 
-        win: str = 'plot', 
+        Y: Iterable[float | int], 
+        X: Iterable[float | int] | None = None, 
+        window: str = 'plot', 
         title: str = '', 
+        v_axis_label: str = '',
+        h_axis_label: str = '',
         update: bool = False, 
         opts: dict[str, Any] | None = None
     ) -> None:
-        if not isinstance(Y[0], (list, tuple)):
-            Y = [Y]
+        if isinstance(Y[0], (list, tuple, np.ndarray)):
+            series = [list(np.atleast_1d(s)) for s in Y]
+        else:
+            if X is not None and len(X) == 1 and len(Y) > 1:
+                series = [[float(v)] for v in Y]
+            else:
+                series = [[float(v) for v in Y]]
+
         if X is None:
-            X = list(range(len(Y[0])))
-        opts = opts or {}
+            X = list(range(len(series[0])))
+
         self._post({
             'type': 'line_update' if update else 'line',
-            'win': win, 'title': title,
-            'X': list(X), 'Y': [list(s) for s in Y],
-            'opts': opts
+            'win': window, 'title': title,
+            'X': list(X), 'Y': series,
+            'v_axis_label': v_axis_label, 'h_axis_label': h_axis_label,
+            'opts': opts or {}
         })
 
 
