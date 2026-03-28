@@ -14,6 +14,7 @@ from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.format import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
+from nectarml.functional.interpolation import upsample
 
 ### IMAGE UTILS ###
 
@@ -119,6 +120,28 @@ class SaveImageFile(Transform[Tensor, Tensor]):
         
         self.to_pil(input).save(self.output_path)
         return input
+    
+class Resample(Transform[Tensor, Tensor]):
+    def __init__(
+        self,
+        size: int | tuple[int, ...] | None = None,
+        scale_factor: float | tuple[float, ...] | None = None,
+        mode: Literal[
+            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
+        ] = 'nearest',
+        a: float = -0.75,
+        align_corners: bool = False
+    ) -> None:
+        super().__init__()
+        self.size = size
+        self.scale_factor = scale_factor
+        self.mode = mode
+        self.a = a
+        self.align_corners = align_corners
+        
+    def forward(self, input: Tensor) -> Tensor:
+        return upsample(input, self.size, self.scale_factor, self.mode,
+            self.a, self.align_corners)
 
 ### SHAPE UTILS ###
 

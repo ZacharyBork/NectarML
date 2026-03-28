@@ -72,8 +72,7 @@ def upsample_nearest(
                 f'upsample_nearest requires input to have 3, 4, or 5 dims.')
     else:
         input_size = input.shape[2:]
-        out_data = cpu.interpolation.upsample(
-            input.data, output_size, mode='nearest')
+        out_data = cpu.interpolation.upsample_nearest(input.data, output_size)
         _backward_fn = lambda x : \
             cpu.interpolation.upsample_nearest_backward(x, input_size)
     

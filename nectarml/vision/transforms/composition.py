@@ -6,7 +6,7 @@ from contextlib import nullcontext
 
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform, format, utility
-from nectarml.benchmark import benchmark_time
+from nectarml.utils.benchmark import benchmark_time
 
 class Compose(Transform):
     def __init__(
