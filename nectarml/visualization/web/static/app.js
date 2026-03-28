@@ -1,5 +1,20 @@
 const graph_panes = {};
 
+const COLORS = [
+    "rgb(252, 50, 0)",
+    "rgb(70, 230, 90)",
+    "rgb(50, 90, 237)",
+    "rgb(252, 129, 74)",
+    "rgb(154, 230, 180)",
+    "rgb(99, 179, 237)",
+    "rgb(183, 148, 246)",
+    "rgb(246, 173, 85)",
+];
+
+function toFaded(rgb, alpha) {
+    return rgb.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
+}
+
 function smoothSeries(data, factor) {
     if (factor === 0) return data;
     let last = data[0];
@@ -9,10 +24,56 @@ function smoothSeries(data, factor) {
     });
 }
 
+function applySmoothing(chart, raw, factor, colors, labels) {
+    const datasets = [];
+
+    raw.Y.forEach((series, i) => {
+        const label = labels[i];
+        const color = colors[i];
+
+        if (factor > 0) {
+            datasets.push({
+                label: label,
+                data: series.map((y, j) => ({ x: raw.X[j], y })),
+                borderWidth: 1,
+                pointRadius: 0,
+                tension: 0.1,
+                borderColor: toFaded(color, 0.25),
+            });
+            datasets.push({
+                label: `${label} (smoothed)`,
+                data: smoothSeries(series, factor).map((y, j) => ({ x: raw.X[j], y })),
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.1,
+                borderColor: color,
+            });
+        } else {
+            datasets.push({
+                label: label,
+                data: series.map((y, j) => ({ x: raw.X[j], y })),
+                borderWidth: 2,
+                pointRadius: 2,
+                tension: 0.1,
+                borderColor: color,
+            });
+        }
+    });
+
+    chart.data.datasets = datasets;
+    chart.update();
+}
+
+
 function createChartPane(win, title, v_axis_label, h_axis_label) {
     const div = document.createElement("div");
     div.className = "graph-pane";
-    div.innerHTML = `<h3>${title || win}</h3><div class="chart-container"><canvas></canvas></div>`;
+    div.innerHTML = `
+        <h3>${title || win}</h3>
+        <div class="chart-container">
+            <canvas></canvas>
+            <div class="zoom-hint">Double click to reset zoom</div>
+        </div>`;
 
     const graph_settings = document.createElement("container");
     graph_settings.className = "graph-settings";
@@ -22,16 +83,10 @@ function createChartPane(win, title, v_axis_label, h_axis_label) {
 
     const slider = graph_settings.querySelector("#graph-smoothing");
     slider.addEventListener("input", () => {
-        const factor = slider.value / 101;
-        const chart = graph_panes[win].chart;
-        const raw = graph_panes[win].raw;
-        if (!raw) return;
-
-        chart.data.datasets = raw.Y.map((series, i) => ({
-            ...chart.data.datasets[i],
-            data: smoothSeries(series, factor).map((y, j) => ({ x: raw.X[j], y }))
-        }));
-        chart.update();
+        const factor = slider.value / 100;
+        const pane = graph_panes[win];
+        if (!pane.raw) return;
+        applySmoothing(pane.chart, pane.raw, factor, pane.colors, pane.labels);
     });
 
     const canvas = div.querySelector("canvas");
@@ -40,6 +95,7 @@ function createChartPane(win, title, v_axis_label, h_axis_label) {
 
     canvas.addEventListener("dblclick", () => {
         graph_panes[win].chart.resetZoom();
+        div.querySelector(".zoom-hint").style.display = "none";
     });
 
     canvas.addEventListener("mousedown", (e) => {
@@ -76,27 +132,34 @@ function createChartPane(win, title, v_axis_label, h_axis_label) {
             responsive: true,
             maintainAspectRatio: false,
             devicePixelRatio: window.devicePixelRatio,
+            fill: false,
             scales: {
                 x: {
                     type: "linear",
-                    ticks: { font: { size: 11 } },
+                    ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } },
                     title: { display: true, text: h_axis_label, font: { size: 16 } }
                 },
                 y: {
-                    ticks: { font: { size: 11 } },
+                    ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } },
                     title: { display: true, text: v_axis_label, font: { size: 16 } }
                 }
             },
             plugins: {
                 legend: {
                     labels: {
-                        font: { size: 12 }
+                        font: { 
+                            family: "'JetBrains Mono', monospace",
+                            size: 10 
+                        }
                     }
                 },
                 zoom: {
                     zoom: {
                         drag: { enabled: true },
                         mode: () => dragMode,
+                        onZoomComplete() {
+                            div.querySelector(".zoom-hint").style.display = "block";
+                        }
                     },
                     limits: {
                         x: { min: "original", max: "original" },
@@ -124,16 +187,18 @@ function updateLine(msg) {
     const chart = pane.chart;
     const factor = pane.el.querySelector("#graph-smoothing").value / 100;
 
-    pane.raw = { X: [...X], Y: Y.map(s => [...s]) };
+    if (!pane.colors) {
+        pane.colors = Y.map((_, i) => COLORS[i % COLORS.length]);
+    }
+    if (!pane.labels) {
+        pane.labels = Y.map((_, i) => (opts.legend || [])[i] ?? `series ${i}`);
+    }
 
-    chart.data.datasets = Y.map((series, i) => ({
-        label: (opts.legend || [])[i] ?? `series ${i}`,
-        data: smoothSeries(series, factor).map((y, j) => ({ x: X[j], y })),
-        borderWidth: 2,
-        pointRadius: 2,
-        tension: 0.1,
-        fill: false,
-    }));
+    pane.raw = { X: [...X], Y: Y.map(s => [...s]) };
+    if (!pane.colors) {
+        pane.colors = Y.map((_, i) => COLORS[i % COLORS.length]);
+    }
+    applySmoothing(chart, pane.raw, factor, pane.colors, pane.labels);
 
     if (opts.xlabel) chart.options.scales.x.title.text = opts.xlabel;
     if (opts.ylabel) chart.options.scales.y.title.text = opts.ylabel;

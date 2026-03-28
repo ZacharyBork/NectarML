@@ -3,6 +3,7 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 body {
@@ -87,6 +88,19 @@ button {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.zoom-hint {
+    display: none;
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(100, 100, 100, 0.5);
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    pointer-events: none;
 }
 
 #image-container {
