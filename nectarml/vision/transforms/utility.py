@@ -130,7 +130,8 @@ class Resample(Transform[Tensor, Tensor]):
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
         a: float = -0.75,
-        align_corners: bool = False
+        align_corners: bool = False,
+        preserve_aspect_ratio: bool = False
     ) -> None:
         super().__init__()
         self.size = size
@@ -138,10 +139,11 @@ class Resample(Transform[Tensor, Tensor]):
         self.mode = mode
         self.a = a
         self.align_corners = align_corners
+        self.preserve_aspect_ratio = preserve_aspect_ratio
         
     def forward(self, input: Tensor) -> Tensor:
         return upsample(input, self.size, self.scale_factor, self.mode,
-            self.a, self.align_corners)
+            self.a, self.align_corners, self.preserve_aspect_ratio)
 
 ### SHAPE UTILS ###
 

@@ -264,12 +264,26 @@ def upsample(
         'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
     ] = 'nearest',
     a: float = -0.75,
-    align_corners: bool = False
+    align_corners: bool = False,
+    preserve_aspect_ratio: bool = False
 ) -> Tensor:
     mode_ndim = MODE_NDIM[mode]
     if mode_ndim is not None:
         assert input.ndim == mode_ndim, \
             f'Upsample mode [{mode}] expects input to have ndim={mode_ndim}.'
+    
+    spatial = input.shape[2:]
+    if isinstance(size, int): size = (size,) * len(spatial)
+    if isinstance(scale_factor, float): 
+        scale_factor = (scale_factor,) * len(spatial)
+    
+    if preserve_aspect_ratio:
+        if len(spatial) > 1:
+            if size is not None:
+                ratio = max(size) / max(spatial)
+                size = tuple([int(i*ratio) for i in spatial])
+            if scale_factor is not None:
+                scale_factor = (max(scale_factor),) * len(spatial)
     
     match mode:
         case 'nearest': 

@@ -17,16 +17,19 @@ class Upsample(Module):
         ] = 'nearest',
         a: float = -0.75,
         align_corners: bool = False,
-        recompute_scale_factor: bool = False
+        recompute_scale_factor: bool = False,
+        preserve_aspect_ratio: bool = False
     ) -> None:
         super().__init__()
         self.mode = mode
         self.a = a
         self.align_corners = align_corners
         self.recompute_scale_factor = recompute_scale_factor
+        self.preserve_aspect_ratio = preserve_aspect_ratio
+        
         self._validated = False
         self._is_scale_factor = True
-        
+                
         self.input_dims: tuple[int, ...] = None
         self.output_dims: tuple[int, ...] = None
         
@@ -87,11 +90,13 @@ class Upsample(Module):
         if self._is_scale_factor:
             return upsample(
                 x, scale_factor=self._scale, mode=self.mode, 
-                a=self.a, align_corners=self.align_corners)
+                a=self.a, align_corners=self.align_corners,
+                preserve_aspect_ratio=self.preserve_aspect_ratio)
         else: 
             return upsample(
                 x, size=self._scale, mode=self.mode, 
-                a=self.a, align_corners=self.align_corners)
+                a=self.a, align_corners=self.align_corners,
+                preserve_aspect_ratio=self.preserve_aspect_ratio)
     
     
     
