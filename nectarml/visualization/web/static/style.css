@@ -111,10 +111,17 @@ button {
     align-items: start;
     width: 100%;
     box-sizing: border-box;
-    }
+}
 
 .image-pane {
-    width: fit-content;
+    background-color: rgb(65 65 65);
+    padding: 5px;
+    margin: -5px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 200px;
 }
 
 .image-pane img {

@@ -68,17 +68,13 @@ class Module():
     # SUBMODULES
     
     def _walk_module_tree(self: Module) -> list[tuple[str, Module]]:
-        tree: list[tuple[str, Module]] = []
+        result = [('', self)]
+        for name, module in self._submodules.items():
+            for subname, submodule in module._walk_module_tree():
+                full_name = f'{name}.{subname}' if subname else name
+                result.append((full_name, submodule))
+        return result
         
-        def walk_tree(prefix: str, node: Module):
-            tree.append((prefix, node))
-            for name, module in node._submodules.items():
-                full_name = f'{prefix}.{name}' if prefix else name
-                walk_tree(full_name, module)
-            
-        walk_tree('', self)
-        return tree
-    
     # GRADIENTS
     
     def zero_grad(self: Module) -> None:
@@ -157,15 +153,18 @@ class Module():
     
     def parameters(self: Module) -> dict[str, Any]:
         output = []
-        modules = self._walk_module_tree()
-        for module_name, module in modules:
+        seen = set()
+
+        for module_name, module in self._walk_module_tree():
             params = { 'params': [], 'param_names': [] }
             
             for parameter_name, parameter in module._parameters.items():
-                name = f'{module_name}.{parameter_name}' if module_name \
-                    else parameter_name
-                params['params'].append(parameter)
-                params['param_names'].append(name)
+                if id(parameter) not in seen:
+                    name = f'{module_name}.{parameter_name}' if module_name \
+                        else parameter_name
+                    params['params'].append(parameter)
+                    params['param_names'].append(name)
+                    seen.add(id(parameter))
                 
             output.append(params)
         

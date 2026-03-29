@@ -79,7 +79,7 @@ function createChartPane(win, title, v_axis_label, h_axis_label) {
     graph_settings.className = "graph-settings";
     graph_settings.innerHTML = `
     <label for="graph-smoothing">Smoothing:</label>
-    <input type="range" id="graph-smoothing" min="0" max="100" value="0">`;
+    <input type="range" id="graph-smoothing" min="0" max="95" value="0">`;
 
     const slider = graph_settings.querySelector("#graph-smoothing");
     slider.addEventListener("input", () => {

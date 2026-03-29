@@ -15,8 +15,6 @@ def pad(
     mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
     value: float = 0.0
 ) -> int:
-    print(pad_before, pad_after)
-    
     return _nectarml.tensor.padding.pad(
         input._data_ptr, list(input.shape), pad_before, pad_after,
         mode, value, map_dtype(input.dtype))

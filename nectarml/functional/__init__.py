@@ -37,8 +37,9 @@ from .math import (
     asinh, cos, acos, cosh, acosh, tan, tanh, atan, atanh, atan2, sigmoid)
 
 from .normalization import (
-    BatchNorm1d, BatchNorm2d, BatchNorm3d, InstanceNorm1d, InstanceNorm2d,
-    InstanceNorm3d, GroupNorm, LayerNorm)
+    batch_norm1d, batch_norm2d, batch_norm3d,
+    instance_norm1d, instance_norm2d, instance_norm3d,
+    layer_norm, group_norm)
 
 from .padding import pad
 

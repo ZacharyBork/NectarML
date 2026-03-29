@@ -80,7 +80,7 @@ class BatchNorm1d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1), (0,), F.BatchNorm1d, eps, momentum, affine, 
+            (1, num_features, 1), (0,), F.batch_norm1d, eps, momentum, affine, 
             track_running_stats, dtype)
 
 class BatchNorm2d(_BatchNorm):
@@ -94,7 +94,7 @@ class BatchNorm2d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1), (0, 2, 3), F.BatchNorm2d, eps, momentum, 
+            (1, num_features, 1, 1), (0, 2, 3), F.batch_norm2d, eps, momentum, 
             affine, track_running_stats, dtype)
 
 class BatchNorm3d(_BatchNorm):
@@ -108,7 +108,7 @@ class BatchNorm3d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.BatchNorm3d, eps, 
+            (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.batch_norm3d, eps, 
             momentum, affine, track_running_stats, dtype)
 
 ### INSTANCE ###
@@ -124,7 +124,7 @@ class InstanceNorm1d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1), (2,), F.InstanceNorm1d, eps, 
+            (1, num_features, 1), (2,), F.instance_norm1d, eps, 
             momentum, affine, track_running_stats, dtype)
         
 class InstanceNorm2d(_BatchNorm):
@@ -138,7 +138,7 @@ class InstanceNorm2d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1), (2, 3), F.InstanceNorm2d, eps, 
+            (1, num_features, 1, 1), (2, 3), F.instance_norm2d, eps, 
             momentum, affine, track_running_stats, dtype)
         
 class InstanceNorm3d(_BatchNorm):
@@ -152,7 +152,7 @@ class InstanceNorm3d(_BatchNorm):
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(
-            (1, num_features, 1, 1, 1), (2, 3, 4), F.InstanceNorm3d, eps, 
+            (1, num_features, 1, 1, 1), (2, 3, 4), F.instance_norm3d, eps, 
             momentum, affine, track_running_stats, dtype)
         
 ### GROUP ###
@@ -180,7 +180,7 @@ class GroupNorm(Module):
         else: self.gamma = self.beta = None
         
     def forward(self: GroupNorm, x: Tensor) -> Tensor:
-        x_norm, _ = F.GroupNorm(
+        x_norm, _ = F.group_norm(
             x, self.num_groups, self.gamma, self.beta, self.eps) 
         return x_norm
     
@@ -211,6 +211,6 @@ class LayerNorm(Module):
         else: self.gamma = self.beta = None
         
     def forward(self: LayerNorm, x: Tensor) -> Tensor:
-        return F.LayerNorm(
+        return F.layer_norm(
             x, self.normalized_shape, self.gamma, self.beta, self.eps)
 

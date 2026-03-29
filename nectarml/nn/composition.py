@@ -32,6 +32,15 @@ class ModuleDict(Module):
     def update(self: ModuleDict, modules: dict[str, Module]) -> None:
         self.modules_dict.update(modules)
 
+    def _walk_module_tree(self) -> list[tuple[str, Module]]:
+        result = [('', self)]
+        for name, module in self.modules_dict.items():
+            if isinstance(module, Module):
+                for subname, submodule in module._walk_module_tree():
+                    full_name = f'{name}.{subname}' if subname else name
+                    result.append((full_name, submodule))
+        return result
+
     def __getitem__(self: ModuleDict, key: str) -> Module:
         return self.modules_dict[key]
 
@@ -62,7 +71,16 @@ class ModuleList(Module):
         self.modules_list.extend(other.modules_list)
     
     def insert(self: ModuleList, index: int, module: Module) -> None:
-        self.modules_list.insert(index, module)
+        self.modules_list.insert(index, module)  
+        
+    def _walk_module_tree(self) -> list[tuple[str, Module]]:
+        result = [('', self)]
+        for i, module in enumerate(self.modules_list):
+            if isinstance(module, Module):
+                for subname, submodule in module._walk_module_tree():
+                    full_name = f'{i}.{subname}' if subname else str(i)
+                    result.append((full_name, submodule))
+        return result
         
     def __getitem__(self: ModuleList, index: int) -> Module:
         return self.modules_list[index]

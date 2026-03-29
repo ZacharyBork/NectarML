@@ -2,7 +2,7 @@ from nectarml.tensor import Tensor
 
 ### BATCH ###
 
-def _BatchNorm(
+def _batch_norm(
     dim: int | tuple[int, ...],
     x: Tensor,
     gamma: Tensor | None,
@@ -16,65 +16,65 @@ def _BatchNorm(
     if not beta is None: x_norm = beta + x_norm
     return x_norm, (mean, variance)
 
-def BatchNorm1d(
+def batch_norm1d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 3, 'BatchNorm1d expects 3D input (B, C, L)'
-    return _BatchNorm((0,), x, gamma, beta, eps)
+    return _batch_norm((0,), x, gamma, beta, eps)
 
-def BatchNorm2d(
+def batch_norm2d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 4, 'BatchNorm2d expects 4D input (B, C, H, W)'
-    return _BatchNorm((0, 2, 3), x, gamma, beta, eps)
+    return _batch_norm((0, 2, 3), x, gamma, beta, eps)
 
-def BatchNorm3d(
+def batch_norm3d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 5, 'BatchNorm3d expects 5D input (B, C, D, H, W)'
-    return _BatchNorm((0, 2, 3, 4), x, gamma, beta, eps)
+    return _batch_norm((0, 2, 3, 4), x, gamma, beta, eps)
 
 ### INSTANCE ###
 
-def InstanceNorm1d(
+def instance_norm1d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 3, 'InstanceNorm1d expects 3D input (B, C, L)'
-    return _BatchNorm((2,), x, gamma, beta, eps)
+    return _batch_norm((2,), x, gamma, beta, eps)
 
-def InstanceNorm2d(
+def instance_norm2d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 4, 'InstanceNorm2d expects 4D input (B, C, H, W)'
-    return _BatchNorm((2, 3), x, gamma, beta, eps)
+    return _batch_norm((2, 3), x, gamma, beta, eps)
 
-def InstanceNorm3d(
+def instance_norm3d(
     x: Tensor,
     gamma: Tensor | None = None,
     beta: Tensor | None = None,
     eps: float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     assert x.ndim == 5, 'InstanceNorm3d expects 5D input (B, C, D, H, W)'
-    return _BatchNorm((2, 3, 4), x, gamma, beta, eps)
+    return _batch_norm((2, 3, 4), x, gamma, beta, eps)
 
 ### GROUP ###
 
-def GroupNorm(
+def group_norm(
     x: Tensor,
     num_groups: int,
     gamma: Tensor | None = None,
@@ -98,7 +98,7 @@ def GroupNorm(
     
 ### LAYER ###
 
-def LayerNorm(
+def layer_norm(
     x: Tensor,
     normalized_shape: list[int],
     gamma: Tensor | None = None,
