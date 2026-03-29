@@ -166,10 +166,15 @@ class Conv2d(Module):
             if isinstance(kernel_size, int) else kernel_size
         self.stride       = (stride, stride) \
             if isinstance(stride, int) else stride
-        self.padding      = (padding, padding) \
-            if isinstance(padding, int) else padding
         self.dilation     = (dilation, dilation) \
             if isinstance (dilation, int) else dilation
+            
+        if isinstance(padding, int): 
+            self.padding = (padding, padding, padding, padding)
+        elif len(padding) == 2:
+            PH, PW = padding
+            self.padding = (PW, PW, PH, PH)
+        else: self.padding = padding
 
         self.weight = empty(
             (out_channels, in_channels // groups) + self.kernel_size,
@@ -233,12 +238,17 @@ class ConvTranspose2d(Module):
             if isinstance(kernel_size, int) else kernel_size
         self.stride         = (stride, stride) \
             if isinstance(stride, int) else stride
-        self.padding        = (padding, padding) \
-            if isinstance(padding, int) else padding
         self.output_padding = (output_padding, output_padding) \
             if isinstance(output_padding, int) else output_padding
         self.dilation       = (dilation, dilation) \
             if isinstance (dilation, int) else dilation
+            
+        if isinstance(padding, int): 
+            self.padding = (padding, padding, padding, padding)
+        elif len(padding) == 2:
+            PH, PW = padding
+            self.padding = (PW, PW, PH, PH)
+        else: self.padding = padding
 
         self.weight = empty(
             (in_channels, out_channels // groups) + self.kernel_size,
@@ -259,7 +269,7 @@ class ConvTranspose2d(Module):
         else: self.bias = None
 
     def forward(self: ConvTranspose2d, x: Tensor) -> Tensor:        
-        if self.padding_mode != 'zeros' and self.padding != (0, 0):
+        if self.padding_mode != 'zeros' and self.padding != (0, 0):            
             x = F.pad(x, self.padding, mode=self.padding_mode)
             return F.conv_transpose2d(
                 x, self.weight, self.bias,
