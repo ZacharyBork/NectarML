@@ -1,4 +1,3 @@
-import random
 import colorsys
 from typing import Literal
 
@@ -12,6 +11,7 @@ from nectarml.tensor import Tensor
 from nectarml.creation import full
 from nectarml.vision.transforms import Transform
 from nectarml.cuda.utils import map_dtype
+from nectarml.random import RNG
 
 ### UTILS ###
 
@@ -354,7 +354,7 @@ class CLAHE(Transform[Tensor, Tensor]):
 class ChannelShuffle(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         channels = input.unbind(dim=1)
-        random.shuffle(channels)
+        RNG.shuffle(channels)
         return F.stack(channels, dim=1).to(input.device, input.dtype)
 
 class ChannelDropout(Transform[Tensor, Tensor]):
@@ -374,7 +374,7 @@ class ChannelDropout(Transform[Tensor, Tensor]):
         new_channel = full(channels[0].shape, self.fill) * max_value
         new_channel = new_channel.to(input.device, input.dtype)
         
-        index = random.randint(self.range[0], self.range[1])
+        index = RNG.randint(self.range[0], self.range[1])
         channels[index] = new_channel
         return F.stack(channels, dim=1).clamp(0.0, max_value)
 

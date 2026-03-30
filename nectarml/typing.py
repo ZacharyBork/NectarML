@@ -11,6 +11,7 @@ DTypeLike = np.typing.DTypeLike
 float = np.float32
 float16 = np.float16
 float32 = np.float32
+float64 = np.float64
 
 half = np.half
 double = np.double

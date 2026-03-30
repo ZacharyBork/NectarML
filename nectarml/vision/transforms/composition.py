@@ -1,5 +1,4 @@
 import math
-import random
 from os import PathLike
 from pathlib import Path
 from contextlib import nullcontext
@@ -7,6 +6,7 @@ from contextlib import nullcontext
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms import Transform, format, utility
 from nectarml.utils.benchmark import benchmark_time
+from nectarml.random import RNG
 
 class Compose(Transform):
     def __init__(
@@ -169,7 +169,7 @@ class RandomOrder(Transform[Tensor, Tensor]):
     
     def forward(self, input: Tensor) -> Tensor:
         xforms = self.transforms.copy()
-        random.shuffle(xforms)
+        RNG.shuffle(xforms)
         for transform in xforms: input = transform.forward(input)
         return input
 

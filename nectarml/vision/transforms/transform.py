@@ -4,6 +4,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from nectarml.tensor import Tensor
+from nectarml.random import RNG
 
 TInputType  = TypeVar('TInputType')
 TOutputType = TypeVar('TOutputType')
@@ -14,7 +15,7 @@ class Transform(Generic[TInputType, TOutputType]):
         device: Literal['cpu', 'cuda'] | None = None
     ) -> None:
         self.device = device
-        self.rng = np.random.default_rng()
+        self.rng = RNG
     
     ### UTILS ###
     
@@ -22,23 +23,8 @@ class Transform(Generic[TInputType, TOutputType]):
         self, 
         value_range: tuple[int | float, int | float] = (0.0, 1.0)
     ) -> float:
-        _min = value_range[0]
-        _max = value_range[1]
-        value = _min + (_max - _min) * self.rng.random() 
-        return value
-    
-    def _random_index(
-        self, 
-        min_index: int = 0,
-        max_index: int = 5
-    ) -> float:
-        return int(round(self._random_in_range((min_index, max_index))))
-    
-    def _random_selection(self, items: Iterable) -> Any:
-        items = list(items)
-        index = self._random_index(max_index=len(items))
-        return items[index]
-    
+        self.rng.randfloat(value_range[0], value_range[1])
+        
     ### FORWARD ###
     
     def forward(self, input: Tensor) -> Tensor:

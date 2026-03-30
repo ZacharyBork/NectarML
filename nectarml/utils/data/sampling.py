@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import math
-import random
 from collections.abc import Iterator
+
+from nectarml.random import RNG
 
 ### INDEXING ###
 
@@ -29,7 +30,7 @@ class RandomSampler(Sampler):
 
     def __iter__(self: RandomSampler) -> Iterator[int]:
         indices = list(range(self.dataset_length))
-        random.shuffle(indices)
+        RNG.shuffle(indices)
         for idx in indices: yield idx
     
 class WeightedRandomSampler(Sampler):
@@ -46,10 +47,10 @@ class WeightedRandomSampler(Sampler):
     
     def __iter__(self: WeightedRandomSampler) -> Iterator[int]:
         indices = list(range(len(self.weights)))
-        indices = random.choices(
+        indices = RNG.choices(
             indices, weights=self.weights, 
             k=self.num_samples) if self.replacement \
-            else random.sample(indices, k=self.num_samples)
+            else RNG.sample(indices, k=self.num_samples)
         for idx in indices: yield idx
 
 class SubsetRandomSampler(Sampler):
@@ -62,7 +63,7 @@ class SubsetRandomSampler(Sampler):
 
     def __iter__(self: SubsetRandomSampler) -> Iterator[int]:
         indices = list(self.indices)
-        random.shuffle(indices)
+        RNG.shuffle(indices)
         for idx in indices: yield idx
 
 ### BATCHING ###

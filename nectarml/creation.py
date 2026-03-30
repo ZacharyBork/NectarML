@@ -3,10 +3,9 @@ from typing import Literal
 import numpy as np
 from nectarml.typing import DTypeLike, float32
 
-from nectarml.tensor import Tensor
 import nectarml.cuda as cuda
-
-_rng = np.random.default_rng()
+from nectarml.tensor import Tensor
+from nectarml.random import RNG
 
 # ABSTRACTS
 
@@ -41,7 +40,7 @@ def ones_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
         return _build_tensor(input, data, _grad)
 
 def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
-    data = _rng.random(input.shape, dtype=input.dtype)
+    data = RNG.random(input.shape, dtype=input.dtype)
     _grad = input.requires_grad if requires_grad is None else requires_grad 
     if input.device == 'cuda':
         ptr = cuda.to_cuda(data, dtype=input.dtype)
@@ -108,7 +107,7 @@ def rand(
     requires_grad: bool = False
 ) -> Tensor: 
     return Tensor(
-        _rng.random(shape, dtype=dtype), shape=shape, dtype=dtype, 
+        RNG.random(shape, dtype=dtype), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def randn(
@@ -118,7 +117,7 @@ def randn(
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
-    rng = np.random.default_rng(seed) if seed is not None else _rng
+    rng = np.random.default_rng(seed) if seed is not None else RNG
     return Tensor(
         rng.standard_normal(shape, dtype=dtype), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)

@@ -177,20 +177,20 @@ class ChainDataset(IterableDataset):
 
 class StackDataset(Dataset):
     def __init__(
-        self: StackDataset,
+        self: StackDataset, 
         datasets: Iterable[Dataset]
     ) -> None:
         super().__init__()
+        assert len(datasets) >= 2, \
+            'StackDataset requires at least two datasets.'
+        assert all(len(d) == len(datasets[0]) for d in datasets), \
+            'All datasets must have the same length.'
         self.datasets = datasets
     
     def __len__(self: StackDataset) -> int:
-        raise NotImplementedError
+        return len(self.datasets[0])
     
-    def __getitem__(self: StackDataset, index: int) -> Any:
-        raise NotImplementedError
-    
-    def __iter__(self: StackDataset) -> Any:
-        raise NotImplementedError
+    def __getitem__(self: StackDataset, index: int) -> tuple:
+        return tuple(d[index] for d in self.datasets)
         
 
-    

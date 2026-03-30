@@ -1,7 +1,7 @@
 import math
-import random
 
 from nectarml.utils.data import Dataset, Subset
+from nectarml.random import RNG
 
 def random_split(
     dataset: Dataset, 
@@ -13,7 +13,7 @@ def random_split(
     indices[-1] = total - sum(indices[:-1])
     
     all_indices = list(range(total))
-    random.shuffle(all_indices)
+    RNG.shuffle(all_indices)
     
     subsets = []
     start = 0
