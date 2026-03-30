@@ -160,7 +160,8 @@ class Conv2d(Module):
         self.in_channels  = in_channels
         self.out_channels = out_channels
         self.groups       = groups
-        self.padding_mode = padding_mode
+        self.padding_mode = 'constant' if padding_mode == 'zeros' \
+            else padding_mode
 
         self.kernel_size  = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
@@ -195,7 +196,7 @@ class Conv2d(Module):
         else: self.bias = None
 
     def forward(self: Conv2d, x: Tensor) -> Tensor:        
-        if self.padding_mode != 'zeros' and self.padding != (0, 0):
+        if self.padding != (0, 0, 0, 0):
             x = F.pad(x, self.padding, mode=self.padding_mode)
             return F.conv2d(
                 x, self.weight, self.bias,
@@ -216,11 +217,11 @@ class ConvTranspose2d(Module):
         self: ConvTranspose2d,
         in_channels:    int,
         out_channels:   int,
-        kernel_size:    int | tuple[int, int],
-        stride:         int | tuple[int, int] = 1,
-        padding:        int | tuple[int, int] = 0,
-        output_padding: int | tuple[int, int] = 0,
-        dilation:       int | tuple[int, int] = 1,
+        kernel_size:    int | tuple[int, ...],
+        stride:         int | tuple[int, ...] = 1,
+        padding:        int | tuple[int, ...] = 0,
+        output_padding: int | tuple[int, ...] = 0,
+        dilation:       int | tuple[int, ...] = 1,
         groups:         int = 1,
         bias:          bool = True,
         padding_mode: Literal[
@@ -232,7 +233,14 @@ class ConvTranspose2d(Module):
         self.in_channels  = in_channels
         self.out_channels = out_channels
         self.groups       = groups
+        if padding_mode != 'zeros':
+            raise ValueError(
+                'ConvTranspose2d only supports padding_mode="zeros". '
+                'Non-zero padding modes are not supported for transposed '
+                'convolutions.')
+
         self.padding_mode = padding_mode
+        self.padding      = padding
 
         self.kernel_size    = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
@@ -243,13 +251,6 @@ class ConvTranspose2d(Module):
         self.dilation       = (dilation, dilation) \
             if isinstance (dilation, int) else dilation
             
-        if isinstance(padding, int): 
-            self.padding = (padding, padding, padding, padding)
-        elif len(padding) == 2:
-            PH, PW = padding
-            self.padding = (PW, PW, PH, PH)
-        else: self.padding = padding
-
         self.weight = empty(
             (in_channels, out_channels // groups) + self.kernel_size,
             dtype=self.dtype, device='cpu', requires_grad=True)
@@ -268,21 +269,19 @@ class ConvTranspose2d(Module):
             uniform_(self.bias, -bound, bound)
         else: self.bias = None
 
-    def forward(self: ConvTranspose2d, x: Tensor) -> Tensor:        
-        if self.padding_mode != 'zeros' and self.padding != (0, 0):            
-            x = F.pad(x, self.padding, mode=self.padding_mode)
-            return F.conv_transpose2d(
-                x, self.weight, self.bias,
-                stride=self.stride,
-                padding=0,
-                output_padding=self.output_padding,
-                dilation=self.dilation,
-                groups=self.groups)
-        
+    def forward(self: ConvTranspose2d, x: Tensor) -> Tensor:
+        if isinstance(self.padding, int):
+            PH = PW = self.padding
+        elif len(self.padding) == 4:
+            PH = self.padding[2]
+            PW = self.padding[0]
+        else:
+            PH, PW = self.padding
+
         return F.conv_transpose2d(
             x, self.weight, self.bias,
             stride=self.stride,
-            padding=self.padding,
+            padding=(PH, PW),
             output_padding=self.output_padding,
             dilation=self.dilation,
             groups=self.groups)

@@ -346,9 +346,12 @@
 
 ### 🟡  Other
 
-    ✅ 1. Autocast Context
-    ✅ 2. Nograd Context/Decorator
-    ❌ 3. AMP flags for functions/methods
+    ✅ 1. Fix cast overflow (from weight init?)
+        NOTE: Issue was actually caused by failure to set dtype
+              of numpy data in certain Tensor creation functions.
+    ✅ 2. Autocast Context
+    ✅ 3. Nograd Context/Decorator
+    ❌ 4. AMP flags for functions/methods
 
 ### 🟡  Compatibility Layersc
 
