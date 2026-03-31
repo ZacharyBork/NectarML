@@ -6,10 +6,10 @@ from scipy.ndimage import rotate as scipy_rotate
 import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.cuda.utils import map_dtype
 
-class Pad(Transform[Tensor, Tensor]):
+class Pad(Transform):
     def __init__(
         self,
         padding: int | tuple[int, ...],
@@ -17,11 +17,13 @@ class Pad(Transform[Tensor, Tensor]):
         padding_mode: Literal[
             'constant', 'reflect', 'replicate', 'circular'
         ] = 'constant',
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.padding: tuple[int, ...] = None
         self.fill = fill
         self.padding_mode = padding_mode
+        self.transform_mask = transform_mask
         
         self._init_padding(padding)
                 
@@ -36,11 +38,22 @@ class Pad(Transform[Tensor, Tensor]):
                     'RandomCrop padding tuple must have either 2 [LT, RB] or '
                     '4 [L, T, R, B] values.')
         else: raise ValueError('Pad.padding must be int or tuple[int, ...].')
-        
-    def forward(self, input: Tensor) -> Tensor:
+     
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return F.pad(input, self.padding, self.padding_mode, self.fill)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class _Crop(Transform[Tensor, Tensor]):
+class _Crop(Transform):
     def __init__(
         self,
         size: int | tuple[int, int],
@@ -49,7 +62,8 @@ class _Crop(Transform[Tensor, Tensor]):
         fill: float = 0.0,
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
-        ] = 'constant'
+        ] = 'constant',
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         if isinstance(size, int): self.size = (size, size)
@@ -60,6 +74,8 @@ class _Crop(Transform[Tensor, Tensor]):
         self.padding_mode = padding_mode
         if padding is not None: self.pad = Pad(padding, fill, padding_mode)
         else: self.pad = None
+        
+        self.transform_mask = transform_mask
     
     def _validate_input_size(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
@@ -76,10 +92,21 @@ class _Crop(Transform[Tensor, Tensor]):
                     f'desired crop size: {self.size}')
         else: return input
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         if self.pad is None: out = self._validate_input_size(input)
         else: out = self.pad(input)
         return out
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
 class RandomCrop(_Crop):
     def __init__(
@@ -90,21 +117,34 @@ class RandomCrop(_Crop):
         fill: float = 0.0,
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
-        ] = 'constant'
+        ] = 'constant',
+        transform_mask: bool = True
     ) -> None:
-        super().__init__(size, padding, pad_if_needed, fill, padding_mode)
+        super().__init__(
+            size, padding, pad_if_needed, fill, padding_mode, transform_mask)
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         out = super().forward(input)
-
-        max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
-        offset_h = int(round(self._random_in_range((0, max_offset[0]))))
-        offset_w = int(round(self._random_in_range((0, max_offset[1]))))
-        
         return out[
             :, :, 
-            offset_h:offset_h+self.size[0], 
-            offset_w:offset_w+self.size[1]]
+            self._offset_h:self._offset_h+self.size[0], 
+            self._offset_w:self._offset_w+self.size[1]]
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        shape = input.image.shape
+        max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
+        self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
+        self._offset_w = int(round(self._random_in_range((0, max_offset[1]))))
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
         
 class CenterCrop(_Crop):
     def __init__(
@@ -115,21 +155,33 @@ class CenterCrop(_Crop):
         fill: float = 0.0,
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
-        ] = 'constant'
+        ] = 'constant',
+        transform_mask: bool = True
     ) -> None:
-        super().__init__(size, padding, pad_if_needed, fill, padding_mode)
+        super().__init__(
+            size, padding, pad_if_needed, fill, padding_mode, transform_mask)
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         out = super().forward(input)
 
         offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
         offset_h = offset[0] // 2
         offset_w = offset[1] // 2
-        
         return out[
             :, :, 
             offset_h:offset_h+self.size[0], 
             offset_w:offset_w+self.size[1]]
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
 class RandomResizedCrop(_Crop):
     def __init__(
@@ -145,30 +197,44 @@ class RandomResizedCrop(_Crop):
         scaling_mode: Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        a: float = -0.75
+        a: float = -0.75,
+        transform_mask: bool = True
     ) -> None:
-        super().__init__(crop_size, padding, pad_if_needed, fill, padding_mode)
+        super().__init__(
+            crop_size, padding, pad_if_needed, fill, 
+            padding_mode, transform_mask)
         self.output_size = output_size
         self.scaling_mode = scaling_mode
         self.a = a
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         out = super().forward(input)
-
-        max_offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
-        offset_h = int(round(self._random_in_range((0, max_offset[0]))))
-        offset_w = int(round(self._random_in_range((0, max_offset[1]))))
-        
         out = out[
             :, :, 
-            offset_h:offset_h+self.size[0], 
-            offset_w:offset_w+self.size[1]]
+            self._offset_h:self._offset_h+self.size[0], 
+            self._offset_w:self._offset_w+self.size[1]]
         out_size = input.shape[2:] if self.output_size is None \
               else self.output_size
         return F.upsample(
             out, size=out_size, mode=self.scaling_mode, a=self.a)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        shape = input.image.shape
+        max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
+        self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
+        self._offset_w = int(round(self._random_in_range((0, max_offset[1]))))
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class Resize(Transform[Tensor, Tensor]):
+class Resize(Transform):
     def __init__(
         self,
         size: int | tuple[int, ...] | None = None,
@@ -177,54 +243,101 @@ class Resize(Transform[Tensor, Tensor]):
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
         a: float = -0.75,
-        align_corners: bool = False
+        align_corners: bool = False,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
-        self.resize = lambda x : F.upsample(
-            x, size, scale_factor, mode, a, align_corners)
-    
-    def forward(self, input: Tensor) -> Tensor:
-        return self.resize(input)
+        self.size = size
+        self.scale_factor = scale_factor
+        self.mode = mode
+        self.a = a
+        self.align_corners = align_corners
+        self.transform_mask = transform_mask
+            
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return F.upsample(
+            input, self.size, self.scale_factor, self.mode, 
+            self.a, self.align_corners)
 
-class RandomHorizontalFlip(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class RandomHorizontalFlip(Transform):
     def __init__(
         self,
-        p: float = 0.5
+        p: float = 0.5,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.p = p
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         output = input[:, :, :, ::-1]
         return output
 
-class RandomVerticalFlip(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class RandomVerticalFlip(Transform):
     def __init__(
         self,
-        p: float = 0.5
+        p: float = 0.5,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.p = p
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         output = input[:, :, ::-1, :]
         return output
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
-class Rotate(Transform[Tensor, Tensor]):
+class Rotate(Transform):
     def __init__(
         self,
         angle: float = 90.0,
-        fill_value: float = 0.0
+        fill_value: float = 0.0,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.angle = angle
         self.fill_value = fill_value
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         if input.device == 'cuda':
             out_data = _nectarml.rotate(
                 input._data_ptr, list(input.shape),
@@ -240,102 +353,163 @@ class Rotate(Transform[Tensor, Tensor]):
                         order=1, mode='constant', cval=self.fill_value)
         
         return Tensor(out_data, input.shape, input.dtype, input.device)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class RandomRotation(Transform[Tensor, Tensor]):
+class RandomRotation(Transform):
     def __init__(
         self,
         rotation_range: tuple[float, float] = (-180.0, 180.0),
-        fill_value: float = 0.0
+        fill_value: float = 0.0,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.rotation_range = rotation_range
         self.fill_value = fill_value
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
-        angle = self._random_in_range(self.rotation_range)
-        rotate = Rotate(angle, self.fill_value)
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        rotate = Rotate(self._angle, self.fill_value)
         return rotate(input)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._angle = self._random_in_range(self.rotation_range)
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class RandomRotate90(Transform[Tensor, Tensor]):
+class RandomRotate90(Transform):
     def __init__(
         self,
         mode: Literal['90', '180', '270', '360'] = '360',
         fill_value: float = 0.0,
-        p: float = 0.5
+        p: float = 0.5,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.fill_value = fill_value
         self.p = p
         self.max_step = ['90', '180', '270', '360'].index(mode) + 1
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
-        step = 90 * int(round(self._random_in_range((0, self.max_step))))
-        rotate = Rotate(step, self.fill_value)
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        rotate = Rotate(self._step, self.fill_value)
         return rotate(input)
 
-class RandomAffine(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        self._step = 90 * int(round(self._random_in_range((0, self.max_step))))
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class RandomAffine(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class RandomPerspective(Transform[Tensor, Tensor]):
+class RandomPerspective(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class ElasticTransform(Transform[Tensor, Tensor]):
+class ElasticTransform(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class GridDistortion(Transform[Tensor, Tensor]):
+class GridDistortion(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class OpticalDistortion(Transform[Tensor, Tensor]):
+class OpticalDistortion(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class FiveCrop(Transform[Tensor, Tensor]):
+class FiveCrop(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class TenCrop(Transform[Tensor, Tensor]):
+class TenCrop(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
-class RandomCropNearBBox(Transform[Tensor, Tensor]):
+class RandomCropNearBBox(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
         pass
 
