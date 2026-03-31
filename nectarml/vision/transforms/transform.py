@@ -17,6 +17,10 @@ class TransformInput:
     boxes:     Tensor | None = None
     keypoints: Tensor | None = None
 
+    def __post_init__(self):
+        assert self.image is not None, \
+            'TransformInput requires at least an image.'
+
     @classmethod
     def from_args(
         cls,
