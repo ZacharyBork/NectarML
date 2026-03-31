@@ -2,6 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
+from nectarml.functional.padding import pad
 
 ### CPU ###
 
@@ -123,9 +124,12 @@ def conv1d(
     weight: Tensor,
     bias: Tensor | None = None,
     stride: int = 1,
-    padding: int | Literal['valid', 'same'] = 0,
+    padding: int = 0,
     dilation: int = 1,
-    groups: int = 1
+    groups: int = 1,
+    padding_mode: Literal[
+        'zeros', 'reflect', 'replicate', 'circular'
+    ] = 'zeros'
 ) -> Tensor:
     B, C_in, L_in = input.shape
     C_out, _, K = weight.shape
@@ -137,11 +141,12 @@ def conv1d(
         f'Weight channel count [{C_out}] must be evenly divisible by number '
         f'of groups [{groups}].')
     
-    if padding == 'valid': padding = 0
-    elif padding == 'same': 
-        padding = ((L_in - 1) * stride - L_in + dilation * (K-1) + 1) // 2
-    L_out = (L_in + 2*padding - dilation*(K-1) - 1) // stride + 1
+    if padding_mode != 'zeros' and (padding > 0):
+        input = pad(input, (padding, padding), mode=padding_mode)
+        B, C_in, L_in = input.shape
+        padding = 0
     
+    L_out = (L_in + 2*padding - dilation*(K-1) - 1) // stride + 1
     
     if input.device == 'cuda':
         return _conv1d_cuda(

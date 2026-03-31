@@ -139,57 +139,55 @@ def conv_transpose2d(
     weight: Tensor,
     bias: Tensor | None = None,
     stride: int | tuple[int, int] = 1,
-    padding: int | tuple[int, int] | Literal['valid', 'same'] = 0,
+    padding: int | tuple[int, int] = 0,
     output_padding: int | tuple[int, int] = 0,
     dilation: int | tuple[int, int] = 1,
-    groups: int = 1
+    groups: int = 1,
+    padding_mode: Literal['zeros'] = 'zeros'
 ) -> Tensor:
     B, C_in, H_in, W_in = input.shape
     C_in_w, C_out, KH, KW = weight.shape
-
-    assert C_in % groups == 0, (
-        f'Input channel count [{C_in}] must be evenly divisible by '
-        f'number of groups [{groups}].')
-    assert C_in_w == C_in, \
-        f'Weight input channels {C_in_w} must match input channels {C_in}'
-    assert C_out % groups == 0, (
-        f'Weight channel count [{C_out}] must be evenly divisible by '
-        f'number of groups [{groups}].')
-
-    stride_h, stride_w = (stride, stride) \
+    
+    if padding_mode != 'zeros':
+        raise ValueError(
+            'Only padding_mode="zeros" is supported for conv_transpose2d.')
+    stride_h, stride_w     = (stride, stride) \
         if isinstance(stride, int) else stride
     dilation_h, dilation_w = (dilation, dilation) \
         if isinstance(dilation, int) else dilation
-    op_h, op_w = (output_padding, output_padding) \
+    padding_h, padding_w   = (padding, padding) \
+        if isinstance(padding, int) else padding
+    op_h, op_w             = (output_padding, output_padding) \
         if isinstance(output_padding, int) else output_padding
 
-    if padding == 'valid':
-        padding_h = padding_w = 0
-    elif padding == 'same':
-        raise ValueError('padding=same is not supported for conv_transpose2d')
-    elif isinstance(padding, int):
-        padding_h = padding_w = padding
-    else:
-        padding_h, padding_w = padding
-
+    assert C_in % groups == 0, \
+        f'Input channels [{C_in}] must be divisible by groups [{groups}].'
+    assert C_in_w == C_in, \
+        f'Weight input channels [{C_in_w}] must match input channels [{C_in}].'
+    assert C_out % groups == 0, \
+        f'Output channels [{C_out}] must be divisible by groups [{groups}].'
     assert 0 <= op_h < stride_h, \
-        f'output_padding_h must be in [0, stride_h-1] but got {op_h}'
+        f'output_padding_h [{op_h}] must be in [0, stride_h-1].'
     assert 0 <= op_w < stride_w, \
-        f'output_padding_w must be in [0, stride_w-1] but got {op_w}'
+        f'output_padding_w [{op_w}] must be in [0, stride_w-1].'
 
-    H_out = (H_in - 1) * stride_h - 2*padding_h + dilation_h*(KH-1) + 1 + op_h
-    W_out = (W_in - 1) * stride_w - 2*padding_w + dilation_w*(KW-1) + 1 + op_w
+    H_out = (H_in-1)*stride_h - 2*padding_h + dilation_h*(KH-1) + 1 + op_h
+    W_out = (W_in-1)*stride_w - 2*padding_w + dilation_w*(KW-1) + 1 + op_w
 
     if input.device == 'cuda':
         return _conv_transpose2d_cuda(
             input, weight, bias,
             B, C_in, H_in, W_in, H_out, W_out, C_out, KH, KW,
-            stride_h, stride_w, padding_h, padding_w,
-            op_h, op_w, dilation_h, dilation_w, groups)
+            stride_h, stride_w,
+            padding_h, padding_w,
+            op_h, op_w,
+            dilation_h, dilation_w, groups)
     else:
         return _conv_transpose2d_cpu(
             input, weight, bias,
             B, C_in, H_in, W_in, H_out, W_out, C_out, KH, KW,
-            stride_h, stride_w, padding_h, padding_w,
-            op_h, op_w, dilation_h, dilation_w, groups)
+            stride_h, stride_w,
+            padding_h, padding_w,
+            op_h, op_w,
+            dilation_h, dilation_w, groups)
 

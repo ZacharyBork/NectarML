@@ -62,6 +62,7 @@ def conv_transpose1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     L_full = (L_in - 1) * stride + dilation * (K - 1) + 1
     L_out  = L_full - 2 * padding + output_padding
+
     output = np.zeros((B, C_out, L_full), dtype=input.dtype)
 
     group_in  = C_in  // groups
@@ -94,17 +95,32 @@ def conv1d_backward_input(
     dilation: int = 1,
     groups: int = 1
 ) -> np.ndarray:
-    B, C_in_padded, _ = input_padded.shape
+    B, C_in_padded, L_padded = input_padded.shape
     C_out, C_in, K = weight.shape
     _, _, L_out = grad_output.shape
+    L_in = L_padded - 2 * padding if padding > 0 else L_padded
 
-    result = conv_transpose1d(
-        grad_output, weight, None,
-        B, C_out, L_out,
-        C_in_padded, K,
-        stride, padding, dilation,
-        output_padding=0, groups=groups)
-    return result
+    group_in  = C_in_padded // groups
+    group_out = C_out // groups
+
+    grad_input_padded = np.zeros_like(input_padded)
+
+    for g in range(groups):
+        in_start  = g * group_in
+        out_start = g * group_out
+        g_grad   = grad_output[:, out_start:out_start + group_out, :]
+        g_weight = weight[out_start:out_start + group_out, :, :]
+
+        for n in range(L_out):
+            for k in range(K):
+                grad_input_padded[
+                    :, in_start:in_start + group_in,
+                    n*stride + k*dilation
+                ] += g_grad[:, :, n] @ g_weight[:, :, k]
+
+    if padding > 0:
+        return grad_input_padded[:, :C_in, padding:-padding]
+    return grad_input_padded[:, :C_in, :]
 
 def conv_transpose1d_backward_input(
     grad_output: np.ndarray,

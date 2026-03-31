@@ -29,8 +29,9 @@ def _conv_transpose1d_cpu(
 
     out_data = cpu.conv.conv_transpose1d(
         input.data, weight.data, bias.data if bias is not None else None,
-        B, C_in, L_in, C_out, K, stride, padding, output_padding,
-        dilation, groups)
+        B, C_in, L_in, C_out, K, 
+        stride, padding, dilation, 
+        output_padding, groups)
     out = Tensor(
         out_data, (B, C_out, L_out), input.dtype, input.device,
         requires_grad=_requires_grad, _children=tuple(_children))
@@ -122,37 +123,37 @@ def _conv_transpose1d_cuda(
     return out
 
 ### WRAPPER ###
-
+   
 def conv_transpose1d(
     input: Tensor,
     weight: Tensor,
     bias: Tensor | None = None,
     stride: int = 1,
-    padding: int | Literal['valid', 'same'] = 0,
+    padding: int = 0,
     output_padding: int = 0,
     dilation: int = 1,
-    groups: int = 1
+    groups: int = 1,
+    padding_mode: Literal['zeros'] = 'zeros'
 ) -> Tensor:
     B, C_in, L_in = input.shape
     C_in_w, C_out, K = weight.shape
     
+    if padding_mode != 'zeros':
+        raise ValueError(
+            'Only padding_mode="zeros" is supported for conv_transpose1d.')
     assert C_in % groups == 0, (
         f'Input channel count [{C_in}] must be evenly divisible by number '
         f'of groups [{groups}].')
-    assert C_in_w == C_in, \
-        f'Weight input channels {C_in_w} must match input channels {C_in}'
     assert C_out % groups == 0, (
         f'Weight channel count [{C_out}] must be evenly divisible by number '
         f'of groups [{groups}].')
+    assert C_in_w == C_in, \
+        f'Weight input channels {C_in_w} must match input channels {C_in}'
     assert 0 <= output_padding < stride, \
         f'output_padding must be in [0, stride-1] but got {output_padding} ' \
         f'with stride {stride}'
-    
-    if padding == 'valid': padding = 0
-    elif padding == 'same': 
-        raise ValueError('padding=same is not supported for conv_transpose1d')
+        
     L_out = (L_in - 1) * stride - 2*padding + dilation*(K-1) + 1+output_padding
-    
     
     if input.device == 'cuda':
         return _conv_transpose1d_cuda(
@@ -166,5 +167,3 @@ def conv_transpose1d(
             B, C_in, L_in, L_out, C_out, K,
             stride, padding, output_padding,
             dilation, groups)
-        
-        

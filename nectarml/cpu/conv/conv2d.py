@@ -104,19 +104,40 @@ def conv2d_backward_input(
 ) -> np.ndarray:
     B, C_in_padded, H_padded, W_padded = input_padded.shape
     C_out, C_in, _, _ = weight.shape
+
     H_in = H_padded - 2 * padding_h if padding_h > 0 else H_padded
     W_in = W_padded - 2 * padding_w if padding_w > 0 else W_padded
 
-    result = conv_transpose2d(
-        grad_output, weight, None,
-        B, C_out, H_out, W_out,
-        C_in_padded, KH, KW,
-        stride_h, stride_w,
-        padding_h, padding_w,
-        dilation_h, dilation_w,
-        0, 0, groups)
+    group_in  = C_in_padded // groups
+    group_out = C_out        // groups
 
-    return result[:, :C_in, :H_in, :W_in]
+    grad_input_padded = np.zeros_like(input_padded)
+
+    for g in range(groups):
+        in_start  = g * group_in
+        out_start = g * group_out
+        g_grad   = grad_output[:, out_start:out_start + group_out, :, :]
+        g_weight = weight[out_start:out_start + group_out, :, :, :]
+
+        for h in range(H_out):
+            for w in range(W_out):
+                for kh in range(KH):
+                    for kw in range(KW):
+                        grad_input_padded[
+                            :, in_start:in_start + group_in,
+                            h*stride_h + kh*dilation_h,
+                            w*stride_w + kw*dilation_w
+                        ] += np.einsum(
+                            'bo,oi->bi',
+                            g_grad[:, :, h, w],
+                            g_weight[:, :, kh, kw])
+
+    if padding_h > 0 or padding_w > 0:
+        return grad_input_padded[
+            :, :C_in,
+            padding_h:padding_h + H_in,
+            padding_w:padding_w + W_in]
+    return grad_input_padded[:, :C_in, :, :]
 
 def conv_transpose2d_backward_input(
     grad_output: np.ndarray,

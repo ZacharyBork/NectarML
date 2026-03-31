@@ -2,6 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
+from nectarml.functional.padding import pad
 
 ### CPU ###
 
@@ -133,50 +134,51 @@ def conv2d(
     weight: Tensor,
     bias: Tensor | None = None,
     stride: int | tuple[int, int] = 1,
-    padding: int | tuple[int, int] | Literal['valid', 'same'] = 0,
+    padding: int | tuple[int, int] = 0,
     dilation: int | tuple[int, int] = 1,
-    groups: int = 1
+    groups: int = 1,
+    padding_mode: Literal[
+        'zeros', 'reflect', 'replicate', 'circular'
+    ] = 'zeros'
 ) -> Tensor:
     B, C_in, H_in, W_in = input.shape
     C_out, _, KH, KW = weight.shape
-    
-    assert C_in % groups == 0, (
-        f'Input channel count [{C_in}] must be evenly divisible by number '
-        f'of groups [{groups}].')
-    assert C_out % groups == 0, (
-        f'Weight channel count [{C_out}] must be evenly divisible by number '
-        f'of groups [{groups}].')
-    
-    if not isinstance(stride, tuple): 
-        stride_h = stride_w = stride
-    else: stride_h, stride_w = stride
-    if not isinstance(dilation, tuple): 
-        dilation_h = dilation_w = dilation
-    else: dilation_h, dilation_w = dilation
-    
-    if padding == 'valid': padding_h = padding_w = 0
-    elif padding == 'same': 
-        padding_h = ((H_in - 1) * stride_h - H_in + dilation * (KH-1) + 1) // 2
-        padding_w = ((W_in - 1) * stride_w - W_in + dilation * (KW-1) + 1) // 2
-    elif not isinstance(padding, tuple): 
-        padding_h = padding_w = padding
-    else: padding_h, padding_w = padding
-    
+
+    assert C_in % groups == 0, \
+        f'Input channels [{C_in}] must be divisible by groups [{groups}].'
+    assert C_out % groups == 0, \
+        f'Output channels [{C_out}] must be divisible by groups [{groups}].'
+
+    stride_h, stride_w     = (stride, stride) \
+        if isinstance(stride, int) else stride
+    dilation_h, dilation_w = (dilation, dilation) \
+        if isinstance(dilation, int) else dilation
+    padding_h, padding_w   = (padding, padding) \
+        if isinstance(padding, int) else padding
+
+    if padding_mode != 'zeros' and (padding_h > 0 or padding_w > 0):
+        input = pad(
+            input, (padding_w, padding_w, padding_h, padding_h),
+            mode=padding_mode)
+        B, C_in, H_in, W_in = input.shape
+        padding_h = padding_w = 0
+
     H_out = (H_in + 2*padding_h - dilation_h*(KH-1) - 1) // stride_h + 1
     W_out = (W_in + 2*padding_w - dilation_w*(KW-1) - 1) // stride_w + 1
-    
+
     if input.device == 'cuda':
         return _conv2d_cuda(
-            input, weight, bias, 
-            B, C_in, H_in, W_in, 
-            C_out, KH, KW, H_out, W_out, stride_h, stride_w,
-            padding_h, padding_w, dilation_h, dilation_w, groups)
+            input, weight, bias,
+            B, C_in, H_in, W_in,
+            C_out, KH, KW, H_out, W_out,
+            stride_h, stride_w,
+            padding_h, padding_w,
+            dilation_h, dilation_w, groups)
     else:
         return _conv2d_cpu(
             input, weight, bias,
-            B, C_in, H_in, W_in, 
+            B, C_in, H_in, W_in,
             C_out, KH, KW, H_out, W_out,
-            stride_h, stride_w, padding_h, padding_w,
+            stride_h, stride_w,
+            padding_h, padding_w,
             dilation_h, dilation_w, groups)
-   
-       
