@@ -300,6 +300,19 @@ class Tensor():
     ### UTILS ###
     
     def contiguous(self) -> Tensor:
+        '''Creates new Tensor from original with contiguous memory layout.
+        
+        If the original Tensor's data is already contiguous, this function will
+        instead return a reference to the original Tensor. This functional is
+        differentiable; gradients will flow back from the new Tensor to the
+        original if the original is included in the computation graph.
+        
+        Returns:
+            Tensor : Either a new Tensor with the original Tensor's data in a
+                contiguous memory layout, or a reference to the original Tensor
+                if the original Tensor was already contiguous when this method
+                was called.
+        '''
         if self.is_contiguous: return self
         if self.device == 'cuda':
             clone_ptr = cuda.clone(self)
@@ -533,6 +546,16 @@ class Tensor():
         a_shape: tuple[int, ...] | typing.Size, 
         b_shape: tuple[int, ...] | typing.Size
     ) -> tuple[int, ...]:
+        '''Builds output shape for ops between Tensors with different shapes.
+        
+        Args:
+            a_shape : The shape of the first Tensor (generally self).
+            b_shape : The shape of the other Tensor in the operation.
+            
+        returns:
+            tuple[int, ...] : The output shape for the resulting Tensor from 
+                the given operation.
+        '''
         ndim = max(len(a_shape), len(b_shape))
         a_padded = (1,) * (ndim - len(a_shape)) + tuple(a_shape)
         b_padded = (1,) * (ndim - len(b_shape)) + tuple(b_shape)
@@ -996,6 +1019,11 @@ class Tensor():
     ### ROUNDING ###
     
     def floor(self) -> Tensor:
+        '''Takes the floor of the given Tensor's data, returns as new Tensor.
+        
+        Returns:
+            Tensor : The resulting Tensor from the floor operation.
+        '''
         self._bool_type_check('Tensor.floor()')
         self_requires_grad = self.requires_grad
         
@@ -1012,6 +1040,11 @@ class Tensor():
         return out
     
     def ceil(self) -> Tensor:
+        '''Takes the ceil of the given Tensor's data, returns as new Tensor.
+        
+        Returns:
+            Tensor : The resulting Tensor from the ceil operation.
+        '''
         self._bool_type_check('Tensor.ceil()')
         self_requires_grad = self.requires_grad
         
@@ -1028,6 +1061,19 @@ class Tensor():
         return out
     
     def round(self, precision: int = 0) -> Tensor:
+        '''Rounds the data of a given Tensor and returns as new Tensor.
+        
+        NOTE: Currently, the precision argument only works on CPU Tensors. CUDA
+        Tensors will be rounded to the nearest whole integer (though they will
+        keep the DType of the original Tensor).
+        
+        Args:
+            precision : The number of decimal places to round the Tensor's data
+                to (only works on CPU Tensors currently).
+        
+        Returns:
+            Tensor : The resulting Tensor from the rounding operation.
+        '''
         
         # CUDA ROUND NEEDS PRECISION!
         
