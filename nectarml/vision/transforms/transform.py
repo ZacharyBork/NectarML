@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, TypeVar, Generic
 
+import numpy as np
+from PIL import Image
+
 from nectarml.tensor import Tensor
 from nectarml.random import RNG
 
@@ -11,11 +14,11 @@ TOutputType = TypeVar('TOutputType')
 
 @dataclass
 class TransformInput:
-    image:     Tensor
-    image2:    Tensor | None = None
-    mask:      Tensor | None = None
-    boxes:     Tensor | None = None
-    keypoints: Tensor | None = None
+    image:     Tensor | np.ndarray | Image.Image
+    image2:    Tensor | np.ndarray | Image.Image | None = None
+    mask:      Tensor | np.ndarray | Image.Image | None = None
+    boxes:     Tensor | np.ndarray | Image.Image | None = None
+    keypoints: Tensor | np.ndarray | Image.Image | None = None
 
     def __post_init__(self):
         assert self.image is not None, \
@@ -50,8 +53,10 @@ class TransformInput:
         original_kwargs: dict
     ) -> Tensor | tuple[Tensor, ...]:
         if original_kwargs:
-            return tuple(
+            output = tuple(
                 {k: getattr(self, k) for k in original_kwargs}.values())
+            if len(output) == 1: return output[0]
+            return output
 
         match len(original_args):
             case 1: return self.image

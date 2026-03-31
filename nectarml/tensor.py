@@ -635,9 +635,13 @@ class Tensor():
         for node in graph:
             if node.requires_grad and node is not self:
                 node._allocate_grad(fill_value=0.0)
-        
+                    
         self._allocate_grad(fill_value=1.0)
         for node in graph: node._backward()
+        
+        for node in graph:
+            node._prev.clear()
+            node._backward = lambda : None
     
     def zero_grad(self: Tensor) -> None:
         '''Zeros values in the grad Tensor of the Tensor it is called on.'''
@@ -683,7 +687,7 @@ class Tensor():
         
         new = Tensor(data=data, shape=shape, dtype=dtype, device=device, 
             requires_grad=self.requires_grad)
-        new.grad = self.grad.to(self.device) if self.grad is not None else None
+        new.grad = self.grad.to(device) if self.grad is not None else None
         new._prev = self._prev
         new._backward = self._backward
         return new
@@ -1219,7 +1223,7 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad: self.grad += out.grad
-            if other_requires_grad: other.grad += out.grad
+            if other_requires_grad: other.grad += -out.grad
 
         out._backward = _backward
         return out
@@ -1306,8 +1310,8 @@ class Tensor():
             _children=children)
         
         def _backward() -> None:
-            if self_requires_grad: self.grad += other.grad * out.grad
-            if other_requires_grad: other.grad += self.grad * out.grad
+            if self_requires_grad: self.grad += other * out.grad
+            if other_requires_grad: other.grad += self * out.grad
         
         out._backward = _backward
         return out
@@ -1346,11 +1350,9 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += cuda.matmul.matmul(
-                    out.grad, other.transpose(-2, -1))
+                self.grad += out.grad @ other.transpose(-2, -1)
             if other_requires_grad:
-                other.grad += cuda.matmul.matmul(
-                    self.transpose(-2, -1), out.grad)
+                other.grad += self.transpose(-2, -1) @ out.grad
         
         out._backward = _backward
         return out
@@ -1773,7 +1775,7 @@ class Tensor():
 
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += out.grad / (self**2 - 1).sqrt()
+                self.grad += out.grad / (self**2 + 1).sqrt()
         
         out._backward = _backward
         return out
@@ -1965,13 +1967,11 @@ class Tensor():
             _children=(self, other))
         
         def _backward() -> None:
-            denom = None
-            if self_requires_grad: 
-                denom = (self**2 + out**2).clamp(min_value=1e-7)
-                self.grad += out.grad * -out / denom
-            if other_requires_grad: 
-                denom = denom or (self**2 + out**2).clamp(min_value=1e-7)
-                other.grad += out.grad * self / denom
+            denom = (self**2 + other**2).clamp(min_value=1e-7)
+            if self_requires_grad:
+                self.grad += out.grad * other / denom
+            if other_requires_grad:
+                other.grad += out.grad * (-self) / denom
                 
         out._backward = _backward
         return out

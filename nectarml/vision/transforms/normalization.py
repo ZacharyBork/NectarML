@@ -98,12 +98,12 @@ class MinMaxNormalize(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        _min, _max = input.min().item(), input.max().item() 
-        if _min == _max: out = input * 0.0 + self.min_value
-        else: 
-            _range = self.max_value - self.min_value
-            out = (input - _min) * (_range / (_max - _min)) + self.min_value
-        
+        _min, _max = input.min().item(), input.max().item()
+        if _min == _max:
+            return input * 0.0 + self.min_value + \
+                (self.max_value - self.min_value) * 0.5
+        _range = self.max_value - self.min_value
+        out = (input - _min) * (_range / (_max - _min)) + self.min_value
         if self.inplace: return input.copy_(out)
         return out
 

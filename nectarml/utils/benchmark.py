@@ -1,4 +1,6 @@
+import os
 import time
+import psutil
 from contextlib import contextmanager
 from collections.abc import Iterator
 
@@ -34,3 +36,11 @@ def benchmark_time(
             print(f'{op_tag}Execution time: {total:.4f} seconds{cr}')
         else: print('Time benchmarking failed.')
         
+def benchmark_system_memory(
+    operation_name: str | None = None,
+    new_line: bool = False
+) -> None:
+    process = psutil.Process(os.getpid())
+    mb = process.memory_info().rss / 1024 / 1024
+    cr = '\n' if new_line else ''
+    print(f'[{operation_name}] RAM: {mb:.1f} MB{cr}')

@@ -54,7 +54,8 @@ class ColorJitter(Transform):
         brightness: float | tuple[float, float] = (0.9, 1.1),
         contrast: float | tuple[float, float] = (0.9, 1.1),
         saturation: float | tuple[float, float] = (0.9, 1.1),
-        hue: float | tuple[float, float] = (-0.1, 0.1)
+        hue: float | tuple[float, float] = (-0.1, 0.1),
+        p: float = 0.5
     ) -> None:
         super().__init__()
         if isinstance(brightness, float): 
@@ -69,11 +70,13 @@ class ColorJitter(Transform):
         self.contrast = contrast
         self.saturation = saturation
         self.hue = hue
+        self.p = p
+        
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        
         max_value = input.max().item()
+        
         if not np.allclose(list(self.contrast), [1, 1]):
             input = input / max_value
             input = ((input - 0.5) * self._contrast + 0.5) * max_value
@@ -82,6 +85,9 @@ class ColorJitter(Transform):
         return _hsv_adjust(input, self._hue, self._sat, self._val, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
+        chance = self._random_in_range()
+        if self.p <= chance: return input
+        
         self._hue      = self._random_in_range(self.hue)
         self._sat      = self._random_in_range(self.saturation)
         self._val      = self._random_in_range(self.brightness)

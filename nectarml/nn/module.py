@@ -78,11 +78,12 @@ class Module():
     # GRADIENTS
     
     def zero_grad(self: Module) -> None:
-        modules = self._walk_module_tree()
-        for _, module in modules:
+        for _, module in self._walk_module_tree():
             for parameter in module._parameters.values():
                 if not parameter.requires_grad: continue
                 parameter.zero_grad()
+                if parameter.grad is not None:
+                    parameter.grad._prev.clear()
     
     # DEVICE / DTYPE
     

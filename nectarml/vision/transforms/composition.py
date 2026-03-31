@@ -3,8 +3,12 @@ from os import PathLike
 from pathlib import Path
 from contextlib import nullcontext
 
+import numpy as np
+from PIL import Image
+
 from nectarml.tensor import Tensor
-from nectarml.vision.transforms import Transform, format, utility
+from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms import format, utility
 from nectarml.utils.benchmark import benchmark_time
 from nectarml.random import RNG
 
@@ -16,9 +20,8 @@ class Compose(Transform):
         super().__init__()
         self.transforms = transforms
     
-    def forward(self, input: Tensor) -> Tensor:
-        for transform in self.transforms:
-            input = transform.forward(input)
+    def forward(self, input: TransformInput) -> TransformInput:
+        for transform in self.transforms: input = transform.forward(input)
         return input
     
     def optimize(self) -> None:
@@ -111,8 +114,11 @@ class Compose(Transform):
                         f'with allow_overwrite=True to continue.')
                 utility.SaveImageFile(output_path)(output)
         
-    def __call__(self, input: Tensor | None = None) -> Tensor:
-        return self.forward(input)
+    # def __call__(
+    #     self, 
+    #     input: Tensor | np.ndarray | Image.Image | None = None
+    # ) -> Tensor:
+    #     return self.forward(input)
     
     def __repr__(self) -> str:
         output = '\nCompose:\n\n'

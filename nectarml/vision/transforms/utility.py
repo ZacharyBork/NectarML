@@ -17,6 +17,51 @@ from nectarml.vision.transforms.format import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 from nectarml.functional.interpolation import upsample
 
+### DEBUG ###
+
+class DebugPrint(Transform):
+    def __init__(
+        self, 
+        op_name: str,
+        shapes:  bool = True,
+        dtypes:  bool = True,
+        devices: bool = True,
+        minmax:  bool = True
+    ) -> None:
+        super().__init__()
+        self.op_name = op_name
+        self.shapes  = shapes
+        self.dtypes  = dtypes
+        self.devices = devices
+        self.minmax  = minmax
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        output = f'{self.op_name}: ['
+        input_dict = input.as_dict()
+        for key, value in input_dict.items():
+            output += f'\n    {key}: ['
+            if value is None: 
+                output += 'None]'
+                continue
+            output += f'\n        Type: {type(value)}'
+            
+            if isinstance(value, np.ndarray | Tensor):
+                if self.shapes:
+                    output += f',\n        Shape: {value.shape}'
+                if self.dtypes:
+                    output += f',\n        DType: {value.dtype}'
+                if self.devices:
+                    output += f',\n        Shape: {value.device}'
+                if self.minmax:
+                    _min, _max = value.min().item(), value.max().item()
+                    output += f',\n        Min/Max: [{_min}, {_max}]'
+            output += '\n    ]'
+        
+        output += '\n]'
+        print(output)
+        
+        return input
+
 ### IMAGE UTILS ###
 
 class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):

@@ -68,7 +68,7 @@ class Adam(Optimizer):
                 idx = self._get_parameter_state_index(param)
                 self._build_state(idx, param)
                 
-                grad = param.grad.clone()
+                grad = param.grad.detach().clone()
                 
                 if self.maximize: grad = -grad
                 if self.weight_decay: 
@@ -81,24 +81,24 @@ class Adam(Optimizer):
                 
                 exp_avg = self.state[idx]['exp_avg']
                 exp_avg = self.beta1 * exp_avg + (1 - self.beta1) * grad
-                self.state[idx]['exp_avg'] = exp_avg
+                self.state[idx]['exp_avg'] = exp_avg.detach()
                 
                 exp_avg_sq = self.state[idx]['exp_avg_sq']
                 exp_avg_sq = self.beta2 * exp_avg_sq + (1-self.beta2) * grad**2
-                self.state[idx]['exp_avg_sq'] = exp_avg_sq
+                self.state[idx]['exp_avg_sq'] = exp_avg_sq.detach()
                 
                 exp_avg_corrected = exp_avg / (1 - self.beta1**step)
                 exp_avg_sq_corrected = exp_avg_sq / (1 - self.beta2**step) 
                 
                 if self.amsgrad:
-                    max_exp_avg_sq = self.state[idx]['max_exp_avg_sq']
+                    max_exp_avg_sq = self.state[idx]['max_exp_avg_sq'].detach()
                     max_exp_avg_sq = max_exp_avg_sq.maximum(
                         exp_avg_sq_corrected)
-                    self.state[idx]['max_exp_avg_sq'] = max_exp_avg_sq
+                    self.state[idx]['max_exp_avg_sq'] = max_exp_avg_sq.detach()
                     denom = max_exp_avg_sq.sqrt() + self.eps
                 else: denom = exp_avg_sq_corrected.sqrt() + self.eps
                 
-                param -= _lr * exp_avg_corrected / denom
+                param -= (_lr * exp_avg_corrected / denom).detach()
 
 class AdamW(Optimizer):
     def __init__(
