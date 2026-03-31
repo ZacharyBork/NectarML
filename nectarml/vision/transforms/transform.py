@@ -58,6 +58,15 @@ class TransformInput:
             case 2: return self.image, self.mask
             case 3: return self.image, self.image2, self.mask
             
+    def as_dict(self) -> dict[str, Tensor | None]:
+        return {
+            'image':     self.image,
+            'image2':    self.image2,
+            'mask':      self.mask,
+            'boxes':     self.boxes,
+            'keypoints': self.keypoints
+        }
+            
 class Transform(Generic[TInputType, TOutputType]):
     def __init__(
         self, 

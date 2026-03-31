@@ -11,14 +11,15 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import full
 from nectarml.typing import DTypeLike, float32
-from nectarml.vision.transforms.transform import Transform
+from nectarml.vision.transforms.transform import \
+    Transform, UtilityTransform, TransformInput
 from nectarml.vision.transforms.format import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 from nectarml.functional.interpolation import upsample
 
 ### IMAGE UTILS ###
 
-class MakeGrid(Transform[Tensor | Sequence[Tensor], Tensor]):
+class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
     def __init__(
         self, 
         nrow: int = 8,
@@ -80,7 +81,7 @@ class MakeGrid(Transform[Tensor | Sequence[Tensor], Tensor]):
         
         return canvas
 
-class LoadImageFile(Transform[None, Tensor]):
+class LoadImageFile(UtilityTransform[None, Tensor]):
     def __init__(
         self, 
         image_path: PathLike,
@@ -102,7 +103,7 @@ class LoadImageFile(Transform[None, Tensor]):
     def __call__(self) -> Tensor:
         return self.forward()
     
-class SaveImageFile(Transform[Tensor, Tensor]):
+class SaveImageFile(UtilityTransform[Tensor, Tensor]):
     def __init__(
         self, 
         output_path: PathLike,
@@ -121,7 +122,7 @@ class SaveImageFile(Transform[Tensor, Tensor]):
         self.to_pil(input).save(self.output_path)
         return input
     
-class Resample(Transform[Tensor, Tensor]):
+class Resample(Transform):
     def __init__(
         self,
         size: int | tuple[int, ...] | None = None,
@@ -131,7 +132,8 @@ class Resample(Transform[Tensor, Tensor]):
         ] = 'nearest',
         a: float = -0.75,
         align_corners: bool = False,
-        preserve_aspect_ratio: bool = False
+        preserve_aspect_ratio: bool = False,
+        transform_mask: bool = True
     ) -> None:
         super().__init__()
         self.size = size
@@ -140,33 +142,65 @@ class Resample(Transform[Tensor, Tensor]):
         self.a = a
         self.align_corners = align_corners
         self.preserve_aspect_ratio = preserve_aspect_ratio
+        self.transform_mask = transform_mask
         
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return upsample(input, self.size, self.scale_factor, self.mode,
             self.a, self.align_corners, self.preserve_aspect_ratio)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 ### SHAPE UTILS ###
 
-class Permute(Transform[Tensor, Tensor]):
+class Permute(Transform):
     def __init__(self, dims: tuple[int, ...]) -> None:
         super().__init__()
         self.dims = dims
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.permute(self.dims)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class Transpose(Transform[Tensor, Tensor]):
+class Transpose(Transform):
     def __init__(self, dim1: int, dim2: int) -> None:
         super().__init__()
         self.dim1 = dim1
         self.dim2 = dim2
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.transpose(self.dim1, self.dim2)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
 ### VALUE UTILS ###
     
-class Clamp(Transform[Tensor, Tensor]):
+class Clamp(Transform):
     def __init__(
         self, 
         min_value: float | None = None,
@@ -176,15 +210,35 @@ class Clamp(Transform[Tensor, Tensor]):
         self.min_value = min_value
         self.max_value = max_value
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.clamp(self.min_value, self.max_value)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class MaskedFill(Transform[Tensor, Tensor]):
+class MaskedFill(Transform):
     def __init__(self, mask: Tensor, value: float = 0.0) -> None:
         super().__init__()
         self.mask = mask
         self.value = value
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.masked_fill(self.mask, self.value)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
