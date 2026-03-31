@@ -3,49 +3,34 @@ from typing import Literal
 import numpy as np
 from nectarml.typing import DTypeLike, float32
 
-import nectarml.cuda as cuda
 from nectarml.tensor import Tensor
 from nectarml.random import RNG
-
-# ABSTRACTS
-
-def _build_tensor(
-    input: Tensor, 
-    data: np.ndarray,
-    requires_grad: bool
-) -> Tensor:
-    return Tensor(data, None, input.dtype, input.device, requires_grad)
 
 # CREATION / DUPLICATION
 
 def clone(input: Tensor, requires_grad: bool | None = None) -> Tensor:
-    return _build_tensor(input, input.data, requires_grad)
-
+    _grad = input.requires_grad if requires_grad is None else requires_grad
+    data = input.numpy()
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
+    
 def zeros_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    if input.device == 'cuda': 
-        ptr = cuda.alloc_cuda_full(input.size, input.dtype, 0.0)
-        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
-    else: 
-        data = np.zeros_like(input.data, dtype=input.dtype)
-        return _build_tensor(input, data, _grad)
-    
+    data = np.zeros(input.shape, dtype=input.dtype)
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
+
 def ones_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    if input.device == 'cuda': 
-        ptr = cuda.alloc_cuda_full(input.size, input.dtype, 1.0)
-        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
-    else: 
-        data = np.ones_like(input.data, dtype=input.dtype)
-        return _build_tensor(input, data, _grad)
+    data = np.ones(input.shape, dtype=input.dtype)
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
 
 def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
-    data = RNG.random(input.shape, dtype=input.dtype)
     _grad = input.requires_grad if requires_grad is None else requires_grad 
-    if input.device == 'cuda':
-        ptr = cuda.to_cuda(data, dtype=input.dtype)
-        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
-    else: return _build_tensor(input, data, _grad)
+    data = RNG.random(input.shape, dtype=input.dtype)
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
 
 def full_like(
     input: Tensor, 
@@ -53,30 +38,15 @@ def full_like(
     requires_grad: bool | None = None
 ) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    if input.device == 'cuda':
-        ptr = cuda.alloc_cuda_full(input.size, input.dtype, fill_value)
-        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
-    else: 
-        data = np.full_like(input.data, fill_value, dtype=input.dtype)
-        return _build_tensor(input, data, _grad)
+    data = np.full(input.shape, fill_value, dtype=input.dtype)
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
 
 def empty_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    if input.device == 'cuda':
-        ptr = cuda.alloc_cuda_empty(input.size, input.dtype)
-        return Tensor(ptr, input.shape, input.dtype, 'cuda', _grad)
-    else: return _build_tensor(
-        input, np.empty_like(input.data, dtype=input.dtype), _grad)
-
-def tril(
-    size: int, 
-    dtype: DTypeLike = float32,
-    device: Literal['cpu', 'cuda'] = 'cpu',
-    requires_grad: bool = False
-) -> Tensor:
-    data = np.tril(np.ones((size, size), dtype=dtype))
-    out = Tensor(data, requires_grad=requires_grad)
-    return out.to(device=device, dtype=dtype)
+    data = np.empty(input.shape, dtype=input.dtype)
+    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
+    return out.to(input.device)
 
 # FIXED SHAPE
 
@@ -156,7 +126,7 @@ def eye(
     return Tensor(
         np.eye(n, m, k, dtype), dtype=dtype, 
         device=device, requires_grad=requires_grad)
-
+    
 def arange(
     start: float,
     stop: float | None = None,
@@ -167,8 +137,8 @@ def arange(
 ) -> Tensor: 
     if stop is None: data = np.arange(start, step=step, dtype=dtype)
     else: data = np.arange(start, stop, step, dtype=dtype)
-    return Tensor(
-        data, dtype=dtype, device=device, requires_grad=requires_grad)
+    out = Tensor(data, dtype=dtype, requires_grad=requires_grad)
+    return out.to(device)
 
 def linspace(
     start: float,
@@ -178,7 +148,16 @@ def linspace(
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
-    return Tensor(
-        np.linspace(start, stop, num_elements, dtype=dtype), dtype=dtype, 
-        device=device, requires_grad=requires_grad)
+    data = np.linspace(start, stop, num_elements, dtype=dtype)
+    out = Tensor(data, dtype=dtype, requires_grad=requires_grad)
+    return out.to(device)
 
+def tril(
+    size: int, 
+    dtype: DTypeLike = float32,
+    device: Literal['cpu', 'cuda'] = 'cpu',
+    requires_grad: bool = False
+) -> Tensor:
+    data = np.tril(np.ones((size, size), dtype=dtype))
+    out = Tensor(data, requires_grad=requires_grad)
+    return out.to(device=device, dtype=dtype)
