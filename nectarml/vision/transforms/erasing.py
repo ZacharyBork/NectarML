@@ -4,7 +4,7 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike
+from nectarml.typing import DTypeLike, int32
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms import Transform
 
@@ -344,7 +344,6 @@ class RandomFog(Transform[Tensor, Tensor]):
         
 class RandomRain(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
-        raise NotImplementedError
         super().__init__()
     
     def forward(self, input: Tensor) -> Tensor:

@@ -5,13 +5,13 @@ from PIL import Image
 
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32, uint8
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
-class ToTensor(Transform[np.ndarray | Image.Image, Tensor]):
+class ToTensor(UtilityTransform[np.ndarray | Image.Image, Tensor]):
     def __init__(
         self, 
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto',
+        device: Literal['cpu', 'cuda'] = 'cpu',
         dtype: DTypeLike = float32
     ) -> None:
         super().__init__(device)
