@@ -5,7 +5,8 @@ from PIL import Image
 
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32, uint8
-from nectarml.vision.transforms.transform import Transform, UtilityTransform
+from nectarml.vision.transforms.transform import \
+    Transform, UtilityTransform, TransformInput
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(UtilityTransform[np.ndarray | Image.Image, Tensor]):
@@ -28,7 +29,7 @@ class ToTensor(UtilityTransform[np.ndarray | Image.Image, Tensor]):
         output = Tensor(data, dtype=self.dtype, device=self.device)
         return output.permute((2, 0, 1)).unsqueeze(dim=0)
 
-class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
+class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
     def __init__(
         self,
         normalize: bool = True,
@@ -62,7 +63,7 @@ class ToPIL(Transform[Tensor | np.ndarray, Image.Image]):
             arr = np.nan_to_num(arr, nan=0.0, posinf=255.0, neginf=0.0)
         return Image.fromarray(arr.astype(uint8), 'RGB')
 
-class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
+class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -73,61 +74,136 @@ class ToNumpy(Transform[Tensor | Image.Image, np.ndarray]):
         elif isinstance(input, Image.Image): return np.array(input)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
 
-class ConvertDtype(Transform[Tensor, Tensor]):
+class ConvertDtype(Transform):
     def __init__(
         self,
-        new_dtype: DTypeLike = float32
+        new_dtype: DTypeLike = float32,
+        transform_mask: bool = False
     ) -> None:
         super().__init__()
         self.new_dtype = new_dtype
+        self.transform_mask = transform_mask
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.to(dtype=self.new_dtype)
 
-class ChangeDevice(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class ChangeDevice(Transform):
     def __init__(
         self,
-        new_device: Literal['cpu', 'cuda'] = 'cpu'
+        new_device: Literal['cpu', 'cuda'] = 'cpu',
+        transform_mask: bool = False
     ) -> None:
         super().__init__(new_device)
         self.new_device = new_device
-        
-    def forward(self, input: Tensor) -> Tensor:
-        return input.to(self.new_device)
+        self.transform_mask = transform_mask
     
-class ToCPU(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input  
+        return input.to(self.new_device)  
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+    
+class ToCPU(Transform):
+    def __init__(self, transform_mask: bool = False) -> None:
         super().__init__()
+        self.transform_mask = transform_mask
         
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.contiguous().cpu()
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class ToCUDA(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
+class ToCUDA(Transform):
+    def __init__(self, transform_mask: bool = False) -> None:
         super().__init__()
+        self.transform_mask = transform_mask
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.contiguous().cuda()
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
     
-class Cast(Transform[Tensor, Tensor]):
+class Cast(Transform):
     def __init__(
         self,
         new_device: Literal['cpu', 'cuda'] | None = None,
-        new_dtype: DTypeLike | None = None
+        new_dtype: DTypeLike | None = None, 
+        transform_mask: bool = False
     ) -> None:
         super().__init__(new_device)
         self.new_device = new_device
         self.new_dtype = new_dtype
+        self.transform_mask = transform_mask
         
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         dtype  = input.dtype  if self.new_dtype  is None else self.new_dtype
         device = input.device if self.new_device is None else self.new_device
         return input.to(device, dtype)
-
-class ToContiguous(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        super().__init__()
         
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class ToContiguous(Transform):
+    def __init__(self, transform_mask: bool = False) -> None:
+        super().__init__()
+        self.transform_mask = transform_mask
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         return input.contiguous()
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
