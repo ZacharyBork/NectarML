@@ -5,9 +5,9 @@ import numpy as np
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import float32
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.transform import Transform, TransformInput 
 
-class Sobel(Transform[Tensor, Tensor]):
+class Sobel(Transform):
     def __init__(
         self,
         per_channel: bool = False,
@@ -39,7 +39,8 @@ class Sobel(Transform[Tensor, Tensor]):
                 [-3, -10, -3]
             ]]], dtype=float32)
         
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
         kernel_x = self.sobel_x.to(input.device, input.dtype)
@@ -62,8 +63,17 @@ class Sobel(Transform[Tensor, Tensor]):
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
-class Prewitt(Transform[Tensor, Tensor]):
+class Prewitt(Transform):
     def __init__(
         self,
         per_channel: bool = False
@@ -82,7 +92,8 @@ class Prewitt(Transform[Tensor, Tensor]):
             [-1, -1, -1]
         ]]], dtype=float32)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
         kernel_x = self.prewitt_x.to(input.device, input.dtype)
@@ -106,7 +117,16 @@ class Prewitt(Transform[Tensor, Tensor]):
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
 
-class Laplacian(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class Laplacian(Transform):
     def __init__(
         self,
         per_channel: bool = False
@@ -120,7 +140,8 @@ class Laplacian(Transform[Tensor, Tensor]):
             [0,  1, 0]
         ]]], dtype=float32)
         
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
         lap_kernel = self.kernel.to(input.device, input.dtype)
@@ -140,8 +161,17 @@ class Laplacian(Transform[Tensor, Tensor]):
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
-class Dither(Transform[Tensor, Tensor]):
+class Dither(Transform):
     def __init__(
         self,
         levels: int = 4,
@@ -198,10 +228,20 @@ class Dither(Transform[Tensor, Tensor]):
             out = np.concatenate([out, out, out], axis=1)        
         return Tensor(out, out.shape, input.dtype, input.device)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         match self.algorithm:
             case 'floyd-steinberg': 
                 return self._floyd_steinberg(input)
             case _: raise ValueError(
                 f'Invalid Dither algortihm: {self.algorithm}')
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
