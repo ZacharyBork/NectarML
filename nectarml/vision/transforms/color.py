@@ -105,14 +105,18 @@ class RandomBrightness(Transform):
         self.value_range = value_range
         self.p = p
     
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return _hsv_adjust(input,  0.0, 1.0, self._brightness)
+    
     def forward(self, input: TransformInput) -> TransformInput:
         chance = self._random_in_range()
         if self.p <= chance: return input
-        brightness = self._random_in_range(self.value_range)
+        self._brightness = self._random_in_range(self.value_range)
     
         return TransformInput(
-            image     = _hsv_adjust(input.image,  0.0, 1.0, brightness),
-            image2    = _hsv_adjust(input.image2, 0.0, 1.0, brightness),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -131,7 +135,7 @@ class RandomContrast(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        out = (((input / max_value) - 0.5) * self._constrast + 0.5) * max_value
+        out = (((input / max_value) - 0.5) * self._contrast + 0.5) * max_value
         return out.clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
@@ -157,15 +161,19 @@ class RandomSaturation(Transform):
         super().__init__()
         self.value_range = value_range
         self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return _hsv_adjust(input,  0.0, self._saturation, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         chance = self._random_in_range()
         if self.p <= chance: return input
-        saturation = self._random_in_range(self.value_range)
+        self._saturation = self._random_in_range(self.value_range)
     
         return TransformInput(
-            image     = _hsv_adjust(input.image,  0.0, saturation, 1.0),
-            image2    = _hsv_adjust(input.image2, 0.0, saturation, 1.0),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -180,14 +188,18 @@ class RandomHue(Transform):
         super().__init__()
         self.value_range = value_range
         self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return _hsv_adjust(input, self._hue, 1.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         chance = self._random_in_range()
         if self.p <= chance: return input
-        hue = self._random_in_range(self.value_range)
+        self._hue = self._random_in_range(self.value_range)
         return TransformInput(
-            image     = _hsv_adjust(input.image,  hue, 1.0, 1.0),
-            image2    = _hsv_adjust(input.image2, hue, 1.0, 1.0),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -222,7 +234,6 @@ class RandomGamma(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
-        
 
 class ToGrayscale(Transform):
     def __init__(self) -> None:
@@ -249,13 +260,17 @@ class RandomGrayscale(Transform):
         super().__init__()
         self.p = p
         self.to_grayscale = ToGrayscale()
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return self.to_grayscale(input)
     
     def forward(self, input: TransformInput) -> TransformInput:
         chance = self._random_in_range()
         if self.p <= chance: return input
         return TransformInput(
-            image     = self.to_grayscale(input.image),
-            image2    = self.to_grayscale(input.image2),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -287,12 +302,16 @@ class RandomSepia(Transform):
         self.p = p
         self.to_sepia = ToSepia()
         
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return self.to_sepia(input)
+        
     def forward(self, input: TransformInput) -> TransformInput:
         chance = self._random_in_range()
         if self.p <= chance: return input
         return TransformInput(
-            image     = self.to_sepia(input.image),
-            image2    = self.to_sepia(input.image2),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -364,15 +383,17 @@ class Equalize(Transform):
             np.concatenate(outputs, axis=0), input.shape, input.dtype, 
             input.device, input.requires_grad)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         match self.mode.strip().casefold():
-            case 'cv2': _transform = self._eq_cv
-            case 'pil': _transform = self._eq_pil
+            case 'cv2': return self._eq_cv(input)
+            case 'pil': return self._eq_pil(input)
             case _: raise ValueError(f'Invalid Equalize mode: {self.mode}')
-
+    
+    def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
-            image     = _transform(input.image),
-            image2    = _transform(input.image2),
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
             mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
@@ -541,9 +562,9 @@ class RGBShift(Transform):
         return (out / 255.0 * max_value).clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        self._r += self._random_in_range(self.r_shift_limit)
-        self._g += self._random_in_range(self.g_shift_limit)
-        self._b += self._random_in_range(self.b_shift_limit)
+        self._r = self._random_in_range(self.r_shift_limit)
+        self._g = self._random_in_range(self.g_shift_limit)
+        self._b = self._random_in_range(self.b_shift_limit)
         
         return TransformInput(
             image     = self._transform(input.image),
@@ -561,7 +582,13 @@ class HueSaturationValue(Transform[Tensor, Tensor]):
         value: float = 1.0
     ) -> None:
         super().__init__()
-        self._transform = lambda x : _hsv_adjust(x, hue, saturation, value)
+        self.hue = hue
+        self.sat = saturation
+        self.val = value
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        return _hsv_adjust(input, self.hue, self.sat, self.val)
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
