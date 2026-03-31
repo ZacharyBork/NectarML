@@ -102,12 +102,14 @@ def ones(
 
 def rand(
     shape: tuple[int, ...], 
+    seed: int | None = None,
     dtype: DTypeLike = float32,
     device: Literal['cpu', 'cuda'] = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
+    rng = np.random.default_rng(seed) if seed is not None else RNG
     return Tensor(
-        RNG.random(shape, dtype=dtype), shape=shape, dtype=dtype, 
+        rng.random(shape, dtype=dtype), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def randn(

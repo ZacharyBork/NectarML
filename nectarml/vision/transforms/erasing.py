@@ -6,19 +6,21 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, int32
 from nectarml.creation import zeros, rand, ones, linspace
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.transform import Transform, TransformInput 
 
-class Erasing(Transform[Tensor, Tensor]):
+class Erasing(Transform):
     def __init__(
         self,
         scale: tuple[float, float] = (0.02, 0.33),
         ratio: tuple[float, float] = (0.3, 3.3),
-        fill: float = 0.0
+        fill: float = 0.0,
+        erase_mask: bool = False
     ) -> None:
         super().__init__()
         self.scale = scale
         self.ratio = ratio
         self.fill = fill
+        self.erase_mask = erase_mask
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
@@ -26,14 +28,14 @@ class Erasing(Transform[Tensor, Tensor]):
         image_area = H * W
         
         for b in range(B):
-            area = self._random_in_range(self.scale) * image_area
-            aspect_ratio = self._random_in_range(self.ratio)
+            area = self._scale[b] * image_area
+            aspect_ratio = self._ratio[b]
 
             hole_h = min(int(math.sqrt(area / aspect_ratio)), H)
             hole_w = min(int(math.sqrt(area * aspect_ratio)), W)
             
-            cy = self.rng.integers(0, H)
-            cx = self.rng.integers(0, W)
+            cy = int(self._cy[b] * H)
+            cx = int(self._cx[b] * W)
             
             pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
             pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
@@ -44,36 +46,60 @@ class Erasing(Transform[Tensor, Tensor]):
         
         return mask
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        B = input.image.shape[0]
+        self._scale = []
+        self._ratio = []
+        self._cy = []
+        self._cx = []
+        for _ in range(B):
+            self._scale.append(self._random_in_range(self.scale))
+            self._ratio.append(self._random_in_range(self.ratio))
+            self._cy.append(self._random_in_range((0.0, 1.0)))
+            self._cx.append(self._random_in_range((0.0, 1.0)))
+            
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) 
+                        if self.erase_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        ) 
 
-class CoarseDropout(Transform[Tensor, Tensor]):
+class CoarseDropout(Transform):
     def __init__(
         self,
         num_holes_range: tuple[int, int] = (1, 2),
         holes_height_range: tuple[float, float] = (0.1, 0.2),
         holes_width_range: tuple[float, float] = (0.1, 0.2),
-        fill: float = 0.0
+        fill: float = 0.0,
+        erase_mask: bool = False
     ) -> None:
         super().__init__()
         self.num_holes_range = num_holes_range
         self.holes_height_range = holes_height_range
         self.holes_width_range = holes_width_range
         self.fill = fill
+        self.erase_mask = erase_mask
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
         mask = ones((B, 1, H, W), input.dtype, input.device)
         
         for b in range(B):
-            num_holes = int(round(self._random_in_range(self.num_holes_range)))
-            for _ in range(num_holes):
-                hole_h = int(self._random_in_range(self.holes_height_range)*H)
-                hole_w = int(self._random_in_range(self.holes_width_range)*W)
+            num_holes = self._num_holes[b]
+            for hole in range(num_holes):
+                hole_h = int(self._hole_h[b][hole]*H)
+                hole_w = int(self._hole_w[b][hole]*W)
                 
-                cy = self.rng.integers(0, H)
-                cx = self.rng.integers(0, W)
+                cy = int(self._cy[b][hole] * H)
+                cx = int(self._cx[b][hole] * W)
                 
                 pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
                 pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
@@ -84,18 +110,52 @@ class CoarseDropout(Transform[Tensor, Tensor]):
         
         return mask
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        B = input.image.shape[0]
+        self._num_holes = []
+        self._hole_h = []
+        self._hole_w = []
+        self._cy = []
+        self._cx = []
+        for _ in range(B):
+            num_holes = int(round(self._random_in_range(self.num_holes_range)))
+            self._num_holes.append(num_holes)
+            self._hole_h.append(
+                [self._random_in_range(self.holes_height_range) 
+                 for _ in range(num_holes)])
+            self._hole_w.append(
+                [self._random_in_range(self.holes_width_range)
+                 for _ in range(num_holes)])
+            self._cy.append(
+                [self._random_in_range((0.0, 1.0)) 
+                 for _ in range(num_holes)])
+            self._cx.append(
+                [self._random_in_range((0.0, 1.0)) 
+                 for _ in range(num_holes)])
+                
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) 
+                        if self.erase_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        ) 
 
-class GridDropout(Transform[Tensor, Tensor]):
+class GridDropout(Transform):
     def __init__(
         self,
         ratio: float = 0.5,
         random_offset: bool = True,
         holes_number_xy: tuple[int, int] = (10, 10),
         shift_xy: tuple[float, float] = (0.0, 0.0),
-        fill: float = 0.0
+        fill: float = 0.0,
+        erase_mask: bool = False
     ) -> None:
         super().__init__()
         self.ratio = ratio
@@ -103,6 +163,7 @@ class GridDropout(Transform[Tensor, Tensor]):
         self.holes_number_xy = holes_number_xy
         self.shift_xy = shift_xy
         self.fill = fill
+        self.erase_mask = erase_mask
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
@@ -124,8 +185,10 @@ class GridDropout(Transform[Tensor, Tensor]):
                         cy += self.shift_xy[1] * H
                         cx += self.shift_xy[0] * W
                     else:
-                        offset_y = self._random_in_range((0, grid_y // 2))
-                        offset_x = self._random_in_range((0, grid_x // 2))
+                        offset_y = self._offsets[b][x][y][0] * (grid_y // 2)
+                        offset_x = self._offsets[b][x][y][1] * (grid_x // 2)
+                        # offset_y = self._random_in_range((0, grid_y // 2))
+                        # offset_x = self._random_in_range((0, grid_x // 2))
                         cy += int((offset_y - (offset_y * 0.5)) * 2)
                         cx += int((offset_x - (offset_x * 0.5)) * 2)
                     
@@ -138,11 +201,34 @@ class GridDropout(Transform[Tensor, Tensor]):
         
         return mask
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        B = input.image.shape[0]
+        self._offsets = []
+        for b in range(B):
+            offset = {}
+            for x in range(self.holes_number_xy[0]):
+                offset[x] = {}
+                for y in range(self.holes_number_xy[1]):
+                    offset[x][y] = (
+                        self._random_in_range((0.0, 1.0)),
+                        self._random_in_range((0.0, 1.0)))
+            self._offsets.append(offset)
+                
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) 
+                        if self.erase_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        ) 
 
-class RandomLensFlare(Transform[Tensor, Tensor]):
+class RandomLensFlare(Transform):
     def __init__(
         self,
         num_ghosts: int = 4,
@@ -241,7 +327,8 @@ class RandomLensFlare(Transform[Tensor, Tensor]):
         self.proj_x = linspace(0, W-1, W, self.dtype, self.device)
         self.proj_x = self.proj_x.reshape((1, W)).expand((H, W))
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         self.device = input.device
         self.dtype = input.dtype
         
@@ -257,37 +344,48 @@ class RandomLensFlare(Transform[Tensor, Tensor]):
             
             for b in range(B):
                 flare = zeros((3, H, W), dtype=self.dtype, device=self.device)
-                
-                if self.source_position is not None:
-                    sx = self.source_position[0] * W
-                    sy = self.source_position[1] * H
-                else:
-                    sx = self.rng.uniform(0.1, 0.9) * W
-                    sy = self.rng.uniform(0.0, 0.4) * H
-                
                 cx, cy = W/2, H/2
-                axis_dx, axis_dy = cx-sx, cy-sy
+                axis_dx, axis_dy = cx-self._sx, cy-self._sy
 
-                flare += self._make_glow(sx, sy, alpha=0.8) \
-                       + self._make_halo(sx, sy) \
-                       + self._make_streaks(sx, sy)
+                flare += self._make_glow(self._sx, self._sy, alpha=0.8) \
+                       + self._make_halo(self._sx, self._sy) \
+                       + self._make_streaks(self._sx, self._sy)
 
                 for _ in range(self.num_ghosts):
-                    t = self.rng.uniform(0.3, 2.0)
-                    gx, gy = (sx + axis_dx * t), (sy + axis_dy * t)
+                    gx = (self._sx + axis_dx * self._t)
+                    gy = (self._sy + axis_dy * self._t)
                     
-                    radius = self._random_in_range(self.ghost_radius_range)
-                    alpha  = self._random_in_range(self.ghost_alpha_range)
-                    shift  = self.rng.uniform(0, self.chromatic_shift)
-                    
-                    flare += self._make_ghost(gx, gy, radius, alpha, shift)
+                    flare += self._make_ghost(
+                        gx, gy, self._radius, self._alpha, self._shift)
 
                 flare = flare.clamp(0.0, 1.0) * max_value
                 input[b] = (input[b] + flare).clamp(0.0, max_value)
 
         return input
 
-class RandomFog(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        B, C, H, W = input.image.shape
+        if self.source_position is not None:
+            self._sx = self.source_position[0] * W
+            self._sy = self.source_position[1] * H
+        else:
+            self._sx = self.rng.uniform(0.1, 0.9) * W
+            self._sy = self.rng.uniform(0.0, 0.4) * H
+        self._t = self.rng.uniform(0.3, 2.0)
+        
+        self._radius = self._random_in_range(self.ghost_radius_range)
+        self._alpha  = self._random_in_range(self.ghost_alpha_range)
+        self._shift  = self.rng.uniform(0, self.chromatic_shift)
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+        
+class RandomFog(Transform):
     def __init__(
         self,
         scale: int = 100,
@@ -315,7 +413,7 @@ class RandomFog(Transform[Tensor, Tensor]):
             octave_h = max(1, int(H * frequency / self.scale))
             octave_w = max(1, int(W * frequency / self.scale))
             octave = F.upsample(
-                rand((1, 1, octave_h, octave_w), dtype, device),
+                rand((1, 1, octave_h, octave_w), self._seed, dtype, device),
                 size=(H, W), mode='bilinear')
             
             noise = noise + amplitude * octave
@@ -325,10 +423,10 @@ class RandomFog(Transform[Tensor, Tensor]):
         min_value = noise.min().item()
         return (noise - min_value) / (noise.max().item() - min_value)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         B, C, H, W = input.shape
         max_value = input.max().item()
-        intensity = self._random_in_range(self.intensity_range)
         
         fog_maps = F.stack(
             [self._perlin_approx(H, W, input.device, input.dtype).squeeze(0)
@@ -337,10 +435,22 @@ class RandomFog(Transform[Tensor, Tensor]):
         fog_color = Tensor(self.fog_color, (3,), input.dtype, input.device)
         fog_color = fog_color.reshape((1, 3, 1, 1))
 
-        fog = (1 - fog_maps * intensity) + fog_color * fog_maps * intensity
+        fog = (1 - fog_maps * self._intensity) \
+            + fog_color * fog_maps * self._intensity
         
         out = input + fog
         return (out / out.max().item() * max_value).clamp(0.0, max_value)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._intensity = self._random_in_range(self.intensity_range)
+        self._seed = int(self._random_in_range((0.0, 999999999.0)))
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
         
 class RandomRain(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
@@ -349,7 +459,7 @@ class RandomRain(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
-class RandomSnow(Transform[Tensor, Tensor]):
+class RandomSnow(Transform):
     def __init__(
         self,
         brighness_coef: float = 1.5,
@@ -359,21 +469,33 @@ class RandomSnow(Transform[Tensor, Tensor]):
         self.brightness_coef = brighness_coef
         self.snow_point_range = snow_point_range
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
         
         r, g, b = norm.unbind(dim=1)
         luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
         
-        snow_point = self._random_in_range(self.snow_point_range)
-        snow_mask = ((luminance-snow_point) / (1.0-snow_point)).clamp(0.0, 1.0)
+        snow_mask = ((luminance-self._snow_point) / (1.0-self._snow_point))
+        snow_mask = snow_mask.clamp(0.0, 1.0)
         
-        noise = rand(snow_mask.shape, input.dtype, input.device)
+        noise = rand(snow_mask.shape, self._seed, input.dtype, input.device)
         snow_mask = (snow_mask + noise * 0.1).clamp(0.0, 1.0)
         
         out = norm + snow_mask * (1.0 - norm) * self.brightness_coef
         return (out * max_value).clamp(0.0, max_value)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._snow_point = self._random_in_range(self.snow_point_range)
+        self._seed = int(self._random_in_range((0.0, 999999999.0)))
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class RandomShadow(Transform[Tensor, Tensor]):
     def __init__(self) -> None:
