@@ -1,8 +1,5 @@
-import numpy as np
-
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import randn
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 
 class GaussianNoise(Transform):
@@ -101,9 +98,12 @@ class SpeckleNoise(Transform):
         return out.clamp(0.0, input.max().item())
     
     def forward(self, input: TransformInput) -> TransformInput:
+        dtype = input.image.dtype
+        device = input.image.device
+        
         std = self._random_in_range(self.std_range)
-        arr = self.rng.normal(0, std, input.image.shape).astype(np.float32)
-        self._noise = Tensor(arr).to(input.image.device, input.image.dtype)
+        arr = self.rng.normal(0, std, input.image.shape).astype(dtype)
+        self._noise = Tensor(arr).to(device, dtype)
         
         return TransformInput(
             image     = self._transform(input.image),
@@ -136,15 +136,18 @@ class ISONoise(Transform):
         return (out * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
+        dtype = input.image.dtype
+        device = input.image.device
+        
         luma_std = self._random_in_range(self.intensity)
         self._luma_noise = Tensor(
-            self.rng.normal(0, luma_std, input.image.shape).astype(np.float32)
-        ).to(input.image.device, input.image.dtype)
+            self.rng.normal(0, luma_std, input.image.shape).astype(dtype)
+        ).to(device, dtype)
         
         color_std = self._random_in_range(self.color_shift)
         self._color_noise = Tensor(
-            self.rng.normal(0, color_std, input.image.shape).astype(np.float32)
-        ).to(input.image.device, input.image.dtype)
+            self.rng.normal(0, color_std, input.image.shape).astype(dtype)
+        ).to(device, dtype)
         
         return TransformInput(
             image     = self._transform(input.image),
@@ -169,16 +172,16 @@ class MultiplicativeNoise(Transform):
         return (input * self._noise).clamp(0.0, input.max().item())
         
     def forward(self, input: TransformInput) -> TransformInput:
+        dtype = input.image.dtype
+        device = input.image.device
+        
         if self.per_channel:
             noise_shape = (input.image.shape[0], input.image.shape[1], 1, 1)
         else: noise_shape = input.image.shape
         
-        arr = self.rng.uniform(
-            self.multiplier_range[0], 
-            self.multiplier_range[1], 
-            noise_shape
-        ).astype(np.float32)
-        self._noise = Tensor(arr).to(input.image.device, input.image.dtype)
+        r = self.multiplier_range
+        arr = self.rng.uniform(r[0], [1], noise_shape).astype(dtype)
+        self._noise = Tensor(arr).to(device, dtype)
         
         return TransformInput(
             image     = self._transform(input.image),

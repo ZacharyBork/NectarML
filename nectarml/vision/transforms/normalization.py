@@ -4,9 +4,9 @@ import numpy as np
 
 from nectarml.tensor import Tensor
 from nectarml.typing import float16, float32, uint8
-from nectarml.vision.transforms import Transform
+from nectarml.vision.transforms.transform import Transform, TransformInput 
 
-class Normalize(Transform[Tensor, Tensor]):
+class Normalize(Transform):
     def __init__(
         self,
         mean: list[float],
@@ -21,7 +21,8 @@ class Normalize(Transform[Tensor, Tensor]):
         self.eps = eps
         self.inplace = inplace
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         assert input.ndim >= 3, \
             'Normalize expects at least 3D input [C, ...] or [B, C, ...]'
     
@@ -37,8 +38,17 @@ class Normalize(Transform[Tensor, Tensor]):
         out = (input - mean) / (std + self.eps)
         if self.inplace: return input.copy_(out)
         return out
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
-class Denormalize(Transform[Tensor, Tensor]):
+class Denormalize(Transform):
     def __init__(
         self,
         mean: list[float],
@@ -50,21 +60,31 @@ class Denormalize(Transform[Tensor, Tensor]):
         self.std = std
         self.inplace = inplace
 
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         if   input.ndim == 3: broadcast_shape = (len(self.mean), 1, 1)
         elif input.ndim == 4: broadcast_shape = (1, len(self.mean), 1, 1)
         elif input.ndim == 5: broadcast_shape = (1, len(self.mean), 1, 1, 1)
 
-        mean = Tensor(np.array(self.mean, dtype=np.float32))
+        mean = Tensor(np.array(self.mean, dtype=float32))
         mean = mean.reshape(broadcast_shape).to(input.device)
-        std  = Tensor(np.array(self.std,  dtype=np.float32))
+        std  = Tensor(np.array(self.std,  dtype=float32))
         std = std.reshape(broadcast_shape).to(input.device)
 
         out = input * std + mean
         if self.inplace: return input.copy_(out)
         return out
 
-class MinMaxNormalize(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class MinMaxNormalize(Transform):
     def __init__(
         self,
         min_value: int | float = 0.0,
@@ -76,7 +96,8 @@ class MinMaxNormalize(Transform[Tensor, Tensor]):
         self.max_value = max_value
         self.inplace = inplace
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         _min, _max = input.min().item(), input.max().item() 
         if _min == _max: out = input * 0.0 + self.min_value
         else: 
@@ -86,7 +107,16 @@ class MinMaxNormalize(Transform[Tensor, Tensor]):
         if self.inplace: return input.copy_(out)
         return out
 
-class ToFloat(Transform[Tensor, Tensor]):
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class ToFloat(Transform):
     def __init__(
         self, 
         half_precision: bool = False,
@@ -96,17 +126,37 @@ class ToFloat(Transform[Tensor, Tensor]):
         self.output_dtype = float16 if half_precision else float32
         self.scale = scale
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         out = input.to(dtype=self.output_dtype)
         if self.scale and input.dtype == uint8: out = out / 255.0
         return out
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
-class ToUint8(Transform[Tensor, Tensor]):
+class ToUint8(Transform):
     def __init__(self, scale: bool = False) -> None:
         super().__init__()
         self.norm = MinMaxNormalize(0.0, 255.0) if scale else None
     
-    def forward(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
         if self.norm is not None: input = self.norm(input)
         return input.round().to(dtype=uint8)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
