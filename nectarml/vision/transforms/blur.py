@@ -130,15 +130,43 @@ class RandomBlur(Transform):
         pass
 
 class Sharpen(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        alpha:         float = 1.0,
+        iterations:      int = 1,
+        kernel_size:     int = 3,
+        sigma:         float = 1.0,
+        blur_iterations: int = 1,
+        method: Literal['gaussian', 'box'] = 'gaussian'
+    ) -> None:
         super().__init__()
+        match method:
+            case 'box': 
+                blur_fn = BoxBlur(kernel_size, blur_iterations)
+            case 'gaussian': 
+                blur_fn =  GaussianBlur(kernel_size, sigma, blur_iterations)
+            case _: raise ValueError(f'Invalid blur method: {method}')
+        self.blur = lambda x : blur_fn._transform(x)
+        self.alpha = alpha
+        self.iterations = iterations
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        max_value = input.max().item()
+        output = input.clone()
+        for _ in range(self.iterations):
+            output = output + self.alpha * (output - self.blur(output))
+            output = output.clamp(0.0, max_value)
+        return output
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class Emboss(Transform):
     def __init__(
