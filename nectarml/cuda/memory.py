@@ -11,7 +11,11 @@ def get_cuda_meminfo() -> tuple[int, int, int]:
 
 def memory_allocated() -> int:
     _, _, used = get_cuda_meminfo()
-    return used
+    return used/1024**3
+
+def memory_free() -> int:
+    _, free, _ = get_cuda_meminfo()
+    return free/1024**3
 
 def get_memory_statistics(precision: int = 2) -> str:
     stats = get_cuda_meminfo()

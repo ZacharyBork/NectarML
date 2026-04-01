@@ -41,6 +41,7 @@ def benchmark_system_memory(
     new_line: bool = False
 ) -> None:
     process = psutil.Process(os.getpid())
-    mb = process.memory_info().rss / 1024 / 1024
+    mb = process.memory_info().rss / 1024 / 1024    
     cr = '\n' if new_line else ''
-    print(f'[{operation_name}] RAM: {mb:.1f} MB{cr}')
+    op_name = f'[{operation_name}] ' if operation_name is not None else ''
+    print(f'{op_name}RAM: {mb:.1f} MB{cr}')

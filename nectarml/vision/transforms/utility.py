@@ -9,7 +9,7 @@ from PIL import Image
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import full
+from nectarml.creation import full, ones_like
 from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms.transform import \
     Transform, UtilityTransform, TransformInput
@@ -200,6 +200,95 @@ class Resample(Transform):
             image2    = self._transform(input.image2),
             mask      = self._transform(input.mask) \
                         if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+### EVALUATION ###
+
+class Derivative(Transform):
+    def __init__(
+        self,
+        mode: Literal['ddx', 'ddy'] = 'ddx',
+        per_channel: bool = False
+    ) -> None:
+        super().__init__()
+        self.mode = mode
+        self.per_channel = per_channel
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        if not self.per_channel:
+            t = input.mean(dim=1, keepdim=True)
+        else: t = input
+        
+        B, C, H, W = t.shape
+        axis = 0 if self.mode == 'ddx' else 1
+        outputs = []
+        
+        for b in range(B):
+            channels = []
+            for c in range(C):        
+                if axis == 0: 
+                    interior = (t[b, c, 2:, :]  - t[b, c, :-2, :]) / 2
+                    left     =  t[b, c, 1:2, :] - t[b, c, 0:1, :]
+                    right    =  t[b, c, -1:, :] - t[b, c, -2:-1, :]
+
+                elif axis == 1:
+                    interior = (t[b, c, :, 2:]  - t[b, c, :, :-2]) / 2
+                    left     =  t[b, c, :, 1:2] - t[b, c, :, 0:1]
+                    right    =  t[b, c, :, -1:] - t[b, c, :, -2:-1]
+                 
+                result = F.cat([left, interior, right], dim=axis).unsqueeze(0)
+                channels.append(result)
+            
+            if self.per_channel: outputs.append(F.cat(channels, dim=0))
+            else: outputs.extend(channels)
+            
+        return F.stack(outputs, dim=0)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class NormalMap(Transform):
+    def __init__(
+        self,
+        normal_power: float = 1.0,
+        invert: bool = False
+    ) -> None:
+        super().__init__()
+        assert normal_power > 0.0, '"normal_power" must be greater than 0.0.'
+        self.normal_power = normal_power
+        self.invert = invert
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+        gray = input.mean(dim=1, keepdim=True)
+        if self.invert: gray = 1.0 - gray
+        dzdx = Derivative('ddx', per_channel=True)(gray)
+        dzdy = Derivative('ddy', per_channel=True)(gray)
+                
+        normal = F.cat([-dzdx, -dzdy, ones_like(gray)], dim=1)
+        length = (
+            normal[:, 0, :, :]**2 
+          + normal[:, 1, :, :]**2 
+          + normal[:, 2, :, :]**2
+        ).sqrt()
+
+        return normal**(1/self.normal_power) / length * 0.5 + 0.5
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
             boxes     = input.boxes,
             keypoints = input.keypoints
         )

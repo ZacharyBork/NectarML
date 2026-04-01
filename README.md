@@ -352,6 +352,7 @@
     ✅ 2. Autocast Context
     ✅ 3. Nograd Context/Decorator
     ❌ 4. AMP flags for functions/methods
+    ❌ 5. Ensure all Transform classes work on both RGB and mono Tensors
 
 ### 🟡  Compatibility Layersc
 

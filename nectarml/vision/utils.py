@@ -36,11 +36,11 @@ def make_grid(
     if isinstance(input, Sequence): input = F.cat(input, dim=0)
     
     if scale_each:
-        split = F.split(input, sizes=input.shape[0])
+        split = F.split(input, split_size=input.shape[0])
         if normalize: split = [_normalize(i, value_range) for i in split]
     else:
         if normalize: input = _normalize(input, value_range)
-        split = F.split(input, sizes=input.shape[0])
+        split = F.split(input, split_size=input.shape[0])
                     
     count = len(split)
     rows, cols = int(np.ceil(count / nrow)), int(np.minimum(count, nrow))
@@ -80,9 +80,14 @@ def tensor_to_PIL(
     value_range: tuple[int, int] = (0, 255)
 ) -> Image.Image:
     if input.ndim > 3: input = input.squeeze(dim=0)
-    input = input.permute((1, 2, 0))
+    if input.shape[0] == 1: 
+        mode = 'L'
+        input = input.squeeze(dim=0)
+    else: 
+        mode = 'RGB'
+        input = input.permute((1, 2, 0))
     if normalize: input = _normalize(input, value_range)
-    return Image.fromarray(input.numpy().astype(dtype=uint8), 'RGB')
+    return Image.fromarray(input.numpy().astype(dtype=uint8), mode)
 
 ### IMAGE I/O ###
 

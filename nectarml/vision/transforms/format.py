@@ -10,18 +10,6 @@ from nectarml.vision.transforms.transform import \
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):
-    def __init__(
-        self, 
-        device: Literal['cpu', 'cuda'] = 'cpu',
-        dtype: DTypeLike = float32,
-        normalize: bool = True,
-        value_range: tuple[float, float] = (0.0, 1.0)
-    ) -> None:
-        super().__init__(device)
-        self.dtype = dtype
-        self.normalize = normalize
-        self.value_range = value_range
-    
     def _transform(
         self, 
         input: np.ndarray | Image.Image | Tensor | None
@@ -29,25 +17,13 @@ class ToTensor(Transform):
         if input is None or isinstance(input, Tensor): return input
         
         if isinstance(input, Image.Image):
-            data = np.array(input).astype(self.dtype)
+            data = np.array(input).astype(float32)
         elif isinstance(input, np.ndarray): data = input
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
-        # print(f'numpy max before transfer: {data.max()}')
-        # output = Tensor(data, dtype=self.dtype, device=self.device)
-        # print(f'after Tensor init max: {output.max().item()}')
-        # output = output.permute((2, 0, 1))
-        # print(f'after permute max: {output.max().item()}')
-        # output = output.unsqueeze(dim=0)
-        # print(f'after unsqueeze max: {output.max().item()}')
-        # output = output / 255.0
-        # print(f'after /255 max: {output.max().item()}')
-        # return output
-        
-        output = Tensor(data, dtype=self.dtype, device=self.device)
+        output = Tensor(data, dtype=float32, device='cpu')
         output = output.permute((2, 0, 1)).unsqueeze(dim=0)
-        
-        if self.normalize: output = output / 255
+        output = output / np.maximum(data.max(), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
