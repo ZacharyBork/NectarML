@@ -4,7 +4,7 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import arange, linspace
+from nectarml.creation import linspace, ones
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput
 
@@ -23,11 +23,13 @@ def _apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
 class GaussianBlur(Transform):
     def __init__(
         self,
-        kernel_size: int = 5,
-        sigma: float = 1.0,
-        iterations: int = 1
+        kernel_size: int = 7,
+        sigma:     float = 1.0,
+        iterations:  int = 1
     ) -> None:
         super().__init__()
+        assert kernel_size % 2 != 0, \
+            '"kernel_size" must be an odd integer value.'
         self.kernel_size = kernel_size
         self.sigma = sigma
         self.iterations = iterations
@@ -84,15 +86,37 @@ class MedianBlur(Transform):
         pass
 
 class BoxBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        kernel_size: int = 5,
+        iterations:  int = 1
+    ) -> None:
         super().__init__()
-    
+        assert kernel_size % 2 != 0, \
+            '"kernel_size" must be an odd integer value.'
+        self.kernel_size = kernel_size
+        self.iterations = iterations
+        
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-
+        
+        ks = self.kernel_size
+        kernel = ones((ks, ks), dtype=float32, device=input.device) / (ks * ks)
+        
+        output = input.clone()
+        for _ in range(self.iterations):
+            output = _apply_kernel_2d(output, kernel)
+        
+        return output
+    
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class RandomBlur(Transform):
     def __init__(self) -> None:
