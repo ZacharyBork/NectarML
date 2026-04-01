@@ -640,8 +640,9 @@ class Tensor():
         for node in graph: node._backward()
         
         for node in graph:
-            node._prev.clear()
-            node._backward = lambda : None
+            if node._prev:
+                node._prev.clear()
+                node._backward = lambda : None
     
     def zero_grad(self: Tensor) -> None:
         '''Zeros values in the grad Tensor of the Tensor it is called on.'''
@@ -2130,7 +2131,8 @@ class Tensor():
             output_shape = typing.Size(data.shape)
 
         out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad)
+            data, output_shape, self.dtype, self.device, self.requires_grad,
+            _children=(self,))
         
         def _backward() -> None:
             if self_requires_grad:
