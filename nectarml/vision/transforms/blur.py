@@ -1,10 +1,11 @@
+import warnings
 from typing import Literal
 
 import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import linspace, ones
+from nectarml.creation import linspace, ones, zeros
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput
 
@@ -67,28 +68,6 @@ class GaussianBlur(Transform):
             keypoints = input.keypoints
         )
 
-class MotionBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-        
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-    
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
-class MedianBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
 class BoxBlur(Transform):
     def __init__(
         self,
@@ -126,6 +105,69 @@ class BoxBlur(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+
+class MotionBlur(Transform):
+    def __init__(
+        self,
+        kernel_size: int | tuple[int, int] = (3, 7),
+        angle: float | tuple[float, float] = (0.0, 360.0),
+        iterations:  int | tuple[int, int] = 1
+    ) -> None:
+        super().__init__()
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        for size in self.kernel_size:
+            assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
+        self.angle = (angle, angle) if isinstance(angle, int|float) else angle
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+        ks = self._ks
+        k = zeros((ks, ks), device=input.device)
+        center = ks // 2
+        for i in range(ks):
+            offset = i - center
+            x = int(round(center + offset * np.cos(np.radians(self._angle))))
+            y = int(round(center + offset * np.sin(np.radians(self._angle))))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if 0 <= x < ks and 0 <= y < ks: k[y, x] = 1.0
+        total = k.sum()
+        kernel = k / total if total > 0 else k
+        
+        output = input.clone()
+        for _ in range(self._iters): 
+            output = _apply_kernel_2d(output, kernel)
+        return output
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        self._ks = int(self.rng.choice(valid_sizes))
+        self._angle = int(self._random_in_range(self.angle))
+        self._iters = int(self._random_in_range(self.iterations))
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class MedianBlur(Transform):
+    def __init__(self) -> None:
+        raise NotImplementedError
+        super().__init__()
+    
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        pass
 
 class RandomBlur(Transform):
     def __init__(self) -> None:
