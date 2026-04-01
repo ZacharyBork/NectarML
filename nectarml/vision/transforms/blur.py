@@ -4,19 +4,62 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.creation import arange, linspace
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput
 
+### UTILS ###
+
+def _apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
+    B, C, H, W = image.shape
+    KH, KW = kernel.shape
+    kernel = kernel.unsqueeze(0).unsqueeze(0)
+    image_flat = image.reshape((B * C, 1, H, W))
+    result = F.conv2d(image_flat, kernel, padding=(KH//2, KW//2), groups=1)
+    return result.reshape((B, C, H, W))
+
+### TRANSFORMS ###
+
 class GaussianBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        kernel_size: int = 5,
+        sigma: float = 1.0,
+        iterations: int = 1
+    ) -> None:
         super().__init__()
-    
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+        self.iterations = iterations
+        
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        ks = self.kernel_size  
+        center = ks // 2
+            
+        xx = linspace(0, ks-1, ks, dtype=float32, device=input.device) - center
+        yy = linspace(0, ks-1, ks, dtype=float32, device=input.device) - center
+        
+        xx = xx.reshape((ks, 1)).expand((ks, ks))
+        yy = yy.reshape((1, ks)).expand((ks, ks))
+        
+        kernel = (-(xx**2 + yy**2) / (2 * self.sigma**2)).exp()
+        kernel = kernel / kernel.sum()
+    
+        output = input.clone()
+        for _ in range(self.iterations):
+            output = _apply_kernel_2d(output, kernel)
+        
+        return output
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class MotionBlur(Transform):
     def __init__(self) -> None:
