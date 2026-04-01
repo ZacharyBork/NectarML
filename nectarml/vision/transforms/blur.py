@@ -23,38 +23,42 @@ def _apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
 class GaussianBlur(Transform):
     def __init__(
         self,
-        kernel_size: int = 7,
-        sigma:     float = 1.0,
-        iterations:  int = 1
+        kernel_size: int | tuple[int, int] = (3, 7),
+        sigma: float | tuple[float, float] = 1.0,
+        iterations:  int | tuple[int, int] = 1
     ) -> None:
         super().__init__()
-        assert kernel_size % 2 != 0, \
-            '"kernel_size" must be an odd integer value.'
-        self.kernel_size = kernel_size
-        self.sigma = sigma
-        self.iterations = iterations
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        for size in self.kernel_size:
+            assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
+        self.sigma = (sigma, sigma) \
+            if isinstance(sigma, float | int) else sigma
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        ks = self.kernel_size  
-        center = ks // 2
-            
-        xx = linspace(0, ks-1, ks, dtype=float32, device=input.device) - center
-        yy = linspace(0, ks-1, ks, dtype=float32, device=input.device) - center
+        ks = self._ks
         
-        xx = xx.reshape((ks, 1)).expand((ks, ks))
-        yy = yy.reshape((1, ks)).expand((ks, ks))
+        x = linspace(0, ks-1, ks, dtype=float32, device=input.device) - (ks//2)
+        xx = x.reshape((ks, 1)).expand((ks, ks))
+        yy = x.clone().reshape((1, ks)).expand((ks, ks))
         
-        kernel = (-(xx**2 + yy**2) / (2 * self.sigma**2)).exp()
+        kernel = (-(xx**2 + yy**2) / (2 * self._sigma**2)).exp()
         kernel = kernel / kernel.sum()
     
         output = input.clone()
-        for _ in range(self.iterations):
-            output = _apply_kernel_2d(output, kernel)
-        
+        for _ in range(self._iters): output = _apply_kernel_2d(output, kernel)
         return output
 
     def forward(self, input: TransformInput) -> TransformInput:
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        self._ks = int(self.rng.choice(valid_sizes))
+        self._sigma = self._random_in_range(self.sigma)
+        self._iters = int(self._random_in_range(self.iterations))
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -88,28 +92,33 @@ class MedianBlur(Transform):
 class BoxBlur(Transform):
     def __init__(
         self,
-        kernel_size: int = 5,
-        iterations:  int = 1
+        kernel_size: int | tuple[int, int] = (3, 7),
+        iterations:  int | tuple[int, int] = 1
     ) -> None:
         super().__init__()
-        assert kernel_size % 2 != 0, \
-            '"kernel_size" must be an odd integer value.'
-        self.kernel_size = kernel_size
-        self.iterations = iterations
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        for size in self.kernel_size:
+            assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        
-        ks = self.kernel_size
-        kernel = ones((ks, ks), dtype=float32, device=input.device) / (ks * ks)
+        kernel = (
+            ones((self._ks, self._ks), device=input.device)
+          / (self._ks * self._ks))
         
         output = input.clone()
-        for _ in range(self.iterations):
-            output = _apply_kernel_2d(output, kernel)
-        
+        for _ in range(self._iters): output = _apply_kernel_2d(output, kernel)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        self._ks = int(self.rng.choice(valid_sizes))
+        self._iters = int(self._random_in_range(self.iterations))
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -132,14 +141,19 @@ class RandomBlur(Transform):
 class Sharpen(Transform):
     def __init__(
         self,
-        alpha:         float = 1.0,
-        iterations:      int = 1,
+        alpha: float | tuple[float, float] = 1.0,
+        iterations:  int | tuple[int, int] = 1,
         kernel_size:     int = 3,
         sigma:         float = 1.0,
         blur_iterations: int = 1,
         method: Literal['gaussian', 'box'] = 'gaussian'
     ) -> None:
         super().__init__()
+        self.alpha = (alpha, alpha) \
+            if isinstance(kernel_size, int | float) else alpha
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
+            
         match method:
             case 'box': 
                 blur_fn = BoxBlur(kernel_size, blur_iterations)
@@ -147,19 +161,19 @@ class Sharpen(Transform):
                 blur_fn =  GaussianBlur(kernel_size, sigma, blur_iterations)
             case _: raise ValueError(f'Invalid blur method: {method}')
         self.blur = lambda x : blur_fn._transform(x)
-        self.alpha = alpha
-        self.iterations = iterations
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
         output = input.clone()
-        for _ in range(self.iterations):
-            output = output + self.alpha * (output - self.blur(output))
+        for _ in range(self._iters):
+            output = output + self._alpha * (output - self.blur(output))
             output = output.clamp(0.0, max_value)
         return output
 
     def forward(self, input: TransformInput) -> TransformInput:
+        self._alpha = self._random_in_range(self.alpha)
+        self._iters = int(self._random_in_range(self.iterations))
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
