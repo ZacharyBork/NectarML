@@ -6,6 +6,7 @@ from nectarml.functional.reductions import mean, sum
 from nectarml.functional.math import sqrt, log, exp, cosh
 from nectarml.functional.indexing import where, gather
 
+from nectarml.functional.math import maximum
 # ABSTRACTS
 
 def _reduce_loss(
@@ -166,14 +167,15 @@ def HingeLoss(
     target: Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
-    return _reduce_loss(max(zeros_like(input), 1 - target * input), reduction)
+    return _reduce_loss(
+        maximum(zeros_like(input), 1 - target * input), reduction)
 
 def Hinge2Loss(
     input: Tensor, 
     target: Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
-    loss_value = max(zeros_like(input), 1 - target * input) ** 2
+    loss_value = maximum(zeros_like(input), 1 - target * input) ** 2
     return _reduce_loss(loss_value, reduction)
 
 # LOSS - PROBABILISTIC
@@ -193,7 +195,7 @@ def BCEWithLogitsLoss(
     x = input
     _zeros = zeros_like(x)
     _ones = ones_like(x)
-    loss_value = max(x, _zeros) - x * target + log(_ones + exp(-abs(x)))
+    loss_value = maximum(x, _zeros) - x * target + log(_ones + exp(-abs(x)))
     return _reduce_loss(loss_value, reduction)
 
 # LOSS - RANKING
@@ -210,6 +212,6 @@ def TripletMarginLoss(
     a, p, n = anchor, positive, negative
     zero = zeros((), dtype=anchor.dtype, device=anchor.device)
     dist = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
-    loss_value = max(dist(a, p) - dist(a, n) + margin, zero)
+    loss_value = maximum(dist(a, p) - dist(a, n) + margin, zero)
     return mean(loss_value, reduction)
 

@@ -571,6 +571,23 @@ class Tensor():
         
         return typing.Size(tuple(out_shape))
     
+    def _broadcast_grad(
+        self,
+        grad: Tensor,
+        original_shape: tuple[int, ...] | typing.Size, 
+    ) -> Tensor:
+        if grad.shape == original_shape: return grad
+
+        ndim_diff = grad.ndim - len(original_shape)
+        axes = list(range(ndim_diff))
+        shapes = zip(original_shape, grad.shape[ndim_diff:])
+        for i, (s, g) in enumerate(shapes):
+            if s != g: axes.append(i + ndim_diff)
+        
+        if axes: grad = grad.sum(dim=tuple(axes), keepdim=False)
+        if grad.shape != original_shape: grad = grad.reshape(original_shape)
+        return grad
+
     def _build_output_tensor(
         self: Tensor, 
         data: np.ndarray | int, 
@@ -1109,17 +1126,16 @@ class Tensor():
             Tensor : A reference to the Tensor being added to.
         '''
         self._bool_type_check('Tensor.__iadd__()', other)
-
         if isinstance(other, Tensor):
-            out_shape = self._broadcast_shape(self.shape, other.shape)
-        else: out_shape = self.shape
+            assert other.shape == self.shape, \
+                f'grad shape mismatch: self.shape={self.shape} ' \
+                f'other.shape={other.shape}'
 
         if self.device == 'cuda': 
-            new_ptr = cuda.math.add(self, other, out_shape)
+            new_ptr = cuda.math.add(self, other, self.shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
         else: self.data = cpu.math.add(self, other)
-        self.shape = out_shape
         return self
     
     def __add__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1152,8 +1168,10 @@ class Tensor():
             _children=children)
         
         def _backward() -> None:
-            if self_requires_grad: self.grad += out.grad
-            if other_requires_grad: other.grad += out.grad
+            if self_requires_grad:
+                self.grad += self._broadcast_grad(out.grad, self.shape)
+            if other_requires_grad:
+                other.grad += self._broadcast_grad(out.grad, other.shape)
                 
         out._backward = _backward
         return out
@@ -1180,17 +1198,16 @@ class Tensor():
             Tensor : A reference to the Tensor being subtracted from.
         '''
         self._bool_type_check('Tensor.__isub__()', other)
-
         if isinstance(other, Tensor):
-            out_shape = self._broadcast_shape(self.shape, other.shape)
-        else: out_shape = self.shape
+            assert other.shape == self.shape, \
+                f'grad shape mismatch: self.shape={self.shape} ' \
+                f'other.shape={other.shape}'
         
         if self.device == 'cuda': 
-            new_ptr = cuda.math.subtract(self, other, out_shape)
+            new_ptr = cuda.math.subtract(self, other, self.shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)    
         else: self.data = cpu.math.subtract(self, other)
-        self.shape = out_shape
         return self
 
     def __sub__(self, other: Tensor | int | float) -> Tensor:
@@ -1223,8 +1240,10 @@ class Tensor():
             _children=children)
         
         def _backward() -> None:
-            if self_requires_grad: self.grad += out.grad
-            if other_requires_grad: other.grad += -out.grad
+            if self_requires_grad: 
+                self.grad += self._broadcast_grad(out.grad, self.shape)
+            if other_requires_grad: 
+                other.grad += -self._broadcast_grad(out.grad, other.shape)
 
         out._backward = _backward
         return out
@@ -1269,17 +1288,16 @@ class Tensor():
             Tensor : A reference to the Tensor being multiplied.
         '''
         self._bool_type_check('Tensor.__imul__()', other)
-
         if isinstance(other, Tensor):
-            out_shape = self._broadcast_shape(self.shape, other.shape)
-        else: out_shape = self.shape
+            assert other.shape == self.shape, \
+                f'grad shape mismatch: self.shape={self.shape} ' \
+                f'other.shape={other.shape}'
         
         if self.device == 'cuda': 
-            new_ptr = cuda.math.multiply(self, other, out_shape)
+            new_ptr = cuda.math.multiply(self, other, self.shape)
             self._buffer.decrement()
             self._buffer = CudaBuffer(new_ptr, self.dtype)
         else: self.data = cpu.math.multiply(self, other)
-        self.shape = out_shape
         return self
 
     def __mul__(self: Tensor, other: Tensor | int | float) -> Tensor:
@@ -1311,8 +1329,12 @@ class Tensor():
             _children=children)
         
         def _backward() -> None:
-            if self_requires_grad: self.grad += other * out.grad
-            if other_requires_grad: other.grad += self * out.grad
+            if self_requires_grad: 
+                grad = other * out.grad
+                self.grad += self._broadcast_grad(grad, self.shape)
+            if other_requires_grad: 
+                grad = self * out.grad
+                other.grad += self._broadcast_grad(grad, other.shape)
         
         out._backward = _backward
         return out
@@ -1477,11 +1499,11 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad:
-                grad = (self < other).to(self.device, self.dtype) 
-                self.grad += grad * out.grad
+                grad = (self < other).to(self.device, self.dtype) * out.grad
+                self.grad += self._broadcast_grad(grad, self.shape) 
             if other_requires_grad:
-                grad = (other < self).to(other.device, other.dtype)
-                other.grad += grad * out.grad
+                grad = (other < self).to(other.device, other.dtype) * out.grad
+                other.grad += self._broadcast_grad(grad, other.shape) 
         
         out._backward = _backward
         return out
@@ -1522,11 +1544,11 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad:
-                grad = (self >= other).to(self.device, self.dtype) 
-                self.grad += grad * out.grad
+                grad = (self >= other).to(self.device, self.dtype) * out.grad
+                self.grad += self._broadcast_grad(grad, self.shape) 
             if other_requires_grad:
-                grad = (other <= self).to(other.device, other.dtype)
-                other.grad += grad * out.grad
+                grad = (other <= self).to(other.device, other.dtype) * out.grad
+                other.grad += self._broadcast_grad(grad, other.shape)
         
         out._backward = _backward
         return out
@@ -1970,9 +1992,11 @@ class Tensor():
         def _backward() -> None:
             denom = (self**2 + other**2).clamp(min_value=1e-7)
             if self_requires_grad:
-                self.grad += out.grad * other / denom
+                grad = out.grad * other / denom
+                self.grad += self._broadcast_grad(grad, self.shape)
             if other_requires_grad:
-                other.grad += out.grad * (-self) / denom
+                grad = out.grad * (-self) / denom
+                other.grad += self._broadcast_grad(grad, other.shape)
                 
         out._backward = _backward
         return out
@@ -2018,8 +2042,10 @@ class Tensor():
             _children=children)
         
         def _backward() -> None:
-            if self_requires_grad: self.grad += out.grad
-            if other_requires_grad: other.grad += out.grad
+            if self_requires_grad: 
+                self.grad += self._broadcast_grad(out.grad, self.shape)
+            if other_requires_grad: 
+                other.grad += self._broadcast_grad(out.grad, other.shape)
                 
         out._backward = _backward
         return out
@@ -2136,12 +2162,12 @@ class Tensor():
         
         def _backward() -> None:
             if self_requires_grad:
-                n = 1
-                if dim is None: n = self.size
-                else: n = self.shape[dim]
+                n = self.size if dim is None else self.shape[dim]
                 
-                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
-                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                grad = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
+                
                 self.grad += grad.expand(self.shape) / n
         
         out._backward = _backward

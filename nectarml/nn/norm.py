@@ -54,8 +54,10 @@ class _BatchNorm(Module):
             
             if self.track_running_stats:
                 M = self.momentum
-                self.running_mean = (M * self.running_mean + (1 - M) * mean).detach()
-                self.running_var = (M * self.running_var + (1 - M) * var).detach()   
+                self.running_mean = (
+                    M * self.running_mean + (1 - M) * mean).detach()
+                self.running_var = (
+                    M * self.running_var + (1 - M) * var).detach()   
         else:
             if self.track_running_stats:
                 x_norm = (x - self.running_mean) 

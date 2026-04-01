@@ -12,6 +12,7 @@ def dropout(
     if p == 1.0: return input * 0.0
 
     mask = (rand(input.shape, device=input.device) > p).to(dtype=input.dtype)
+    mask = mask.detach()
     out  = input * mask / (1.0 - p)
 
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -34,6 +35,7 @@ def alpha_dropout(
     b = -a * (alpha_prime * (1-keep_prob))
 
     mask = (rand(input.shape, device=input.device) > p).to(dtype=input.dtype)
+    mask = mask.detach()
     dropped = mask * input + (1.0 - mask) * alpha_prime
     out = a * dropped + b
 
@@ -59,7 +61,7 @@ def feature_alpha_dropout(
 
     mask_shape = (input.shape[0], input.shape[1]) + (1,) * len(input.shape[2:])
     mask = (rand(mask_shape, device=input.device) > p).to(dtype=input.dtype)
-    mask = mask.broadcast_to(input.shape)
+    mask = mask.detach().broadcast_to(input.shape)
     dropped = mask * input + (1.0 - mask) * alpha_prime
     out = a * dropped + b
     
@@ -79,7 +81,7 @@ def dropout1d(
     
     mask_shape = (input.shape[0], input.shape[1], 1)
     mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -98,7 +100,7 @@ def dropout2d(
     
     mask_shape = (input.shape[0], input.shape[1], 1, 1)
     mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -117,7 +119,7 @@ def dropout3d(
     
     mask_shape = (input.shape[0], input.shape[1], 1, 1, 1)
     mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)

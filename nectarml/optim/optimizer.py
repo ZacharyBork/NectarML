@@ -100,6 +100,29 @@ class Optimizer():
     def _get_parameter_state_index(self: Optimizer, parameter: Tensor) -> int:
         return self._param_to_idx[id(parameter)]
     
+    def named_parameters(self: Optimizer) -> list[tuple[str, tuple[int, ...]]]:
+        result = []
+        for group in self.param_groups:
+            for name, param in zip(group['param_names'], group['params']):
+                result.append((name, param.shape))
+        return result
+
+    def print_param_stats(self: Optimizer) -> None:
+        for group in self.param_groups:
+            for name, param in zip(group['param_names'], group['params']):
+                if param.grad is not None:
+
+                    grad_max  = param.grad.abs().max().item()
+                    grad_mean = param.grad.abs().mean().item()
+                    param_max = param.abs().max().item()
+                    
+                    print(f'{name:60s} | '
+                        f'param_max: {param_max:10.4f} | '
+                        f'grad_max: {grad_max:10.4f} | '
+                        f'grad_mean: {grad_mean:10.6f}')
+                else:
+                    print(f'{name:60s} | no grad')
+    
     ### HOOKS ###
     
     def hooks(self: Optimizer) -> dict[str, Any]:

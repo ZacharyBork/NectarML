@@ -43,6 +43,7 @@ class SGD(Optimizer):
         self.fused = fused
         
     def _build_state(self: SGD, param_index: int, param: Tensor) -> None:
+        if param_index not in self.state: self.state[param_index] = {}
         if self.momentum > 0.0:
             if 'velocity' not in self.state[param_index]:
                 self.state[param_index]['velocity'] = zeros_like(param)
@@ -56,25 +57,21 @@ class SGD(Optimizer):
                 idx = self._get_parameter_state_index(param)
                 self._build_state(idx, param)
                 
-                grad = param.grad.clone()
+                grad = param.grad.detach().clone()
                 
                 if self.maximize: grad = -grad
                 if self.weight_decay: 
                     grad = grad + self.weight_decay * param.detach()
                 
                 if self.momentum > 0.0:
-                    if idx not in self.state: self.state[idx] = {}
-                    if 'velocity' not in self.state[idx]:
-                        self.state[idx]['velocity'] = zeros_like(param)
-                    
                     v = self.state[idx]['velocity']
                     v = self.momentum * v + (1 - self.dampening) * grad
-                    self.state[idx]['velocity'] = v
+                    self.state[idx]['velocity'] = v.detach()
                     
                     if self.nesterov: grad = grad + self.momentum * v
                     else: grad = v
                 
-                param -= _lr * grad
+                param -= (_lr * grad).detach()
                 
             
 
