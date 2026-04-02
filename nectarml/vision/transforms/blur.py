@@ -345,13 +345,18 @@ class Sharpen(Transform):
 class Emboss(Transform):
     def __init__(
         self,
-        kernel_mode: int = 0,
+        kernel_mode:   int = 0,
         rotate_kernel: bool = False,
-        gray_level: int = 75,
+        gray_level:    int | tuple[int, int] = 125,
+        alpha:   float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
         super().__init__()
-        self.gray_level = gray_level / 255
+        self.gray_level = (gray_level, gray_level) \
+            if isinstance(gray_level, int | float) else gray_level
+        self.gray_level = tuple([i/255 for i in self.gray_level])
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
         self.p = p
         
         match kernel_mode:
@@ -376,27 +381,27 @@ class Emboss(Transform):
                     f'Kernel type expected values between 0-3 but found '
                     f'value: {kernel_mode}')
         
-        k = np.array([[k]]).astype(float32)
+        k = np.array(k).astype(float32)
         if rotate_kernel: k = np.rot90(k)
-        self.kernel = Tensor(k, dtype=float32)
+        self.kernel = Tensor(k)
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
+        
         kernel = self.kernel.to(input.device, input.dtype)
-
         gray = norm.mean(dim=1, keepdim=True)
-                
-        out = F.conv2d(gray, kernel, padding=1)
-        out = F.sqrt(out ** 2 + 1e-6)
-        out = F.maximum(out, self.gray_level)
-        outputs = [out]*3
-
-        return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        embossed = _apply_kernel_2d(gray, kernel)
+        embossed = (embossed + self._gray_level).clamp(0.0, 1.0)
+        result = F.cat([embossed, embossed, embossed], dim=1)
+        blend = ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)
+        return blend * max_value
 
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
+        self._gray_level = self._random_in_range(self.gray_level)
+        self._alpha = self._random_in_range(self.alpha)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
