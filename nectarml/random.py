@@ -325,9 +325,6 @@ class Random:
         axis: int = 0,
         shuffle: bool = True
     ) -> Any | NDArray[Any]:
-        if p is None:
-            if isinstance(a, int): p = np.array([1.0])
-            else: p = np.ones_like(a)
         return self._rng.choice(
             a=a, size=size, replace=replace, p=p, axis=axis, shuffle=shuffle)
      

@@ -2,6 +2,7 @@ import warnings
 from typing import Literal
 
 import numpy as np
+from scipy.ndimage import median_filter
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
@@ -159,15 +160,42 @@ class MotionBlur(Transform):
         )
 
 class MedianBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        kernel_size: int | tuple[int, int] = (3, 7),
+        alpha: float | tuple[float, float] = 1.0
+    ) -> None:
         super().__init__()
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        for size in self.kernel_size:
+            assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        arr = input.cpu().numpy()
+        result = np.stack([
+            median_filter(arr[0, c], size=self._ks)
+            for c in range(arr.shape[1])
+        ])[np.newaxis]
+        blurred = Tensor(result, dtype=input.dtype, device=input.device)
+        return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        self._ks = int(self.rng.choice(valid_sizes))
+        self._alpha = self._random_in_range(self.alpha)
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class RandomBlur(Transform):
     def __init__(self) -> None:
@@ -192,7 +220,7 @@ class Sharpen(Transform):
     ) -> None:
         super().__init__()
         self.alpha = (alpha, alpha) \
-            if isinstance(kernel_size, int | float) else alpha
+            if isinstance(alpha, int | float) else alpha
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
             
