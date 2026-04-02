@@ -27,7 +27,8 @@ class GaussianBlur(Transform):
         self,
         kernel_size: int | tuple[int, int] = (3, 7),
         sigma: float | tuple[float, float] = 1.0,
-        iterations:  int | tuple[int, int] = 1
+        iterations:  int | tuple[int, int] = 1,
+        alpha: float | tuple[float, float] = 1.0
     ) -> None:
         super().__init__()
         self.kernel_size = (kernel_size, kernel_size) \
@@ -38,6 +39,8 @@ class GaussianBlur(Transform):
             if isinstance(sigma, float | int) else sigma
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -50,9 +53,10 @@ class GaussianBlur(Transform):
         kernel = (-(xx**2 + yy**2) / (2 * self._sigma**2)).exp()
         kernel = kernel / kernel.sum()
     
-        output = input.clone()
-        for _ in range(self._iters): output = _apply_kernel_2d(output, kernel)
-        return output
+        blurred = input.clone()
+        for _ in range(self._iters): 
+            blurred = _apply_kernel_2d(blurred, kernel)
+        return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
         valid_sizes = [
@@ -61,6 +65,7 @@ class GaussianBlur(Transform):
         self._ks = int(self.rng.choice(valid_sizes))
         self._sigma = self._random_in_range(self.sigma)
         self._iters = int(self._random_in_range(self.iterations))
+        self._alpha = self._random_in_range(self.alpha)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -73,7 +78,8 @@ class BoxBlur(Transform):
     def __init__(
         self,
         kernel_size: int | tuple[int, int] = (3, 7),
-        iterations:  int | tuple[int, int] = 1
+        iterations:  int | tuple[int, int] = 1,
+        alpha: float | tuple[float, float] = 1.0
     ) -> None:
         super().__init__()
         self.kernel_size = (kernel_size, kernel_size) \
@@ -82,6 +88,8 @@ class BoxBlur(Transform):
             assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -89,9 +97,10 @@ class BoxBlur(Transform):
             ones((self._ks, self._ks), device=input.device)
           / (self._ks * self._ks))
         
-        output = input.clone()
-        for _ in range(self._iters): output = _apply_kernel_2d(output, kernel)
-        return output
+        blurred = input.clone()
+        for _ in range(self._iters): 
+            blurred = _apply_kernel_2d(blurred, kernel)
+        return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         valid_sizes = [
@@ -99,6 +108,7 @@ class BoxBlur(Transform):
             if i % 2 != 0]
         self._ks = int(self.rng.choice(valid_sizes))
         self._iters = int(self._random_in_range(self.iterations))
+        self._alpha = self._random_in_range(self.alpha)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -112,7 +122,8 @@ class MotionBlur(Transform):
         self,
         kernel_size: int | tuple[int, int] = (3, 7),
         angle: float | tuple[float, float] = (0.0, 360.0),
-        iterations:  int | tuple[int, int] = 1
+        iterations:  int | tuple[int, int] = 1,
+        alpha: float | tuple[float, float] = 1.0
     ) -> None:
         super().__init__()
         self.kernel_size = (kernel_size, kernel_size) \
@@ -122,6 +133,8 @@ class MotionBlur(Transform):
         self.angle = (angle, angle) if isinstance(angle, int|float) else angle
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -139,10 +152,10 @@ class MotionBlur(Transform):
         total = k.sum()
         kernel = k / total if total > 0 else k
         
-        output = input.clone()
+        blurred = input.clone()
         for _ in range(self._iters): 
-            output = _apply_kernel_2d(output, kernel)
-        return output
+            blurred = _apply_kernel_2d(blurred, kernel)
+        return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         valid_sizes = [
@@ -151,6 +164,7 @@ class MotionBlur(Transform):
         self._ks = int(self.rng.choice(valid_sizes))
         self._angle = int(self._random_in_range(self.angle))
         self._iters = int(self._random_in_range(self.iterations))
+        self._alpha = self._random_in_range(self.alpha)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -198,15 +212,60 @@ class MedianBlur(Transform):
         )
 
 class RandomBlur(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        kernel_size:               int | tuple[int, int] = (3, 7),
+        alpha:               float | tuple[float, float] = 1.0,
+        iterations:                int | tuple[int, int] = 1,
+        motion_blur_angle:   float | tuple[float, float] = (0.0, 360.0),
+        gaussian_blur_sigma: float | tuple[float, float] = 1.0,
+        gaussian_blur: bool = True,
+        box_blur:      bool = True,
+        motion_blur:   bool = True
+    ) -> None:
         super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
+        assert gaussian_blur + box_blur + motion_blur != 0, \
+            'At least one blur type must be enabled.'
+
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        for size in self.kernel_size:
+            assert size % 2 != 0, 'Kernel sizes must be an odd integer values.'
+        self.alpha = (alpha, alpha) \
+            if isinstance(alpha, int | float) else alpha
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
+        self.motion_blur_angle = (motion_blur_angle, motion_blur_angle) \
+            if isinstance(motion_blur_angle, int|float) else motion_blur_angle
+        self.gaussian_blur_sigma = (gaussian_blur_sigma, gaussian_blur_sigma) \
+            if isinstance(gaussian_blur_sigma, float | int) \
+            else gaussian_blur_sigma
+            
+        self.gaussian_blur = gaussian_blur
+        self.box_blur = box_blur
+        self.motion_blur = motion_blur
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        ks = int(self.rng.choice(valid_sizes))
+        iters = int(self._random_in_range(self.iterations))
+        alpha = self._random_in_range(self.alpha)
+        
+        blur_fns = []
+        if self.gaussian_blur: 
+            sigma = self._random_in_range(self.gaussian_blur_sigma)
+            blur_fns.append(GaussianBlur(ks, sigma, iters, alpha))
+        if self.box_blur: blur_fns.append(BoxBlur(ks, iters, alpha))
+        if self.motion_blur:
+            angle = int(self._random_in_range(self.motion_blur_angle)) 
+            blur_fns.append(MotionBlur(ks, angle, iters, alpha))
+        self._blur_fn = self.rng.choice(blur_fns)
+        
+        print(type(self._blur_fn))
+        
+        return self._blur_fn.forward(input)
 
 class Sharpen(Transform):
     def __init__(
