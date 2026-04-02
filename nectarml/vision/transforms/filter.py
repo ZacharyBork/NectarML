@@ -4,6 +4,7 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.creation import ones
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 
@@ -237,6 +238,76 @@ class Dither(Transform):
                 f'Invalid Dither algortihm: {self.algorithm}')
 
     def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class Halftone(Transform):
+    def __init__(
+        self,
+        cell_size: int = 10,
+        foreground: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        background: tuple[float, float, float] = (1.0, 1.0, 1.0),
+        blend: float | tuple[float, float] = 0.5,
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.cell_size = cell_size
+        self.foreground = foreground
+        self.background = background
+        self.blend = (blend, blend) if isinstance(blend, float|int) else blend
+        self.p = p
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        max_value = input.max().item()
+        norm = input / max_value
+        
+        arr = norm.cpu().numpy()[0]
+        C, H, W = arr.shape
+        
+        gray = arr.mean(axis=0)
+        
+        cs = self.cell_size
+        rows, cols = H // cs, W // cs
+        
+        out = np.ones((C, H, W), dtype=np.float32)
+        for c in range(C): out[c] = self.background[c]
+        
+        fg = np.array(self.foreground, dtype=np.float32)
+        
+        cy, cx = np.ogrid[:cs, :cs]
+        center = cs / 2.0
+        dist = np.sqrt((cx - center)**2 + (cy - center)**2)
+        max_radius = center * 0.95
+        
+        for r in range(rows):
+            for c in range(cols):
+                y0 = r  * cs
+                x0 = c  * cs
+                y1 = y0 + cs
+                x1 = x0 + cs
+                
+                brightness = gray[y0:y1, x0:x1].mean()
+                radius = (1.0 - brightness) * max_radius
+                mask = dist <= radius
+                
+                for c in range(C):
+                    cell = out[c, y0:y1, x0:x1]
+                    cell[mask] = fg[c]
+                    out[c, y0:y1, x0:x1] = cell
+        
+        result = Tensor(out[np.newaxis], dtype=input.dtype, device='cpu')
+        result = result.to(input.device, input.dtype)
+        return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._blend = self._random_in_range(self.blend)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
