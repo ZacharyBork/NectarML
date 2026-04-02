@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import full
+from nectarml.creation import full, ones
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.cuda.utils import map_dtype
 from nectarml.random import RNG
@@ -85,8 +85,7 @@ class ColorJitter(Transform):
         return _hsv_adjust(input, self._hue, self._sat, self._val, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         
         self._hue      = self._random_in_range(self.hue)
         self._sat      = self._random_in_range(self.saturation)
@@ -116,8 +115,7 @@ class RandomBrightness(Transform):
         return _hsv_adjust(input,  0.0, 1.0, self._brightness)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         self._brightness = self._random_in_range(self.value_range)
     
         return TransformInput(
@@ -173,8 +171,7 @@ class RandomSaturation(Transform):
         return _hsv_adjust(input,  0.0, self._saturation, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         self._saturation = self._random_in_range(self.value_range)
     
         return TransformInput(
@@ -200,8 +197,7 @@ class RandomHue(Transform):
         return _hsv_adjust(input, self._hue, 1.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         self._hue = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -242,8 +238,9 @@ class RandomGamma(Transform):
         )
 
 class ToGrayscale(Transform):
-    def __init__(self) -> None:
+    def __init__(self, p: float = 0.5) -> None:
         super().__init__()
+        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -253,6 +250,7 @@ class ToGrayscale(Transform):
         return out.to(input.device, input.dtype)
     
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -261,19 +259,30 @@ class ToGrayscale(Transform):
             keypoints = input.keypoints
         )
 
-class RandomGrayscale(Transform):
-    def __init__(self, p: float = 0.5) -> None:
+class ToBlackAndWhite(Transform):
+    def __init__(
+        self,
+        white_point: int = 125,
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.white_point = white_point / 255
         self.p = p
-        self.to_grayscale = ToGrayscale()
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        return self.to_grayscale(input)
+        max_value = input.max().item()
+        norm = input / max_value
+        
+        gray = norm.mean(dim=1, keepdim=True)
+        result = F.where(
+            (gray > self.white_point), 
+            ones((), input.dtype, input.device), 0.0)
+
+        return result * max_value
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -283,6 +292,10 @@ class RandomGrayscale(Transform):
         )
 
 class ToSepia(Transform):
+    def __init__(self, p: float = 0.5) -> None:
+        super().__init__()
+        self.p = p
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
@@ -294,27 +307,7 @@ class ToSepia(Transform):
         return out.to(input.device, input.dtype)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        return TransformInput(
-            image     = self._transform(input.image),
-            image2    = self._transform(input.image2),
-            mask      = input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
-        )
-    
-class RandomSepia(Transform):
-    def __init__(self, p: float = 0.5) -> None:
-        super().__init__()
-        self.p = p
-        self.to_sepia = ToSepia()
-        
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        return self.to_sepia(input)
-        
-    def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
