@@ -28,5 +28,5 @@ from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
 from .utility import (
     DebugPrint, MakeGrid, LoadImageFile, SaveImageFile, Resample, Derivative,
-    NormalMap, Permute, Transpose, Clamp, MaskedFill)
+    UVMap, NormalMap, Permute, Transpose, Clamp, MaskedFill)
 

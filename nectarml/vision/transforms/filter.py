@@ -4,9 +4,9 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import ones
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.common import _apply_kernel_2d
 
 class Sobel(Transform):
     def __init__(
@@ -18,28 +18,23 @@ class Sobel(Transform):
         self.per_channel = per_channel
         
         if not feldman:
-            self.sobel_x = Tensor([[[
-                [1, 0, -1],
-                [2, 0, -2],
-                [1, 0, -1]
-            ]]], dtype=float32)
-            self.sobel_y = Tensor([[[
-                [1, 2, 1],
-                [0, 0, 0],
-                [-1, -2, -1]
-            ]]], dtype=float32)
+            kx = [[ 1,   0,  -1],
+                  [ 2,   0,  -2],
+                  [ 1,   0,  -1]]
+            ky = [[ 1,   2,   1],
+                  [ 0,   0,   0],
+                  [-1,  -2,  -1]]
         else:
-            self.sobel_x = Tensor([[[
-                [3, 0, -3],
-                [10, 0, -10],
-                [3, 0, -3]
-            ]]], dtype=float32)
-            self.sobel_y = Tensor([[[
-                [3, 10, 3],
-                [0, 0, 0],
-                [-3, -10, -3]
-            ]]], dtype=float32)
-        
+            kx = [[ 3,   0,  -3],
+                  [10,   0, -10],
+                  [ 3,   0,  -3]]
+            ky = [[ 3,  10,   3],
+                  [ 0,   0,   0],
+                  [-3, -10,  -3]]
+            
+        self.sobel_x = Tensor(kx, dtype=float32)
+        self.sobel_y = Tensor(ky, dtype=float32)
+      
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
@@ -50,17 +45,19 @@ class Sobel(Transform):
         outputs = []
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
-            grad_fx = F.conv2d(gray, kernel_x, padding=1)
-            grad_fy = F.conv2d(gray, kernel_y, padding=1)
-            out = F.sqrt(grad_fx ** 2 + grad_fy ** 2 + 1e-6)
+            out = F.sqrt(
+                _apply_kernel_2d(gray, kernel_x)**2 
+              + _apply_kernel_2d(gray, kernel_y)**2
+              + 1e-6)
             outputs = [out]*3
         else:
             channels = norm.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                grad_fx = F.conv2d(gray, kernel_x, padding=1)
-                grad_fy = F.conv2d(gray, kernel_y, padding=1)
-                out = F.sqrt(grad_fx ** 2 + grad_fy ** 2 + 1e-6)
+                out = F.sqrt(
+                _apply_kernel_2d(gray, kernel_x)**2 
+              + _apply_kernel_2d(gray, kernel_y)**2
+              + 1e-6)
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
@@ -82,17 +79,17 @@ class Prewitt(Transform):
         super().__init__()
         self.per_channel = per_channel
         
-        self.prewitt_x = Tensor([[[
+        self.prewitt_x = Tensor([
             [1, 0, -1],
             [1, 0, -1],
             [1, 0, -1]
-        ]]], dtype=float32)
-        self.prewitt_y = Tensor([[[
+        ], dtype=float32)
+        self.prewitt_y = Tensor([
             [1, 1, 1],
             [0, 0, 0],
             [-1, -1, -1]
-        ]]], dtype=float32)
-
+        ], dtype=float32)
+        
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
@@ -103,17 +100,19 @@ class Prewitt(Transform):
         outputs = []
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
-            grad_fx = F.conv2d(gray, kernel_x, padding=1)
-            grad_fy = F.conv2d(gray, kernel_y, padding=1)
-            out = F.sqrt(grad_fx ** 2 + grad_fy ** 2 + 1e-6)
+            out = F.sqrt(
+                _apply_kernel_2d(gray, kernel_x)**2 
+              + _apply_kernel_2d(gray, kernel_y)**2
+              + 1e-6)
             outputs = [out]*3
         else:
             channels = norm.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                grad_fx = F.conv2d(gray, kernel_x, padding=1)
-                grad_fy = F.conv2d(gray, kernel_y, padding=1)
-                out = F.sqrt(grad_fx ** 2 + grad_fy ** 2 + 1e-6)
+                out = F.sqrt(
+                _apply_kernel_2d(gray, kernel_x)**2 
+              + _apply_kernel_2d(gray, kernel_y)**2
+              + 1e-6)
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
@@ -135,30 +134,28 @@ class Laplacian(Transform):
         super().__init__()
         self.per_channel = per_channel
         
-        self.kernel = Tensor([[[
+        self.kernel = Tensor([
             [0,  1, 0],
             [1, -4, 1],
             [0,  1, 0]
-        ]]], dtype=float32)
+        ], dtype=float32)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
         norm = input / max_value
-        lap_kernel = self.kernel.to(input.device, input.dtype)
+        kernel = self.kernel.to(input.device, input.dtype)
 
         outputs = []
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
-            grad = F.conv2d(gray, lap_kernel, padding=1)
-            out = F.sqrt(grad ** 2 + 1e-6)
+            out = F.sqrt(_apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
             outputs = [out]*3
         else:
             channels = norm.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                grad = F.conv2d(gray, lap_kernel, padding=1)
-                out = F.sqrt(grad ** 2 + 1e-6)
+                out = F.sqrt(_apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)

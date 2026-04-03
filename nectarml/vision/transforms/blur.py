@@ -9,18 +9,7 @@ from nectarml.tensor import Tensor
 from nectarml.creation import linspace, ones, zeros
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput
-
-### UTILS ###
-
-def _apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
-    B, C, H, W = image.shape
-    KH, KW = kernel.shape
-    kernel = kernel.unsqueeze(0).unsqueeze(0)
-    image_flat = image.reshape((B * C, 1, H, W))
-    result = F.conv2d(image_flat, kernel, padding=(KH//2, KW//2), groups=1)
-    return result.reshape((B, C, H, W))
-
-### TRANSFORMS ###
+from nectarml.vision.transforms.common import _apply_kernel_2d
 
 class GaussianBlur(Transform):
     def __init__(

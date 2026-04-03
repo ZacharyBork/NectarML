@@ -9,7 +9,7 @@ from PIL import Image
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import full, ones_like
+from nectarml.creation import full, zeros_like, ones_like, linspace
 from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms.transform import \
     Transform, UtilityTransform, TransformInput
@@ -246,6 +246,37 @@ class Derivative(Transform):
             else: outputs.extend(channels)
             
         return F.stack(outputs, dim=0)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+        
+class UVMap(Transform):
+    def __init__(
+        self,
+        tiling_x: float = 1.0,
+        tiling_y: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.tiling_x = tiling_x
+        self.tiling_y = tiling_y
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        _, _, H, W = input.shape
+
+        r = linspace(0, self.tiling_x, W, input.dtype, input.device)
+        r = r.reshape((1, W)).expand((H, W))
+
+        g = linspace(self.tiling_y, 0, H, input.dtype, input.device)
+        g = g.reshape((H, 1)).expand((H, W))
+        
+        return F.stack([r, g, zeros_like(r)], dim=0).unsqueeze(0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
