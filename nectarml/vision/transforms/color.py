@@ -394,15 +394,51 @@ class Equalize(Transform):
             keypoints = input.keypoints
         ) 
 
-class AutoContrast(Transform[Tensor, Tensor]):
-    def __init__(self, p: float = 0.5) -> None:
-        raise NotImplementedError
+class AutoContrast(Transform):
+    def __init__(
+        self, 
+        cutoff: float = 0.0,
+        method: Literal['cdf', 'pil'] = 'pil',
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        assert 0.0 <= cutoff <= 1.0, \
+            'AutoContrast cutoff should be in 0-1 range.'
+        self.cutoff = cutoff * 100.0
+        self.method = method
         self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        max_value = input.max().item()
+        norm = input / max_value
+        
+        if self.cutoff == 0.0:
+            lo = norm.amin(dim=(-2, -1), keepdim=True)
+            hi = norm.amax(dim=(-2, -1), keepdim=True)
+        else:
+            B, C, H, W = norm.shape
+            lo_list, hi_list = [], []
+            for c in range(C):
+                channel = norm[:, c]
+                lo = F.quantile(channel, self.cutoff / 100.0)
+                lo_list.append(lo.reshape((1, 1, 1, 1)))
+                hi = F.quantile(channel, 1 - self.cutoff / 100.0)
+                hi_list.append(hi.reshape((1, 1, 1, 1)))
+            lo = F.cat(lo_list, dim=1)
+            hi = F.cat(hi_list, dim=1)
+
+        return ((norm - lo) / (hi - lo + 1e-8)).clamp(0.0, 1.0) * max_value
     
     def forward(self, input: Tensor) -> Tensor:
         if self.rng.random() > self.p: return input
-        pass
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        ) 
 
 class Solarize(Transform):
     '''
@@ -496,7 +532,7 @@ class CLAHE(Transform):
     def __init__(
         self,
         clip_limit: int = 4,
-        tile_grid_size: tuple[int, int] = (8, 8)    ,
+        tile_grid_size: tuple[int, int] = (8, 8),
         p: float = 0.5
     ) -> None:
         raise NotImplementedError

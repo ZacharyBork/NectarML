@@ -10,6 +10,10 @@ from nectarml.vision.transforms.transform import \
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):
+    def __init__(self, normalize: bool = True):
+        super().__init__()
+        self.normalize = normalize
+        
     def _transform(
         self, 
         input: np.ndarray | Image.Image | Tensor | None
@@ -23,7 +27,7 @@ class ToTensor(Transform):
         
         output = Tensor(data, dtype=float32, device='cpu')
         output = output.permute((2, 0, 1)).unsqueeze(dim=0)
-        output = output / np.maximum(data.max(), 1.0)
+        if self.normalize: output = output / np.maximum(data.max(), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
