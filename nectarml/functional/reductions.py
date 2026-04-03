@@ -2,7 +2,6 @@ import math
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml.typing import ArrayLike
 from nectarml.functional.combination import cat, stack
 
 def min(
