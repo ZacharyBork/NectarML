@@ -1,6 +1,6 @@
 from . import (
     combination, conv, indexing, interpolation, masking, math, matmul, padding,
-    pooling, reductions, shapes, utils)
+    pooling, reductions, shapes, sorting, utils)
 from .mapping import DTYPE_MAP
 from .utils import (
     map_dtype, cast_tensor, to_cuda, data_to_cuda, to_cpu, 

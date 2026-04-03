@@ -13,6 +13,7 @@
 #include "bindings/pooling.h"
 #include "bindings/reductions.h"
 #include "bindings/shapes.h"
+#include "bindings/sorting.h"
 #include "bindings/utils.h"
 #include "bindings/vision.h"
 
@@ -44,6 +45,7 @@ PYBIND11_MODULE(_nectarml, m) {
     register_pooling(m_tensor);
     register_reductions(m_tensor);
     register_shapes(m_tensor);
+    register_sorting(m_tensor);
 
 
     register_memory(m);

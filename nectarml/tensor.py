@@ -2410,6 +2410,43 @@ class Tensor():
         chunk_size = int(np.ceil(self.shape[dim] / size))
         return self.split(chunk_size, dim)
     
+    ### SORTING ###
+    
+    def sort(
+        self: Tensor,
+        dim: int = -1,
+        descending: bool = False
+    ) -> tuple[Tensor, Tensor]:
+        self_requires_grad = self.requires_grad
+        dim = dim if dim >= 0 else self.ndim + dim
+        
+        if self.device == 'cuda':
+            out_data, indices = cuda.sorting.sort(self, dim, descending)
+        else: out_data, indices = cpu.sorting.sort(self, dim, descending)
+        
+        indices = Tensor(indices, self.shape, typing.int32, self.device)
+        values  = Tensor(out_data, self.shape, self.dtype, self.device,
+            requires_grad=self_requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                grad_input = Tensor(
+                    np.zeros(self.grad.shape, self.grad.dtype),
+                    self.grad.shape, self.grad.dtype, self.grad.device)
+                grad_input = grad_input.scatter(dim, indices, values.grad)
+                self.grad += grad_input
+        
+        values._backward = _backward
+        return values, indices
+    
+    def argsort(
+        self: Tensor,
+        dim: int = -1,
+        descending: bool = False
+    ) -> Tensor:
+        _, indices = self.sort(dim=dim, descending=descending)
+        return indices
+        
     ### INDEXING ###
     
     def gather(self: Tensor, dim: int | None, index: Tensor) -> Tensor:
