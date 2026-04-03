@@ -2,6 +2,7 @@ from typing import Literal
 
 import numpy as np
 from scipy.ndimage import rotate as scipy_rotate
+from scipy.ndimage import map_coordinates
 
 import _nectarml
 import nectarml.functional as F
@@ -74,7 +75,6 @@ class _Crop(Transform):
         self.padding_mode = padding_mode
         if padding is not None: self.pad = Pad(padding, fill, padding_mode)
         else: self.pad = None
-        
         self.transform_mask = transform_mask
     
     def _validate_input_size(self, input: Tensor) -> Tensor:
@@ -118,10 +118,12 @@ class RandomCrop(_Crop):
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
+        p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(
             size, padding, pad_if_needed, fill, padding_mode, transform_mask)
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -132,6 +134,8 @@ class RandomCrop(_Crop):
             self._offset_w:self._offset_w+self.size[1]]
 
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        
         shape = input.image.shape
         max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
@@ -198,6 +202,7 @@ class RandomResizedCrop(_Crop):
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
         a: float = -0.75,
+        p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(
@@ -206,6 +211,7 @@ class RandomResizedCrop(_Crop):
         self.output_size = output_size
         self.scaling_mode = scaling_mode
         self.a = a
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -220,6 +226,8 @@ class RandomResizedCrop(_Crop):
             out, size=out_size, mode=self.scaling_mode, a=self.a)
         
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        
         shape = input.image.shape
         max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
@@ -286,8 +294,7 @@ class RandomHorizontalFlip(Transform):
         return output
 
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -313,8 +320,7 @@ class RandomVerticalFlip(Transform):
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -369,12 +375,14 @@ class RandomRotation(Transform):
         self,
         rotation_range: tuple[float, float] = (-180.0, 180.0),
         fill_value: float = 0.0,
-        transform_mask: bool = True
+        transform_mask: bool = True,
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.rotation_range = rotation_range
         self.fill_value = fill_value
         self.transform_mask = transform_mask
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -382,6 +390,7 @@ class RandomRotation(Transform):
         return rotate(input)
 
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         self._angle = self._random_in_range(self.rotation_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -402,8 +411,8 @@ class RandomRotate90(Transform):
     ) -> None:
         super().__init__()
         self.fill_value = fill_value
-        self.p = p
         self.max_step = ['90', '180', '270', '360'].index(mode) + 1
+        self.p = p
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -412,8 +421,7 @@ class RandomRotate90(Transform):
         return rotate(input)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        chance = self._random_in_range()
-        if self.p <= chance: return input
+        if self.rng.random() > self.p: return input
         self._step = 90 * int(round(self._random_in_range((0, self.max_step))))
         
         return TransformInput(
@@ -424,28 +432,229 @@ class RandomRotate90(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
-
-class RandomAffine(Transform):
+  
+class _GridSampleTransform(Transform):
     def __init__(self) -> None:
-        raise NotImplementedError
         super().__init__()
-    
+        
+    def _apply_flow(
+        self,
+        image: np.ndarray,
+        src_x: np.ndarray,
+        src_y: np.ndarray
+    ) -> np.ndarray:
+        C, H, W = image.shape
+        result  = np.zeros_like(image)
+
+        mode_map = {
+            'reflect':  'reflect',
+            'constant': 'constant',
+            'nearest':  'nearest',
+            'wrap':     'wrap'
+        }
+        mode = mode_map.get(self.border_mode, 'reflect')
+
+        for c in range(C):
+            result[c] = map_coordinates(
+                image[c], [src_y.ravel(), src_x.ravel()],
+                order=1, mode=mode, cval=self.fill
+            ).reshape(H, W)
+
+        return result
+  
+class RandomAffine(_GridSampleTransform):
+    def __init__(
+        self,
+        degrees: float | tuple[float, float] = (-45, 45),
+        translate: tuple[float, float] | None = (-0.05, 0.05),
+        scale: tuple[float, float] | None = (0.5, 2.0),
+        shear: float | tuple[float, float] | None = (-15.0, 15.0),
+        border_mode: Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
+        super().__init__()
+        self.degrees = (-degrees, degrees) \
+            if isinstance(degrees, (int, float)) else degrees
+        self.translate = translate
+        self.scale = scale
+        self.shear = (-shear, shear) \
+            if isinstance(shear, (int, float)) else shear
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_flow(
+        self,
+        H: int, W: int,
+        angle: float,
+        tx: float, ty: float,
+        scale: float,
+        shear: float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        cx, cy = W / 2.0, H / 2.0
+        angle_rad, shear_rad = np.radians(angle), np.radians(shear)
+
+        cos_a, sin_a = np.cos(angle_rad), np.sin(angle_rad)
+        tan_s = np.tan(shear_rad)
+
+        M = np.array([
+            [scale * cos_a, scale * (-sin_a + cos_a * tan_s), 0],
+            [scale * sin_a, scale * ( cos_a + sin_a * tan_s), 0],
+            [0, 0, 1]
+        ], dtype=np.float64)
+
+        T_to_center = np.array(
+            [[1,0,-cx],[0,1,-cy],[0,0,1]], dtype=np.float64)
+        T_from_center = np.array(
+            [[1,0, cx],[0,1, cy],[0,0,1]], dtype=np.float64)
+        T_translate = np.array(
+            [[1,0, tx],[0,1, ty],[0,0,1]], dtype=np.float64)
+
+        M_full = T_translate @ T_from_center @ M @ T_to_center
+        M_inv = np.linalg.inv(M_full)
+
+        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+
+        ones = np.ones_like(xx, dtype=np.float64)
+        coords = np.stack([xx, yy, ones], axis=-1)
+        flat = coords.reshape(-1, 3)
+        warped = (M_inv @ flat.T).T
+        
+        return warped[:, 0].reshape(H, W), warped[:, 1].reshape(H, W)
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        _, _, H, W = input.shape
+        
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(
+            H, W, self._angle, self._tx, 
+            self._ty, self._scale, self._shear)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
 
-class RandomPerspective(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+        self._angle = self._random_in_range(self.degrees)
+
+        self._tx, self._ty = 0.0, 0.0
+        if self.translate is not None:
+            self._tx = self._random_in_range(
+                (-self.translate[0] * W, self.translate[0] * W))
+            self._ty = self._random_in_range(
+                (-self.translate[1] * H, self.translate[1] * H))
+
+        self._scale = 1.0 if self.scale is None else \
+            self._random_in_range(self.scale)
+
+        self._shear = 0.0 if self.shear is None else \
+            self._random_in_range(self.shear)
+
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
+
+class RandomPerspective(_GridSampleTransform):
+    def __init__(
+        self,
+        distortion_scale: float = 0.5,
+        border_mode: Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
         super().__init__()
-    
+        self.distortion_scale = distortion_scale
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_homography(
+        self,
+        src: np.ndarray,
+        dst: np.ndarray
+    ) -> np.ndarray:
+        A = []
+        for (sx, sy), (dx, dy) in zip(src, dst):
+            A.append([-sx, -sy, -1,   0,   0,  0, dx*sx, dx*sy, dx])
+            A.append([  0,   0,  0, -sx, -sy, -1, dy*sx, dy*sy, dy])
+        A = np.array(A, dtype=np.float64)
+
+        _, _, Vt = np.linalg.svd(A)
+        H = Vt[-1].reshape(3, 3)
+        return H / H[2, 2]
+
+    def _compute_flow(
+        self,
+        H: int, W: int,
+        src_pts: np.ndarray,
+        dst_pts: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        H_mat = self._compute_homography(dst_pts, src_pts)
+
+        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        ones   = np.ones_like(xx, dtype=np.float64)
+        coords = np.stack([xx, yy, ones], axis=-1)
+        flat   = coords.reshape(-1, 3)
+
+        warped = (H_mat @ flat.T).T
+        w      = warped[:, 2:3]
+        warped = warped[:, :2] / (w + 1e-8)
+
+        return warped[:, 0].reshape(H, W), warped[:, 1].reshape(H, W)
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        _, _, H, W = input.shape
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(H, W, self._src_pts, self._dst_pts)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
+        half_h = H * self.distortion_scale / 2
+        half_w = W * self.distortion_scale / 2
+
+        self._src_pts = np.array([
+            [0,   0  ],
+            [W-1, 0  ],
+            [W-1, H-1],
+            [0,   H-1]
+        ], dtype=np.float64)
+
+        uniform = self.rng.uniform
+        self._dst_pts = np.array([
+            [uniform(0, half_w),       uniform(0, half_h)      ],
+            [uniform(W-1-half_w, W-1), uniform(0, half_h)      ],
+            [uniform(W-1-half_w, W-1), uniform(H-1-half_h, H-1)],
+            [uniform(0, half_w),       uniform(H-1-half_h, H-1)]
+        ], dtype=np.float64)
+
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
 
 class ElasticTransform(Transform):
     def __init__(self) -> None:
