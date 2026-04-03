@@ -40,7 +40,8 @@ from .functional.normalization import (
     layer_norm, group_norm)
 from .functional.pooling import (
     avg_pool1d, avg_pool2d, avg_pool3d, max_pool1d, max_pool2d, max_pool3d)
-from .functional.reductions import min, max, argmin, argmax, mean, sum, prod
+from .functional.reductions import(
+    min, max, argmin, argmax, mean, sum, prod, quantile)
 from .functional.shapes import (
     reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
     expand, broadcast_to)
