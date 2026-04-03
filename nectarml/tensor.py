@@ -2053,85 +2053,170 @@ class Tensor():
     ### REDUCTIONS ###
     
     def min(
-        self: Tensor, 
+        self: Tensor,
         dim: int | None = None,
         keepdim: bool = False
-    ) -> Tensor:
+    ) -> Tensor | tuple[Tensor, Tensor]:
         self._bool_type_check('Tensor.min()')
         self_requires_grad = self.requires_grad
-        
-        if self.device == 'cuda': data = cuda.reductions.min(self, dim)
-        else: data = cpu.reductions.min(self, dim, keepdim)
-        output_shape = self.shape.reduce(dim, keepdim)
-        out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad,
-            _children=(self,))
-            
+
+        if self.device == 'cuda':
+            data = cuda.reductions.min(self, dim)
+            output_shape = self.shape.reduce(dim, keepdim)
+        else:
+            data = cpu.reductions.min(self, dim, keepdim)
+            output_shape = typing.Size(data.shape)
+
+        out = Tensor(data, output_shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
         def _backward() -> None:
             if self_requires_grad:
-                min_vals = out if keepdim else out.unsqueeze(dim) \
-                    if dim is not None else out.reshape([1] * self.ndim)
+                min_vals = out if keepdim else \
+                        out.unsqueeze(dim) if dim is not None else \
+                        out.reshape([1] * self.ndim)
                 mask = (self == min_vals.expand(self.shape)).to(
                     self.device, self.dtype)
-                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
-                    if dim is not None else out.grad.reshape([1] * self.ndim)
+                grad = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
                 self.grad += mask * grad.expand(self.shape)
-        
+
         out._backward = _backward
+
+        if dim is not None:
+            _, indices = self.sort(dim=dim)
+            idx = indices.select(dim, 0)
+            if keepdim: idx = idx.unsqueeze(dim)
+            return out, idx
         return out
-    
-    def max(
-        self: Tensor, 
-        dim: int | None = None,
+
+    def amin(
+        self: Tensor,
+        dim: int | tuple[int, ...] | None = None,
         keepdim: bool = False
     ) -> Tensor:
+        self._bool_type_check('Tensor.amin()')
+        self_requires_grad = self.requires_grad
+
+        if isinstance(dim, (tuple, list)):
+            ndim = self.ndim
+            dims = sorted(set(d % ndim for d in dim), reverse=True)
+            
+            result = self
+            for d in dims: result = result.amin(d, keepdim=True)
+            
+            if not keepdim:
+                for d in dims: result = result.squeeze(d)
+            return result
+
+        if self.device == 'cuda':
+            data = cuda.reductions.min(self, dim)
+            output_shape = self.shape.reduce(dim, keepdim)
+        else:
+            data = cpu.reductions.min(self, dim, keepdim)
+            output_shape = typing.Size(data.shape)
+
+        out = Tensor(data, output_shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if self_requires_grad:
+                min_vals = out if keepdim else \
+                    out.unsqueeze(dim) if dim is not None else \
+                    out.reshape([1] * self.ndim)
+                mask = (self == min_vals.expand(self.shape)).to(
+                    self.device, self.dtype)
+                grad = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
+                self.grad += mask * grad.expand(self.shape)
+
+        out._backward = _backward
+        return out
+
+    def max(
+        self: Tensor,
+        dim: int | None = None,
+        keepdim: bool = False
+    ) -> Tensor | tuple[Tensor, Tensor]:
         self._bool_type_check('Tensor.max()')
         self_requires_grad = self.requires_grad
-        
+
         if self.device == 'cuda':
             data = cuda.reductions.max(self, dim)
             output_shape = self.shape.reduce(dim, keepdim)
         else:
             data = cpu.reductions.max(self, dim, keepdim)
             output_shape = typing.Size(data.shape)
-        out = Tensor(
-            data, output_shape, self.dtype, self.device, self.requires_grad,
-            _children=(self,))
-        
+
+        out = Tensor(data, output_shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
         def _backward() -> None:
             if self_requires_grad:
-                max_vals = out if keepdim else out.unsqueeze(dim) \
-                    if dim is not None else out.reshape([1] * self.ndim)
+                max_vals = out if keepdim else \
+                        out.unsqueeze(dim) if dim is not None else \
+                        out.reshape([1] * self.ndim)
                 mask = (self == max_vals.expand(self.shape)).to(
                     self.device, self.dtype)
-                grad = out.grad if keepdim else out.grad.unsqueeze(dim) \
-                    if dim is not None else out.grad.reshape([1] * self.ndim)
-                self.grad += mask *  grad.expand(self.shape)
-        
+                grad = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
+                self.grad += mask * grad.expand(self.shape)
+
         out._backward = _backward
+
+        if dim is not None:
+            _, indices = self.sort(dim=dim, descending=True)
+            idx = indices.select(dim, 0)
+            if keepdim: idx = idx.unsqueeze(dim)
+            return out, idx
         return out
 
-    def argmin(
-        self: Tensor, 
-        dim: int | None = None, 
+    def amax(
+        self: Tensor,
+        dim: int | tuple[int, ...] | None = None,
         keepdim: bool = False
-    ) -> typing.ArrayLike:
-        self._bool_type_check('Tensor.argmin()')
+    ) -> Tensor:
+        self._bool_type_check('Tensor.amax()')
+        self_requires_grad = self.requires_grad
+
+        if isinstance(dim, (tuple, list)):
+            ndim = self.ndim
+            dims = sorted(set(d % ndim for d in dim), reverse=True)
+            
+            result = self
+            for d in dims: result = result.amax(d, keepdim=True)
+            
+            if not keepdim:
+                for d in dims: result = result.squeeze(d)
+            return result
+
         if self.device == 'cuda':
-            raise RuntimeError(
-                'argmin currently not supported for CUDA tensors.')
-        return cpu.reductions.argmin(self, dim=dim, keepdim=keepdim)
-        
-    def argmax(
-        self: Tensor, 
-        dim: int | None = None, 
-        keepdim: bool = False
-    ) -> typing.ArrayLike:
-        self._bool_type_check('Tensor.argmax()')
-        if self.device == 'cuda':
-            raise RuntimeError(
-                'argmax currently not supported for CUDA tensors.')
-        return cpu.reductions.argmax(self, dim=dim, keepdim=keepdim)
+            data = cuda.reductions.max(self, dim)
+            output_shape = self.shape.reduce(dim, keepdim)
+        else:
+            data = cpu.reductions.max(self, dim, keepdim)
+            output_shape = typing.Size(data.shape)
+
+        out = Tensor(data, output_shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if self_requires_grad:
+                max_vals = out if keepdim else \
+                        out.unsqueeze(dim) if dim is not None else \
+                        out.reshape([1] * self.ndim)
+                mask = (self == max_vals.expand(self.shape)).to(
+                    self.device, self.dtype)
+                grad = out.grad if keepdim else \
+                    out.grad.unsqueeze(dim) if dim is not None else \
+                    out.grad.reshape([1] * self.ndim)
+                self.grad += mask * grad.expand(self.shape)
+
+        out._backward = _backward
+        return out
     
     def mean(
         self: Tensor, 

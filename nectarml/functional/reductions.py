@@ -6,32 +6,32 @@ from nectarml.typing import ArrayLike
 from nectarml.functional.combination import cat, stack
 
 def min(
-    input: Tensor, 
+    input: Tensor,
+    dim: int | None = None,
+    keepdim: bool = False
+) -> Tensor | tuple[Tensor, Tensor]:
+    return input.min(dim, keepdim)
+
+def amin(
+    input: Tensor,
     dim: int | tuple[int, ...] | None = None,
     keepdim: bool = False
 ) -> Tensor:
-    return input.min(dim, keepdim)
+    return input.amin(dim, keepdim)
 
 def max(
     input: Tensor, 
+    dim: int | None = None,
+    keepdim: bool = False
+) -> Tensor | tuple[Tensor, Tensor]:
+    return input.max(dim, keepdim)
+
+def amax(
+    input: Tensor,
     dim: int | tuple[int, ...] | None = None,
     keepdim: bool = False
 ) -> Tensor:
-    return input.max(dim, keepdim)
-
-def argmin(
-    input: Tensor,
-    dim: int | None = None, 
-    keepdim: bool = False
-) -> ArrayLike:
-    return input.argmin(dim, keepdim)
-    
-def argmax(
-    input: Tensor,
-    dim: int | None = None, 
-    keepdim: bool = False
-) -> ArrayLike:
-    return input.argmax(dim, keepdim)
+    return input.amax(dim, keepdim)
 
 def mean(
     input: Tensor, 
