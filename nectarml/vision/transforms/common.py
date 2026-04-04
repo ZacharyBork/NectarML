@@ -18,6 +18,12 @@ def apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
 def lerp(a: Tensor, b: Tensor, w: Tensor) -> Tensor:
     return a + w * (b - a)
 
+def lerp3(a: Tensor, b: Tensor, c: Tensor, w: Tensor) -> Tensor:
+    w1 = (w * 2).clamp(0.0, 1.0)
+    w2 = ((w - 0.5) * 2).clamp(0.0, 1.0)
+    t  = (w >= 0.5).to(w.device, w.dtype)
+    return lerp(lerp(a, b, w1), lerp(b, c, w2), t)
+
 def gradient_mask(
     shape: tuple[int, ...] | Size,
     mode: Literal[

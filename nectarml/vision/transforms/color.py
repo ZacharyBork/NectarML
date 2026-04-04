@@ -1,4 +1,5 @@
 import colorsys
+import warnings
 from typing import Literal
 
 import cv2
@@ -7,11 +8,13 @@ from PIL import Image, ImageOps
 
 import _nectarml
 import nectarml.functional as F
-from nectarml.tensor import Tensor
-from nectarml.creation import full, ones
-from nectarml.vision.transforms.transform import Transform, TransformInput 
-from nectarml.cuda.utils import map_dtype
 from nectarml.random import RNG
+from nectarml.tensor import Tensor
+from nectarml.cuda.utils import map_dtype
+from nectarml.creation import full, ones, zeros
+from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.spatial import OpticalDistortion
+from nectarml.vision.transforms.common import gradient_mask, lerp3
 
 ### UTILS ###
 
@@ -724,8 +727,71 @@ class TonemapHDR(Transform[Tensor, Tensor]):
         
         return self.gamma_encode(tonemapped)
         
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class ChromaticAberration(Transform):
+    def __init__(
+        self,
+        inner_distortion_limit: float | tuple[float, float] = (-0.03, 0.03),
+        outer_distortion_limit: float | tuple[float, float] = (-0.15, 0.15),
+        falloff_power: float = 2.0,
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        inner, outer = inner_distortion_limit, outer_distortion_limit
+        self.inner_limit = (-inner, inner) \
+            if isinstance(inner, float | int) else inner
+        self.outer_limit = (-outer, outer) \
+            if isinstance(outer, float | int) else outer
+        self.falloff_power = falloff_power
+        self.p = p 
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+        _, _, H, W = input.shape
+        channels = input.unbind(dim=1)
+        inner = zeros(input.shape, input.dtype).to(input.device)
+        outer = zeros(input.shape, input.dtype).to(input.device)
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            inner[:, 0, :, :] = self._inner1(channels[0].reshape((1, 1, H, W)))
+            inner[:, 1, :, :] = channels[1]
+            inner[:, 2, :, :] = self._inner2(channels[2].reshape((1, 1, H, W)))
+            
+            outer[:, 0, :, :] = self._outer1(channels[0].reshape((1, 1, H, W)))
+            outer[:, 1, :, :] = channels[1]
+            outer[:, 2, :, :] = self._outer1(channels[2].reshape((1, 1, H, W)))
+        
+        mask = gradient_mask(input.shape, 'radial', 'edges')
+        mask = (mask**self.falloff_power).to(input.device, input.dtype)
+        output = lerp3(input, inner, outer, mask)
+        
+        return output
+        
+    def _build_parameters(self) -> None:
+        inner_limit = self._random_in_range(self.inner_limit)
+        outer_limit = self._random_in_range(self.outer_limit) + inner_limit
+        
+        self._inner1 = OpticalDistortion(inner_limit, inner_limit, p=1)
+        self._inner2 = OpticalDistortion(inner_limit/2, inner_limit/2, p=1)
+        
+        self._outer1 = OpticalDistortion(outer_limit, inner_limit, p=1)
+        self._outer2 = OpticalDistortion(outer_limit/2, inner_limit/2, p=1)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

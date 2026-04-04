@@ -716,11 +716,14 @@ class OpticalDistortion(_GridSampleTransform):
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
+    def _build_parameters(self) -> None:
         self._k  = self._random_in_range(self.distort_limit)
         self._dx = self._random_in_range(self.shift_limit)
         self._dy = self._random_in_range(self.shift_limit)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
 
         return TransformInput(
             image     = self._transform(input.image),
