@@ -6,7 +6,7 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
-from nectarml.vision.transforms.common import _apply_kernel_2d
+from nectarml.vision.transforms.common import apply_kernel_2d
 
 class Sobel(Transform):
     def __init__(
@@ -46,8 +46,8 @@ class Sobel(Transform):
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
             out = F.sqrt(
-                _apply_kernel_2d(gray, kernel_x)**2 
-              + _apply_kernel_2d(gray, kernel_y)**2
+                apply_kernel_2d(gray, kernel_x)**2 
+              + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
             outputs = [out]*3
         else:
@@ -55,8 +55,8 @@ class Sobel(Transform):
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
                 out = F.sqrt(
-                _apply_kernel_2d(gray, kernel_x)**2 
-              + _apply_kernel_2d(gray, kernel_y)**2
+                apply_kernel_2d(gray, kernel_x)**2 
+              + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
                 outputs.append(out)
         
@@ -101,8 +101,8 @@ class Prewitt(Transform):
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
             out = F.sqrt(
-                _apply_kernel_2d(gray, kernel_x)**2 
-              + _apply_kernel_2d(gray, kernel_y)**2
+                apply_kernel_2d(gray, kernel_x)**2 
+              + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
             outputs = [out]*3
         else:
@@ -110,8 +110,8 @@ class Prewitt(Transform):
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
                 out = F.sqrt(
-                _apply_kernel_2d(gray, kernel_x)**2 
-              + _apply_kernel_2d(gray, kernel_y)**2
+                apply_kernel_2d(gray, kernel_x)**2 
+              + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
                 outputs.append(out)
         
@@ -149,13 +149,13 @@ class Laplacian(Transform):
         outputs = []
         if not self.per_channel:
             gray = norm.mean(dim=1, keepdim=True)
-            out = F.sqrt(_apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
+            out = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
             outputs = [out]*3
         else:
             channels = norm.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out = F.sqrt(_apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
+                out = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
                 outputs.append(out)
         
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)

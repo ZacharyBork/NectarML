@@ -9,7 +9,7 @@ from nectarml.tensor import Tensor
 from nectarml.creation import linspace, ones, zeros
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput
-from nectarml.vision.transforms.common import _apply_kernel_2d
+from nectarml.vision.transforms.common import apply_kernel_2d
 
 class GaussianBlur(Transform):
     def __init__(
@@ -46,7 +46,7 @@ class GaussianBlur(Transform):
     
         blurred = input.clone()
         for _ in range(self._iters): 
-            blurred = _apply_kernel_2d(blurred, kernel)
+            blurred = apply_kernel_2d(blurred, kernel)
         return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
 
     def _build_parameters(self) -> None:
@@ -96,7 +96,7 @@ class BoxBlur(Transform):
         
         blurred = input.clone()
         for _ in range(self._iters): 
-            blurred = _apply_kernel_2d(blurred, kernel)
+            blurred = apply_kernel_2d(blurred, kernel)
         return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
@@ -157,7 +157,7 @@ class MotionBlur(Transform):
         
         blurred = input.clone()
         for _ in range(self._iters): 
-            blurred = _apply_kernel_2d(blurred, kernel)
+            blurred = apply_kernel_2d(blurred, kernel)
         return ((1-self._alpha) * input + self._alpha*blurred).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
@@ -381,7 +381,7 @@ class Emboss(Transform):
         
         kernel = self.kernel.to(input.device, input.dtype)
         gray = norm.mean(dim=1, keepdim=True)
-        embossed = _apply_kernel_2d(gray, kernel)
+        embossed = apply_kernel_2d(gray, kernel)
         embossed = (embossed + self._gray_level).clamp(0.0, 1.0)
         result = F.cat([embossed, embossed, embossed], dim=1)
         blend = ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)

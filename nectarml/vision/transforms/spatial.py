@@ -10,6 +10,8 @@ from nectarml.tensor import Tensor
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.cuda.utils import map_dtype
 
+### PADDING ###
+
 class Pad(Transform):
     def __init__(
         self,
@@ -53,6 +55,8 @@ class Pad(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+    
+### CROPPING ###
     
 class _Crop(Transform):
     def __init__(
@@ -241,6 +245,8 @@ class RandomResizedCrop(_Crop):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+ 
+### RESIZING ###
     
 class Resize(Transform):
     def __init__(
@@ -277,6 +283,8 @@ class Resize(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+
+### FLIPPING ###
 
 class RandomHorizontalFlip(Transform):
     def __init__(
@@ -329,6 +337,8 @@ class RandomVerticalFlip(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+
+### ROTATING ###
 
 class Rotate(Transform):
     def __init__(
@@ -432,6 +442,8 @@ class RandomRotate90(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+  
+### GRID SAMPLERS ###
   
 class _GridSampleTransform(Transform):
     def __init__(self) -> None:
@@ -656,6 +668,69 @@ class RandomPerspective(_GridSampleTransform):
             keypoints = input.keypoints # TODO: transform keypoint coords
         )
 
+class OpticalDistortion(_GridSampleTransform):
+    def __init__(
+        self,
+        distort_limit: float | tuple[float, float] = 0.05,
+        shift_limit: float | tuple[float, float] = 0.05,
+        border_mode: Literal['reflect', 'constant', 'nearest', 'wrap'] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
+        super().__init__()
+        self.distort_limit = (-distort_limit, distort_limit) \
+            if isinstance(distort_limit, (int, float)) else distort_limit
+        self.shift_limit = (-shift_limit, shift_limit) \
+            if isinstance(shift_limit, (int, float)) else shift_limit
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_flow(
+        self,
+        H: int, W: int,
+        k: float,
+        dx: float,
+        dy: float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        cx, cy = W / 2.0, H / 2.0
+        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+
+        xn, yn = (xx - cx) / cx, (yy - cy) / cy
+        r2 = xn**2 + yn**2
+
+        scale = 1.0 + k * r2
+        src_x = cx + (xn * scale + dx) * cx
+        src_y = cy + (yn * scale + dy) * cy
+        
+        return src_x.astype(np.float64), src_y.astype(np.float64)
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        _, _, H, W = input.shape
+        
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(H, W, self._k, self._dx, self._dy)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._k  = self._random_in_range(self.distort_limit)
+        self._dx = self._random_in_range(self.shift_limit)
+        self._dy = self._random_in_range(self.shift_limit)
+
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
+
 class ElasticTransform(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
@@ -668,17 +743,6 @@ class ElasticTransform(Transform):
         pass
 
 class GridDistortion(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
-class OpticalDistortion(Transform):
     def __init__(self) -> None:
         raise NotImplementedError
         super().__init__()
