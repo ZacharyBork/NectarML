@@ -1,5 +1,4 @@
 import math
-import colorsys
 import warnings
 from typing import Literal
 
@@ -7,49 +6,14 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-import _nectarml
 import nectarml.functional as F
 from nectarml.random import RNG
 from nectarml.tensor import Tensor
 from nectarml.typing import float32
-from nectarml.cuda.utils import map_dtype
 from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.spatial import OpticalDistortion
-from nectarml.vision.transforms.common import gradient_mask, lerp3
-
-### UTILS ###
-
-def _hsv_adjust(
-    input: Tensor,
-    hue_shift: float = 0.0,
-    saturation: float = 1.0,
-    value: float = 1.0,
-    max_value: int | float | None = None
-) -> Tensor:
-    max_value = max_value or input.max().item()
-    input = input / max_value
-    if input.device == 'cuda':
-        out_data = _nectarml.hsv_adjust(
-            input._data_ptr, list(input.shape),
-            hue_shift, saturation, value, map_dtype(input.dtype))
-    else:
-        img_array = (input.data).transpose((0, 2, 3, 1))
-        
-        hsv = np.vectorize(colorsys.rgb_to_hsv)(
-            img_array[..., 0], img_array[..., 1], img_array[..., 2])
-        
-        h = (hsv[0] + hue_shift) % 1.0
-        s = np.clip(hsv[1] * saturation, 0.0, 1.0)
-        v = np.clip(hsv[2] * value, 0.0, 1.0)
-
-        rgb = np.vectorize(colorsys.hsv_to_rgb)(h, s, v)
-        out_data = np.clip(np.stack(rgb, axis=-1), 0, 255)
-        out_data = out_data.transpose((0, 3, 1, 2)).astype(input.dtype)
-        
-    return Tensor(
-        out_data, input.shape, input.dtype, input.device, input.requires_grad
-    ) * max_value
+from nectarml.vision.transforms.common import hsv_adjust, gradient_mask, lerp3
 
 ### TRANSFORMS ###
 
@@ -76,7 +40,6 @@ class ColorJitter(Transform):
         self.saturation = saturation
         self.hue = hue
         self.p = p
-        
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -87,7 +50,7 @@ class ColorJitter(Transform):
             input = ((input - 0.5) * self._contrast + 0.5) * max_value
             input = input.clamp(0.0, max_value)
 
-        return _hsv_adjust(input, self._hue, self._sat, self._val, max_value)
+        return hsv_adjust(input, self._hue, self._sat, self._val, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
@@ -117,7 +80,7 @@ class RandomBrightness(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        return _hsv_adjust(input,  0.0, 1.0, self._brightness)
+        return hsv_adjust(input,  0.0, 1.0, self._brightness)
     
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
@@ -169,7 +132,7 @@ class RandomSaturation(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        return _hsv_adjust(input,  0.0, self._saturation, 1.0)
+        return hsv_adjust(input,  0.0, self._saturation, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
@@ -194,7 +157,7 @@ class RandomHue(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        return _hsv_adjust(input, self._hue, 1.0, 1.0)
+        return hsv_adjust(input, self._hue, 1.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
@@ -665,7 +628,7 @@ class HueSaturationValue(Transform[Tensor, Tensor]):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        return _hsv_adjust(input, self.hue, self.sat, self.val)
+        return hsv_adjust(input, self.hue, self.sat, self.val)
     
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
@@ -693,15 +656,15 @@ class TonemapHDR(Transform[Tensor, Tensor]):
         self.gamma = gamma
         self.p = p
     
-    def hable(self, x: Tensor | float) -> Tensor:
+    def _hable(self, x: Tensor | float) -> Tensor:
         A, B, C, D, E, F = 0.15, 0.50, 0.10, 0.20, 0.02, 0.30
         return ((x*(A*x + C*B) + D*E) / (x*(A*x + B) + D*F)) - E/F
     
-    def aces(self, x: Tensor | float) -> Tensor:
+    def _aces(self, x: Tensor | float) -> Tensor:
         a, b, c, d, e = 2.51, 0.03, 2.43, 0.59, 0.14
         return (x * (a*x + b)) / (x * (c*x + d) + e)        
     
-    def gamma_encode(self, rgb: Tensor) -> Tensor:
+    def _gamma_encode(self, rgb: Tensor) -> Tensor:
         return rgb.clamp(0, 1) ** (1.0 / self.gamma)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -721,13 +684,13 @@ class TonemapHDR(Transform[Tensor, Tensor]):
                 curve = 1 - (-self.exposure * luma).exp()
                 tonemapped = input * curve
             case 'filmic':
-                curr = self.hable(norm * self.exposure)
-                white = self.hable(11.2)
+                curr = self._hable(norm * self.exposure)
+                white = self._hable(11.2)
                 tonemapped = curr / white
             case 'aces': 
-                tonemapped = self.aces(norm * self.exposure).clamp(0, 1)
+                tonemapped = self._aces(norm * self.exposure).clamp(0, 1)
         
-        return self.gamma_encode(tonemapped)
+        return self._gamma_encode(tonemapped) * max_value
         
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input

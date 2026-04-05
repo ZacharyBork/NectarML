@@ -338,6 +338,32 @@ class RandomVerticalFlip(Transform):
             keypoints = input.keypoints
         )
 
+class Transpose(Transform):
+    def __init__(
+        self,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
+        super().__init__()
+        self.p = p
+        self.transform_mask = transform_mask
+    
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        output = input[:, :, ::-1, ::-1]
+        return output
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
 ### ROTATING ###
 
 class Rotate(Transform):

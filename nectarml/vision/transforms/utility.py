@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from PIL import Image
+from scipy.ndimage import grey_erosion, grey_dilation
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
@@ -60,6 +61,13 @@ class DebugPrint(Transform):
         output += '\n]'
         print(output)
         
+        return input
+
+class NoOp(Transform):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, input: TransformInput) -> TransformInput:
         return input
 
 ### IMAGE UTILS ###
@@ -344,25 +352,6 @@ class Permute(Transform):
             keypoints = input.keypoints
         )
     
-class Transpose(Transform):
-    def __init__(self, dim1: int, dim2: int) -> None:
-        super().__init__()
-        self.dim1 = dim1
-        self.dim2 = dim2
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        return input.transpose(self.dim1, self.dim2)
-        
-    def forward(self, input: TransformInput) -> TransformInput:
-        return TransformInput(
-            image     = self._transform(input.image),
-            image2    = self._transform(input.image2),
-            mask      = input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
-        )
-    
 ### VALUE UTILS ###
     
 class Clamp(Transform):
@@ -399,6 +388,55 @@ class MaskedFill(Transform):
         return input.masked_fill(self.mask, self.value)
 
     def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+    
+class Morphological(Transform):
+    def __init__(
+        self,
+        scale: int | tuple[int, int] = (13, 15),
+        operation: Literal['dilation', 'erosion'] = 'dilation',
+        per_channel: bool = False,
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.scale = (scale, scale) if isinstance(scale, int) else scale
+        self.operation = operation
+        self.per_channel = per_channel
+        self.p = p
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+        if not self.per_channel:
+            arr = input.numpy()
+            if self.operation == 'dilation':
+                output = grey_dilation(arr, size=self._scale)
+            else: output = grey_erosion(arr, size=self._scale)
+        else:
+            channels = input.unbind(dim=1)
+            outputs = []
+            for ch in channels:
+                arr = ch.numpy()
+                if self.operation == 'dilation':
+                    outputs.append(grey_dilation(arr, size=self._scale))
+                else: outputs.append(grey_erosion(arr, size=self._scale))
+            output = np.stack(outputs, axis=1)
+                  
+        out = Tensor(output, dtype=input.dtype).to(input.device)
+        return out
+
+    def _build_parameters(self) -> None:
+        self._scale = int(self._random_in_range(self.scale))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

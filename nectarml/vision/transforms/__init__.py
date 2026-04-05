@@ -1,9 +1,9 @@
 from .transform import Transform
 from .spatial import (
     RandomCrop, CenterCrop, RandomResizedCrop, Resize, RandomHorizontalFlip,
-    RandomVerticalFlip, Rotate, RandomRotation, RandomRotate90, RandomAffine, 
-    RandomPerspective, ElasticTransform, GridDistortion, OpticalDistortion, 
-    Pad, FiveCrop, TenCrop, RandomCropNearBBox)
+    RandomVerticalFlip, Transpose, Rotate, RandomRotation, RandomRotate90, 
+    RandomAffine, RandomPerspective, ElasticTransform, GridDistortion,
+    OpticalDistortion, Pad, FiveCrop, TenCrop, RandomCropNearBBox)
 from .color import (
     ColorJitter, RandomBrightness, RandomContrast, RandomSaturation, RandomHue,
     RandomGamma, ToGrayscale, ToBlackAndWhite, ToSepia, Equalize, AutoContrast, 
@@ -28,6 +28,6 @@ from .format import (
 from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
 from .utility import (
-    DebugPrint, MakeGrid, LoadImageFile, SaveImageFile, Resample, Derivative,
-    UVMap, NormalMap, Permute, Transpose, Clamp, MaskedFill)
+    DebugPrint, NoOp, MakeGrid, LoadImageFile, SaveImageFile, Resample, 
+    Derivative, UVMap, NormalMap, Permute, Clamp, MaskedFill, Morphological)
 
