@@ -5,7 +5,7 @@ from typing import Literal
 from collections.abc import Sequence
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from scipy.ndimage import grey_erosion, grey_dilation
 
 import nectarml.functional as F
@@ -454,7 +454,7 @@ class OverlayElements(Transform):
         scale: float | tuple[float, float] = (0.2, 0.2),
         resample_mode: Literal['nearest', 'bilinear', 'bicubic'] = 'bilinear',
         preserve_aspect_ratio: bool = True,
-        p: float = 0.5
+        p: float = 1.0
     ) -> None:
         '''
         - Pivot point is top left corner of element.
@@ -497,7 +497,6 @@ class OverlayElements(Transform):
             
         return output
             
-
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
         return TransformInput(
@@ -507,3 +506,83 @@ class OverlayElements(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+     
+class OverlayText(Transform):
+    def __init__(
+        self,
+        text: str,
+        font: str | None = None,
+        font_size: int = 36,
+        text_color: tuple[int, int, int] = (255, 255, 255),
+        background_color: tuple[int, int, int] | None = None,
+        background_padding: int = 5,
+        location: float | tuple[float, float] = (0.1, 0.1),
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.text = text
+        self.font = ImageFont.truetype(font, font_size) \
+            if font is not None else ImageFont.load_default(font_size)
+        self.font_size = font_size
+        self.text_color = text_color
+        self.background_color = background_color
+        self.background_padding = (
+            -background_padding, -background_padding,
+            background_padding, background_padding) \
+            if background_color is not None else (0, 0, 0, 0)
+        self.location = (location, location) \
+            if isinstance(location, int | float) else location
+        self.p = p
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        output = input.clone()
+        im_col = self.background_color \
+              if self.background_color is not None \
+            else (0, 0, 0) if self.text_color != (0, 0, 0) \
+            else (255, 255, 255)
+        
+        B = input.shape[0]
+        for b in range(B):
+            _, H, W = input[b].shape
+            
+            image = Image.new('RGB', size=(H, W), color=im_col)
+            draw = ImageDraw.Draw(image)
+
+            draw_loc = (self.background_padding[2], self.background_padding[3])
+            bbox = draw.textbbox(draw_loc, self.text, self.font)
+            bbox = tuple([x+y for x, y in zip(bbox, self.background_padding)])
+            draw.text(draw_loc, self.text, fill=self.text_color, font=self.font)
+            image = image.crop(bbox)
+
+            arr = np.array(image).transpose(2, 0, 1)[np.newaxis]
+            arr = arr.astype(input.dtype) / 255
+            text = Tensor(arr, dtype=input.dtype).to(input.device)
+
+            start_y = int(self.location[0] * H)
+            end_y = int(self.location[0] * H) + text.shape[-2]
+            
+            start_x = int(self.location[1] * W)
+            end_x = int(self.location[1] * W) + text.shape[-1]
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if self.background_color is not None:
+                    output[b, :, start_y:end_y, start_x:end_x] = text
+                else:
+                    op = F.maximum if self.text_color != (0,0,0) else F.minimum
+                    orig = output[b, :, start_y:end_y, start_x:end_x]
+                    output[b, :, start_y:end_y, start_x:end_x] = op(orig, text)
+
+        return output
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+

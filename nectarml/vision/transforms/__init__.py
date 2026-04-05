@@ -30,5 +30,5 @@ from .composition import (
 from .utility import (
     DebugPrint, NoOp, MakeGrid, LoadImageFile, SaveImageFile, Resample, 
     Derivative, UVMap, NormalMap, Permute, Clamp, MaskedFill, Morphological,
-    OverlayElements)
+    OverlayElements, OverlayText)
 
