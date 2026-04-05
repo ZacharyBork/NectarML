@@ -800,3 +800,44 @@ class ChromaticAberration(Transform):
             keypoints = input.keypoints
         )
 
+class Vignetting(Transform):
+    def __init__(
+        self,
+        intensity_range: float | tuple[float, float] = (0.2, 0.5),
+        center_range: float | tuple[float, float] = (0.3, 0.7),
+        p: float = 0.5    
+    ) -> None:
+        super().__init__()
+        self.intensity_range = (intensity_range, intensity_range) \
+            if isinstance(intensity_range, float | int) else intensity_range
+        self.center_range = (center_range, center_range) \
+            if isinstance(center_range, float | int) else center_range
+        self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+        mask = gradient_mask(input.shape, 'elliptical', 'corners')
+        mask = mask.to(input.device, input.dtype)
+        mask = 1.0 - (mask - self._center).clamp(0.0, 1.0)
+        mask = mask ** (1.0 + self._intensity)
+        output = input * mask
+        
+        return output.clamp(0.0, input.max().item())
+        
+    def _build_parameters(self) -> None:
+        self._intensity = self._random_in_range(self.intensity_range)
+        self._center = self._random_in_range(self.center_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+

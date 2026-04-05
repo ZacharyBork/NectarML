@@ -8,7 +8,8 @@ from .color import (
     ColorJitter, RandomBrightness, RandomContrast, RandomSaturation, RandomHue,
     RandomGamma, ToGrayscale, ToBlackAndWhite, ToSepia, Equalize, AutoContrast, 
     Solarize, Posterize, Invert, CLAHE, ChannelShuffle, ChannelDropout, 
-    RGBShift, HueSaturationValue, TonemapHDR, ChromaticAberration)
+    RGBShift, HueSaturationValue, TonemapHDR, ChromaticAberration, 
+    Vignetting)
 from .blur import (
     GaussianBlur, MotionBlur, MedianBlur, BoxBlur, RandomBlur, Sharpen, 
     Emboss, UnsharpMask)
