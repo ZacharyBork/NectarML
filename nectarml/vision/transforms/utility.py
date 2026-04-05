@@ -373,7 +373,6 @@ class ApplyLUT(Transform):
         self.lut = Tensor(arr)
             
     def _apply_lut_cpu(self, image: np.ndarray) -> np.ndarray:
-        B, C, H, W = image.shape
         S = self.lut_size
 
         r_idx = image[:, 0] * (S - 1)
@@ -426,8 +425,7 @@ class ApplyLUT(Transform):
                 norm._data_ptr, self.lut._data_ptr,
                 B, H, W, self.lut_size,
                 map_dtype(norm.dtype))
-        else:
-            out_data = self._apply_lut_cpu(input.numpy())
+        else: out_data = self._apply_lut_cpu(input.numpy())
             
         out = Tensor(out_data, input.shape, input.dtype, input.device)
         return (out * max_value).clamp(0.0, max_value)
