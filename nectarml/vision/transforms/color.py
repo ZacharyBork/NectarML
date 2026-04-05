@@ -841,3 +841,48 @@ class Vignetting(Transform):
             keypoints = input.keypoints
         )
 
+class Illumination(Transform):
+    def __init__(
+        self,
+        mode: Literal['linear', 'corner'] = 'corner',
+        intensity_range: float | tuple[float, float] = (0.1, 0.2),
+        effect_type: Literal['brighten', 'darken', 'both'] = 'both',
+        angle_range: float | tuple[float, float] = (0.0, 360.0),
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.mode = mode
+        self.effect_type = effect_type
+        self.p = p
+        self.intensity_range = (intensity_range, intensity_range) \
+            if isinstance(intensity_range, float | int) else intensity_range
+        self.angle_range = (-angle_range, angle_range) \
+            if isinstance(angle_range, float | int) else angle_range
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+        if self.mode == 'linear': pass
+        
+        else: 
+            mask = gradient_mask(input.shape, 'radial', 'corners')
+            mask = mask.to(input.device, input.dtype)
+            output = input * (mask * self._intensity)
+            
+        return output
+        
+    def _build_parameters(self) -> None:
+        self._intensity = self._random_in_range(self.intensity_range)
+        self._angle = self._random_in_range(self.intensity_range)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )

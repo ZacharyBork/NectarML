@@ -1,3 +1,9 @@
+import io
+from PIL import Image
+from typing import Literal
+
+import numpy as np
+
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms.transform import Transform, TransformInput 
@@ -8,13 +14,15 @@ class GaussianNoise(Transform):
         std_range: tuple[float, float] = (0.1, 0.2),
         mean_range: tuple[float, float] = (0.0, 0.0),
         per_channel: bool = False,
-        noise_scale_factor: float = 1.0    
+        noise_scale_factor: float = 1.0,
+        p: float = 0.5 
     ) -> None:
         super().__init__()
         self.std_range = std_range
         self.mean_range = mean_range
         self.per_channel = per_channel
         self.noise_scale_factor = noise_scale_factor
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -29,6 +37,7 @@ class GaussianNoise(Transform):
         return ((norm + noise) * max_value).clamp(0.0, max_value)
 
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         loc = self._random_in_range(self.mean_range)
         scale = self._random_in_range(self.std_range)
         
@@ -47,11 +56,13 @@ class SaltAndPepperNoise(Transform):
     def __init__(
         self,
         amount: tuple[float, float] = (0.01, 0.06),
-        salt_vs_pepper: tuple[float, float] = (0.4, 0.6)
+        salt_vs_pepper: tuple[float, float] = (0.4, 0.6),
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.amount = amount
         self.salt_vs_pepper = salt_vs_pepper
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -65,6 +76,7 @@ class SaltAndPepperNoise(Transform):
         return output.clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         amt = self._random_in_range(self.amount)
 
         shape = (input.image.shape[0], 1) + input.image.shape[2:]
@@ -87,10 +99,12 @@ class SaltAndPepperNoise(Transform):
 class SpeckleNoise(Transform):
     def __init__(
         self,
-        std_range: tuple[float, float] = (0.1, 0.2)
+        std_range: tuple[float, float] = (0.1, 0.2),
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.std_range = std_range
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -98,6 +112,7 @@ class SpeckleNoise(Transform):
         return out.clamp(0.0, input.max().item())
     
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         dtype = input.image.dtype
         device = input.image.device
         
@@ -117,11 +132,13 @@ class ISONoise(Transform):
     def __init__(
         self,
         color_shift: tuple[float, float] = (0.01, 0.05),
-        intensity: tuple[float, float] = (0.1, 0.5)
+        intensity: tuple[float, float] = (0.1, 0.5),
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.color_shift = color_shift
         self.intensity = intensity
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -136,6 +153,7 @@ class ISONoise(Transform):
         return (out * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         dtype = input.image.dtype
         device = input.image.device
         
@@ -161,17 +179,20 @@ class MultiplicativeNoise(Transform):
     def __init__(
         self,
         multiplier_range: tuple[float, float] = (0.8, 1.2),
-        per_channel: bool = False
+        per_channel: bool = False,
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.multiplier_range = multiplier_range
         self.per_channel = per_channel
+        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         return (input * self._noise).clamp(0.0, input.max().item())
         
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         dtype = input.image.dtype
         device = input.image.device
         
@@ -191,5 +212,52 @@ class MultiplicativeNoise(Transform):
             keypoints = input.keypoints
         )
         
+class ImageCompression(Transform):
+    def __init__(
+        self,
+        compression_type: Literal['jpeg'] = 'jpeg',
+        quality_range: int | tuple[int, int] = (50, 95),
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.compression_type = compression_type
+        self.quality = (quality_range, quality_range) \
+            if isinstance(quality_range, int) else quality_range
+        self.p = p
+
+    def _compress_jpeg(self, input: Tensor) -> Tensor:
+        arr = input.cpu().numpy()[0] / input.max().item()
+        arr = (arr * 255).clip(0, 255).astype(np.uint8).transpose(1, 2, 0)
+        img = Image.fromarray(arr, mode='RGB')
+
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=self._quality)
+        buf.seek(0)
+        compressed = Image.open(buf).convert('RGB')
+
+        result = np.array(compressed).astype(np.float32) / 255.0
+        result = result.transpose(2, 0, 1)[np.newaxis]
+
+        return Tensor(result, dtype=input.dtype).to(input.device)
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        match self.compression_type:
+            case 'jpeg': return self._compress_jpeg(input)
+            case _: raise ValueError(
+                f'Compression type not valid: {self.compression_type}')
+            
+    def _build_parameters(self) -> None:
+        self._quality = int(self._random_in_range(self.quality))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
         
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints)
 

@@ -9,13 +9,13 @@ from .color import (
     RandomGamma, ToGrayscale, ToBlackAndWhite, ToSepia, Equalize, AutoContrast, 
     Solarize, Posterize, Invert, CLAHE, ChannelShuffle, ChannelDropout, 
     RGBShift, HueSaturationValue, TonemapHDR, ChromaticAberration, 
-    Vignetting)
+    Vignetting, Illumination)
 from .blur import (
     GaussianBlur, MotionBlur, MedianBlur, BoxBlur, RandomBlur, Sharpen, 
     Emboss, UnsharpMask)
 from .noise import (
     GaussianNoise, SaltAndPepperNoise, SpeckleNoise, ISONoise, 
-    MultiplicativeNoise)
+    MultiplicativeNoise, ImageCompression)
 from .erasing import (
     Erasing, CoarseDropout, GridDropout, RandomLensFlare, RandomFog, 
     RandomRain, RandomSnow, RandomShadow)
