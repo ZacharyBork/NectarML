@@ -44,5 +44,5 @@ from .functional.reductions import(
     min, amin, max, amax, mean, sum, prod, quantile)
 from .functional.shapes import (
     reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
-    expand, broadcast_to)
+    expand, broadcast_to, unfold)
 

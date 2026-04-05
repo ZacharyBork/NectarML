@@ -2451,6 +2451,55 @@ class Tensor():
     def broadcast_to(self: Tensor, shape: tuple[int, ...]) -> Tensor:
         return self.expand(shape)
     
+    def unfold(self: Tensor, dimension: int, size: int, step: int) -> Tensor:
+        
+        # TODO: This needs to be made GPU native at some point. Kinda janky
+        #       right now because of the multiple im2col/col2im bindings and
+        #       the lack of 3d im2col/col2im kernels. Not super performance
+        #       critical though, so fine on CPU for the time being.
+        
+        self_requires_grad = self.requires_grad
+        
+        dim = dimension if dimension >= 0 else self.ndim + dimension
+        L_out = (self.shape[dim] - size) // step + 1
+        out_shape = self.shape[:dim] + (L_out,) + self.shape[dim+1:] + (size,)
+
+        arr = self.numpy()
+        s = arr.strides
+        out_strides = s[:dim] + (s[dim] * step,) + s[dim+1:] + (s[dim],)
+        result = np.lib.stride_tricks.as_strided(
+            arr, shape=out_shape, strides=out_strides).copy()
+        
+        out = Tensor(result, out_shape, self.dtype, 'cpu',
+            self.requires_grad, _children=(self,)).to(self.device)
+
+        def _backward() -> None:
+            if self_requires_grad:
+                g = out.grad.cpu().numpy() if self.device == 'cuda' \
+                    else out.grad.numpy()
+                grad_input = np.zeros(self.shape, dtype=np.float32)
+                for n in range(L_out):
+                    g_idx = tuple(
+                        n if i == dim else
+                        slice(None)
+                        for i in range(len(out_shape) - 1))
+                    g_window = g[g_idx]
+                    
+                    g_window = np.moveaxis(g_window, -1, dim)
+                    
+                    dst = tuple(
+                        slice(n * step, n * step + size) if i == dim else
+                        slice(None)
+                        for i in range(self.ndim))
+                    grad_input[dst] += g_window
+                
+                grad_tensor = Tensor(
+                    grad_input, self.shape, self.dtype, 'cpu').to(self.device)
+                self.grad += grad_tensor
+
+        out._backward = _backward
+        return out
+        
     ### COMBINATION ###
     
     def select(self: Tensor, dim: int, index: int) -> Tensor:

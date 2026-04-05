@@ -4,6 +4,7 @@
 #include "bindings/conv.h"
 #include "bindings/device.h"
 #include "bindings/elementwise.h"
+#include "bindings/im2col.h"
 #include "bindings/indexing.h"
 #include "bindings/inspection.h"
 #include "bindings/interpolation.h"
@@ -47,7 +48,7 @@ PYBIND11_MODULE(_nectarml, m) {
     register_shapes(m_tensor);
     register_sorting(m_tensor);
 
-
+    register_im2col(m);
     register_memory(m);
     register_device(m);
     register_utils(m);

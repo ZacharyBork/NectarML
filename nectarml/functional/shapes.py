@@ -27,3 +27,6 @@ def expand(input: Tensor, shape: tuple[int, ...]) -> Tensor:
 def broadcast_to(input: Tensor, shape: tuple[int, ...]) -> Tensor:
     return input.expand(shape)
 
+def unfold(input: Tensor, dimension: int, size: int, step: int) -> Tensor:
+    return input.unfold(dimension, size, step)
+

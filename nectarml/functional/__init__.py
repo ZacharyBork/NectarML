@@ -52,5 +52,5 @@ from .reductions import (
 
 from .shapes import (
     reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute, expand,
-    broadcast_to)
+    broadcast_to, unfold)
 
