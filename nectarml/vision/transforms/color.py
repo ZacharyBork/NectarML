@@ -1,3 +1,4 @@
+import math
 import colorsys
 import warnings
 from typing import Literal
@@ -10,8 +11,9 @@ import _nectarml
 import nectarml.functional as F
 from nectarml.random import RNG
 from nectarml.tensor import Tensor
+from nectarml.typing import float32
 from nectarml.cuda.utils import map_dtype
-from nectarml.creation import full, ones, zeros
+from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.spatial import OpticalDistortion
 from nectarml.vision.transforms.common import gradient_mask, lerp3
@@ -844,36 +846,59 @@ class Vignetting(Transform):
 class Illumination(Transform):
     def __init__(
         self,
-        mode: Literal['linear', 'corner'] = 'corner',
-        intensity_range: float | tuple[float, float] = (0.1, 0.2),
+        mode: Literal['linear', 'radial'] = 'radial',
+        intensity_range: float | tuple[float, float] = (0.1, 0.3),
         effect_type: Literal['brighten', 'darken', 'both'] = 'both',
-        angle_range: float | tuple[float, float] = (0.0, 360.0),
+        angle_range: tuple[float, float] = (0.0, 360.0),
+        center_range: tuple[float, float] = (0.25, 0.75),
         p: float = 0.5
     ) -> None:
         super().__init__()
         self.mode = mode
-        self.effect_type = effect_type
-        self.p = p
         self.intensity_range = (intensity_range, intensity_range) \
-            if isinstance(intensity_range, float | int) else intensity_range
-        self.angle_range = (-angle_range, angle_range) \
-            if isinstance(angle_range, float | int) else angle_range
-        
+            if isinstance(intensity_range, (int, float)) else intensity_range
+        self.effect_type = effect_type
+        self.angle_range = angle_range
+        self.center_range = center_range
+        self.p = p
+
+    def _linear_mask(self, H: int, W: int) -> Tensor:
+        angle_rad = math.radians(self._angle)
+        yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
+        xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
+        proj = xx * math.cos(angle_rad) + yy * math.sin(angle_rad)
+        proj = (proj - proj.min()) / (proj.max() - proj.min() + 1e-8)
+        return proj.to(dtype=float32)
+
+    def _radial_mask(self, H: int, W: int) -> Tensor:
+        yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
+        xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
+        dist = ((xx - self._cx)**2 + (yy - self._cy)**2).sqrt()
+        dist = dist / (math.sqrt(2) + 1e-8)
+        mask = 1.0 - dist
+        mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
+        return mask.to(dtype=float32)
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        
-        if self.mode == 'linear': pass
-        
-        else: 
-            mask = gradient_mask(input.shape, 'radial', 'corners')
-            mask = mask.to(input.device, input.dtype)
-            output = input * (mask * self._intensity)
-            
-        return output
-        
+        _, _, H, W = input.shape
+        max_value = input.max().item()
+
+        if self.mode == 'linear': mask = self._linear_mask(H, W)
+        else: mask = self._radial_mask(H, W)
+        mask = mask.to(input.device, input.dtype)
+
+        if self.effect_type == 'brighten': delta = mask * self._intensity
+        elif self.effect_type == 'darken': delta = -mask * self._intensity
+        else: delta = (mask - 0.5) * 2 * self._intensity
+
+        return (input + (delta * max_value)).clamp(0.0, max_value)
+
     def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
-        self._angle = self._random_in_range(self.intensity_range)
+        self._angle     = self._random_in_range(self.angle_range)
+        self._cx        = self._random_in_range(self.center_range)
+        self._cy        = self._random_in_range(self.center_range)
 
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
