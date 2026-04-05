@@ -117,5 +117,27 @@ class UtilityTransform(Transform, Generic[TInputType, TOutputType]):
     def __call__(self, input: TInputType) -> TOutputType:
         return self.forward(input)
     
-    
+class DummyTransform(Transform):
+    def __init__(
+        self,
+        p: float = 0.5
+    ) -> None:
+        super().__init__()
+        self.p = p
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
+    def _build_parameters(self) -> None:
+        pass
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 

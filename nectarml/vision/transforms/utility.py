@@ -428,8 +428,7 @@ class Morphological(Transform):
                 else: outputs.append(grey_erosion(arr, size=self._scale))
             output = np.stack(outputs, axis=1)
                   
-        out = Tensor(output, dtype=input.dtype).to(input.device)
-        return out
+        return Tensor(output, dtype=input.dtype).to(input.device)
 
     def _build_parameters(self) -> None:
         self._scale = int(self._random_in_range(self.scale))
@@ -445,3 +444,66 @@ class Morphological(Transform):
             keypoints = input.keypoints
         )
 
+### OVERLAY ###
+
+class OverlayElements(Transform):
+    def __init__(
+        self,
+        element: Tensor,
+        location: float | tuple[float, float] = (0.1, 0.1),
+        scale: float | tuple[float, float] = (0.2, 0.2),
+        resample_mode: Literal['nearest', 'bilinear', 'bicubic'] = 'bilinear',
+        preserve_aspect_ratio: bool = True,
+        p: float = 0.5
+    ) -> None:
+        '''
+        - Pivot point is top left corner of element.
+        - Reference location is from top left corner of input.
+        - Scale is taken as percentage of input.
+        '''
+        super().__init__()
+        self.element = element
+        self.location = (location, location) \
+            if isinstance(location, int | float) else location
+        self.scale = (scale, scale) \
+            if isinstance(scale, int | float) else scale
+        self.resample_mode = resample_mode
+        self.preserve_aspect_ratio = preserve_aspect_ratio
+        self.p = p
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        output = input.clone()
+        
+        element = self.element.to(input.device, input.dtype)
+        B = input.shape[0]
+        for b in range(B):
+            _, H, W = input[b].shape
+            
+            size = (int(H * self.scale[0]), int(W * self.scale[1]))
+            scaled_element = upsample(
+                element, size=size, mode=self.resample_mode,
+                preserve_aspect_ratio=self.preserve_aspect_ratio)
+                        
+            start_y = int(self.location[0] * H)
+            end_y = int(self.location[0] * H) + scaled_element.shape[-2]
+            
+            start_x = int(self.location[1] * W)
+            end_x = int(self.location[1] * W) + scaled_element.shape[-1]
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                output[b, :, start_y:end_y, start_x:end_x] = scaled_element
+            
+        return output
+            
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
