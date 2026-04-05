@@ -8,15 +8,18 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from scipy.ndimage import grey_erosion, grey_dilation
 
+import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import full, zeros_like, ones_like, linspace
 from nectarml.typing import DTypeLike, float32
+from nectarml.cuda.utils import map_dtype
+from nectarml.functional.interpolation import upsample
+
 from nectarml.vision.transforms.transform import \
     Transform, UtilityTransform, TransformInput
 from nectarml.vision.transforms.format import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
-from nectarml.functional.interpolation import upsample
 
 ### DEBUG ###
 
@@ -323,6 +326,112 @@ class NormalMap(Transform):
 
         return normal**(1/self.normal_power) / length * 0.5 + 0.5
         
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+        
+class ApplyLUT(Transform):
+    def __init__(
+        self,
+        lut_file: PathLike,
+        alpha: float = 1.0,
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        lut_file = Path(lut_file)
+        assert lut_file.exists, \
+            f'Unable to locate LUT file at: {lut_file.as_posix()}'
+        assert lut_file.suffix == '.cube', 'LUTs must be ".cube" files.'
+        self._read_lut(lut_file)
+        self.alpha = alpha
+        self.p = p
+        
+    def _read_lut(self, lut_file: Path) -> None:
+        with open(lut_file, 'r') as file:
+            data = file.readlines()
+        read_data = False
+        lut_data = []
+        for i in data:
+            if 'LUT_3D_SIZE' in i:
+                self.lut_size = int(i.replace('\n', '').split(' ')[-1])
+                read_data = True
+                continue
+            if read_data:
+                if i.strip() == '': continue
+                values = i.strip().split()
+                if len(values) == 3:
+                    lut_data.append([float(x) for x in values])
+        
+        S = self.lut_size
+        arr = np.array(lut_data, dtype=np.float32).reshape(S, S, S, 3)
+        arr = arr.transpose(2, 1, 0, 3)
+        self.lut = Tensor(arr)
+            
+    def _apply_lut_cpu(self, image: np.ndarray) -> np.ndarray:
+        B, C, H, W = image.shape
+        S = self.lut_size
+
+        r_idx = image[:, 0] * (S - 1)
+        g_idx = image[:, 1] * (S - 1)
+        b_idx = image[:, 2] * (S - 1)
+
+        r0 = np.clip(r_idx.astype(int), 0, S - 1)
+        g0 = np.clip(g_idx.astype(int), 0, S - 1)
+        b0 = np.clip(b_idx.astype(int), 0, S - 1)
+        r1 = np.clip(r0 + 1, 0, S - 1)
+        g1 = np.clip(g0 + 1, 0, S - 1)
+        b1 = np.clip(b0 + 1, 0, S - 1)
+
+        rf = (r_idx - r0)[..., np.newaxis]
+        gf = (g_idx - g0)[..., np.newaxis]
+        bf = (b_idx - b0)[..., np.newaxis]
+
+        lut = self.lut.numpy()
+
+        c000 = lut[r0, g0, b0]
+        c001 = lut[r0, g0, b1]
+        c010 = lut[r0, g1, b0]
+        c011 = lut[r0, g1, b1]
+        c100 = lut[r1, g0, b0]
+        c101 = lut[r1, g0, b1]
+        c110 = lut[r1, g1, b0]
+        c111 = lut[r1, g1, b1]
+
+        c00 = c000 + rf * (c100 - c000)
+        c01 = c001 + rf * (c101 - c001)
+        c10 = c010 + rf * (c110 - c010)
+        c11 = c011 + rf * (c111 - c011)
+        c0  = c00  + gf * (c10  - c00)
+        c1  = c01  + gf * (c11  - c01)
+        out = c0   + bf * (c1   - c0)
+
+        return out.transpose(0, 3, 1, 2).astype(np.float32)
+      
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        B, C, H, W = input.shape
+        assert C == 3, 'LUT application requires RGB input'
+        
+        max_value = input.max().item()
+        norm = input / max_value
+        self.lut = self.lut.to(input.device)
+        
+        if input.device == 'cuda':
+            out_data = _nectarml.apply_lut(
+                norm._data_ptr, self.lut._data_ptr,
+                B, H, W, self.lut_size,
+                map_dtype(norm.dtype))
+        else:
+            out_data = self._apply_lut_cpu(input.numpy())
+            
+        out = Tensor(out_data, input.shape, input.dtype, input.device)
+        return (out * max_value).clamp(0.0, max_value)
+
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
             image     = self._transform(input.image),

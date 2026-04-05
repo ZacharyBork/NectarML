@@ -21,6 +21,17 @@ namespace nectar {
         float angle, float fill_value,
         DType dtype
     );
+
+    /* LUT */
+
+    uintptr_t apply_lut(
+        uintptr_t input_ptr,
+        uintptr_t lut_ptr,
+        int B, int H, int W,
+        int lut_size,
+        DType dtype
+    );
+
 }
 
 void register_vision(py::module_& m) {
@@ -38,6 +49,15 @@ void register_vision(py::module_& m) {
     m.def("rotate", &nectar::rotate,
         py::arg("in_ptr"), py::arg("shape"),
         py::arg("angle"), py::arg("fill_value"),
+        py::arg("dtype"),
+        "");
+
+    /* LUT */
+    
+    m.def("apply_lut", &nectar::apply_lut,
+        py::arg("in_ptr"), py::arg("lut_ptr"),
+        py::arg("B"), py::arg("H"), py::arg("W"),
+        py::arg("lut_size"), 
         py::arg("dtype"),
         "");
 }
