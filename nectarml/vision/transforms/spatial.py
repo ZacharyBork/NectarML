@@ -2,7 +2,7 @@ from typing import Literal
 
 import numpy as np
 from scipy.ndimage import rotate as scipy_rotate
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import map_coordinates, gaussian_filter
 
 import _nectarml
 import nectarml.functional as F
@@ -760,27 +760,129 @@ class OpticalDistortion(_GridSampleTransform):
             keypoints = input.keypoints # TODO: transform keypoint coords
         )
 
-class ElasticTransform(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class ElasticTransform(_GridSampleTransform):
+    def __init__(
+        self,
+        alpha: float | tuple[float, float] = (50.0, 150.0),
+        sigma: float | tuple[float, float] = (8.0, 12.0),
+        border_mode: Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
         super().__init__()
-    
+        self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
+        self.sigma = (sigma, sigma) if isinstance(sigma, int|float) else sigma
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
+        dx = self.rng.standard_normal((H, W)).astype(np.float32) * self._alpha
+        dx = gaussian_filter(dx, sigma=self._sigma)
+        
+        dy = self.rng.standard_normal((H, W)).astype(np.float32) * self._alpha
+        dy = gaussian_filter(dy, sigma=self._sigma)
+
+        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        return (xx + dx).astype(np.float64), (yy + dy).astype(np.float64)
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        _, _, H, W = input.shape
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(H, W)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+
+    def _build_parameters(self) -> None:
+        self._alpha = self._random_in_range(self.alpha)
+        self._sigma = self._random_in_range(self.sigma)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
 
-class GridDistortion(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
+
+class GridDistortion(_GridSampleTransform):
+    def __init__(
+        self,
+        num_steps: int = 5,
+        distort_limit: float | tuple[float, float] = 0.3,
+        border_mode: Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
         super().__init__()
-    
+        self.num_steps = num_steps
+        self.distort_limit = (-distort_limit, distort_limit) \
+            if isinstance(distort_limit, int | float) else distort_limit
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
+        xx = np.arange(W, dtype=np.float64)
+        yy = np.arange(H, dtype=np.float64)
+
+        ctrl_x = np.linspace(0, W - 1, self.num_steps + 1)
+        ctrl_y = np.linspace(0, H - 1, self.num_steps + 1)
+
+        src_x = np.interp(xx, ctrl_x, self._stepsx)
+        src_y = np.interp(yy, ctrl_y, self._stepsy)
+
+        src_x, src_y = np.meshgrid(src_x, src_y, indexing='xy')
+        return src_x, src_y
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        _, _, H, W = input.shape
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(H, W)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+
+    def _build_parameters(self, H: int, W: int) -> None:
+        stepsx = np.linspace(0, W - 1, self.num_steps + 1)
+        stepsy = np.linspace(0, H - 1, self.num_steps + 1)
+
+        for i in range(1, self.num_steps):
+            rand_sx = self._random_in_range(self.distort_limit)
+            rand_sy = self._random_in_range(self.distort_limit)
+            stepsx[i] += rand_sx * W / self.num_steps
+            stepsy[i] += rand_sy * H / self.num_steps
+
+        self._stepsx = np.clip(stepsx, 0, W - 1)
+        self._stepsy = np.clip(stepsy, 0, H - 1)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        pass
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
+
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
 
 class FiveCrop(Transform):
     def __init__(self) -> None:
