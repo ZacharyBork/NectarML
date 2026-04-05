@@ -215,7 +215,7 @@ class MultiplicativeNoise(Transform):
 class ImageCompression(Transform):
     def __init__(
         self,
-        compression_type: Literal['jpeg'] = 'jpeg',
+        compression_type: Literal['jpeg', 'webp'] = 'jpeg',
         quality_range: int | tuple[int, int] = (50, 95),
         p: float = 0.5
     ) -> None:
@@ -225,13 +225,16 @@ class ImageCompression(Transform):
             if isinstance(quality_range, int) else quality_range
         self.p = p
 
-    def _compress_jpeg(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        
         arr = input.cpu().numpy()[0] / input.max().item()
         arr = (arr * 255).clip(0, 255).astype(np.uint8).transpose(1, 2, 0)
         img = Image.fromarray(arr, mode='RGB')
 
         buf = io.BytesIO()
-        img.save(buf, format='JPEG', quality=self._quality)
+        f = self.compression_type.upper()
+        img.save(buf, format=f, quality=self._quality)
         buf.seek(0)
         compressed = Image.open(buf).convert('RGB')
 
@@ -239,13 +242,6 @@ class ImageCompression(Transform):
         result = result.transpose(2, 0, 1)[np.newaxis]
 
         return Tensor(result, dtype=input.dtype).to(input.device)
-
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        match self.compression_type:
-            case 'jpeg': return self._compress_jpeg(input)
-            case _: raise ValueError(
-                f'Compression type not valid: {self.compression_type}')
             
     def _build_parameters(self) -> None:
         self._quality = int(self._random_in_range(self.quality))
