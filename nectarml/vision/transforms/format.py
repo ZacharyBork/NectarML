@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from PIL import Image
@@ -10,7 +10,7 @@ from nectarml.vision.transforms.transform import \
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):
-    def __init__(self, normalize: bool = True):
+    def __init__(self, normalize: bool = True) -> None:
         super().__init__()
         self.normalize = normalize
         
@@ -83,6 +83,36 @@ class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
         if isinstance(input, Tensor): return input.numpy()
         elif isinstance(input, Image.Image): return np.array(input)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
+        
+class FromTorch(Transform):
+    def _transform(self, input: Any) -> Tensor:
+        if input is None: return input
+        from nectarml.compat.pytorch import torch as torch_compat
+        return torch_compat.tensor_torch2nectar(input)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
+        ) 
+        
+class ToTorch(Transform):
+    def _transform(self, input: Tensor) -> Any:
+        if input is None: return input
+        from nectarml.compat.pytorch import torch as torch_compat
+        return torch_compat.tensor_nectar2torch(input)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
+        ) 
 
 class ConvertDtype(Transform):
     def __init__(

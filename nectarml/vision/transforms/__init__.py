@@ -23,8 +23,8 @@ from .filter import Sobel, Prewitt, Laplacian, Dither, Halftone
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import (
-    ToTensor, ToPIL, ToNumpy, ConvertDtype, ChangeDevice, ToCPU, ToCUDA, Cast,
-    ToContiguous)
+    ToTensor, ToPIL, ToNumpy, FromTorch, ToTorch, ConvertDtype, ChangeDevice,
+    ToCPU, ToCUDA, Cast, ToContiguous)
 from .composition import (
     Compose, RandomApply, RandomChoice, RandomOrder, OneOf)
 from .utility import (

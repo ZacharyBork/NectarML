@@ -14,14 +14,14 @@ def convert_dtype(
     return new_dtype
 
 def tensor_torch2nectar(input: torch.Tensor) -> nectarml.Tensor:
-    data = input.numpy()
+    data = input.cpu().numpy()
     dtype = convert_dtype(input.dtype)
     device = 'cuda' if input.device.type == 'cuda' else 'cpu'
     return nectarml.Tensor(
         data, dtype=dtype, device=device, requires_grad=input.requires_grad)
     
 def tensor_nectar2torch(input: nectarml.Tensor) -> torch.Tensor:
-    new = torch.Tensor(input.data)
+    new = torch.Tensor(input.cpu().numpy())
     new = new.to(input.device, dtype=convert_dtype(input.dtype))
     new.requires_grad_(input.requires_grad)
     return new
