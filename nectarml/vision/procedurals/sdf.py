@@ -16,6 +16,7 @@ class SdfCreate(Generator):
         ] = 'circle',
         radius: float = 0.5,
         center: tuple[float, float] = (0.5, 0.5),
+        angle: float = 0.0,
         dtype: DTypeLike = float32,
         device: Literal['cpu', 'cuda'] = 'cpu'
     ) -> None:
@@ -27,14 +28,15 @@ class SdfCreate(Generator):
         self.sdf_type = sdf_type
         self.radius = radius * 0.5
         self.center = center
+        self.angle = angle
 
     def _circle(self) -> np.ndarray:
-        dist = np.sqrt((self._xs - self._cx) ** 2 + (self._ys - self._cy) ** 2)
+        dist = np.sqrt((self._xs) ** 2 + (self._ys) ** 2)
         return dist - self.radius * np.minimum(self._W, self._H)
         
     def _square(self) -> np.ndarray:
-        dx = np.abs(self._xs - self._cx) - self._r
-        dy = np.abs(self._ys - self._cy) - self._r
+        dx = np.abs(self._xs) - self._r
+        dy = np.abs(self._ys) - self._r
 
         outside = np.sqrt(np.maximum(dx, 0) ** 2 + np.maximum(dy, 0) ** 2)
         inside = np.minimum(np.maximum(dx, dy), 0)
@@ -44,8 +46,8 @@ class SdfCreate(Generator):
     def _triangle(self) -> np.ndarray:
         k = np.sqrt(3.0)
 
-        dx = np.abs(self._xs - self._cx) - self._r
-        dy = self._ys - self._cy + self._r / k
+        dx = np.abs(self._xs) - self._r
+        dy = self._ys + self._r / k
         
         mask = (dx + k * dy) > 0.0
         new_dx, new_dy = (dx - k * dy) / 2.0, (-k * dx - dy) / 2.0
@@ -57,8 +59,8 @@ class SdfCreate(Generator):
     def _pentagon(self) -> np.ndarray:
         kx, ky, kz = 0.809016994, 0.587785252, 0.726542528
 
-        px = np.abs(self._xs - self._cx)
-        py = self._ys - self._cy
+        px = np.abs(self._xs)
+        py = self._ys
 
         d1 = np.minimum(-kx*px + ky*py, 0.0)
         px -= 2.0 * d1 * (-kx)
@@ -76,8 +78,8 @@ class SdfCreate(Generator):
     def _hexagon(self) -> np.ndarray:
         kx, ky, kz = -0.866025404, 0.5, 0.577350269
         
-        px = np.abs(self._xs - self._cx)
-        py = np.abs(self._ys - self._cy)
+        px = np.abs(self._xs)
+        py = np.abs(self._ys)
         
         d1 = np.minimum(kx*px + ky*py, 0.0)
         px -= 2.0 * d1 * kx
@@ -91,8 +93,8 @@ class SdfCreate(Generator):
     def _octagon(self) -> np.ndarray:
         kx, ky, kz = -0.9238795325, 0.3826834323, 0.4142135623
         
-        px = np.abs(self._xs - self._cx)
-        py = np.abs(self._ys - self._cy)
+        px = np.abs(self._xs)
+        py = np.abs(self._ys)
         
         d1 = np.minimum(kx*px + ky*py, 0.0)
         px -= 2.0 * d1 * kx
@@ -111,8 +113,8 @@ class SdfCreate(Generator):
         kx, ky, kz, kw = -0.5, 0.8660254038, 0.5773502692, 1.7320508076
         self._r *= 0.5
         
-        px = np.abs(self._xs - self._cx)
-        py = np.abs(self._ys - self._cy)
+        px = np.abs(self._xs)
+        py = np.abs(self._ys)
 
         d1 = np.minimum(kx*px + ky*py, 0.0)
         px -= 2.0 * d1 * kx
@@ -132,8 +134,8 @@ class SdfCreate(Generator):
         k1y, k2y = 0.587785252, 0.951056516
         k1z = 0.726542528
         
-        px = np.abs(self._xs - self._cx)
-        py = self._ys - self._cy
+        px = np.abs(self._xs)
+        py = self._ys
         
         d1 = np.maximum(k1x*px + -k1y*py, 0.0)
         px -= 2.0 * d1 * k1x
@@ -153,8 +155,17 @@ class SdfCreate(Generator):
     def _generate(self) -> np.ndarray:
         self._H, self._W, = self.size
         self._r = self.radius * np.minimum(self._W, self._H)
-        self._cx, self._cy = self.center[0] * self._H, self.center[1] * self._W
         self._ys, self._xs = np.mgrid[0:self.size[0], 0:self.size[1]]
+        
+        _angle = np.radians(self.angle)
+        rot = np.array([
+            [ np.cos(_angle), np.sin(_angle)],
+            [-np.sin(_angle), np.cos(_angle)]])
+
+        cx, cy = self.center[0] * self._H, self.center[1] * self._W
+        xs_c, ys_c = self._xs - cx, self._ys - cy
+        self._xs, self._ys = np.einsum(
+            'ji, mni -> jmn', rot, np.dstack([xs_c, ys_c]))
 
         match self.sdf_type:
             case 'circle':    return self._circle()
