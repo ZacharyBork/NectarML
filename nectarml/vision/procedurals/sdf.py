@@ -237,9 +237,34 @@ class SdfToGray(Generator):
 
     def generate(self, sdf: Tensor) -> Tensor:
         max_value = sdf.max().item()
-        norm = sdf / max_value
-        iso = F.where(norm<self.iso_value, ones_like(norm), 0.0)
+        iso = F.where((sdf / max_value)<self.iso_value, ones_like(sdf), 0.0)
         return iso * max_value
+
+class SdfToColor(Generator):
+    def __init__(
+        self, 
+        iso_value: float = 0.0,
+        inner_color: tuple[int, int, int] = (255, 0, 0),
+        outer_color: tuple[int, int, int] = (0, 0, 0)
+    ) -> None:
+        super().__init__(None, None, None)
+        self.iso_value = iso_value
+        self.inner_color = inner_color
+        self.outer_color = outer_color
+
+    def generate(self, sdf: Tensor) -> Tensor:
+        max_value = sdf.max().item()
+        spatial = (sdf.shape[-2], sdf.shape[-1])
+        
+        iso = F.where((sdf / max_value)<self.iso_value, ones_like(sdf), 0.0)
+        
+        inner_color = Tensor(self.inner_color, dtype=uint8)
+        inner_color = inner_color.view((1, 3, 1, 1)).expand((1, 3)+spatial)
+        
+        outer_color = Tensor(self.outer_color, dtype=uint8)
+        outer_color = outer_color.view((1, 3, 1, 1)).expand((1, 3)+spatial)
+        
+        return lerp(outer_color, inner_color, iso).to(sdf.device, sdf.dtype)
 
 class SdfColorRamp(Generator):
     def __init__(
