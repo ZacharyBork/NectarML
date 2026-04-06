@@ -51,6 +51,6 @@ from .reductions import (
     min, amin, max, amax, mean, sum, prod, quantile)
 
 from .shapes import (
-    reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute, expand,
-    broadcast_to, unfold)
+    reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
+    expand, broadcast_to, unfold)
 

@@ -43,6 +43,6 @@ from .functional.pooling import (
 from .functional.reductions import(
     min, amin, max, amax, mean, sum, prod, quantile)
 from .functional.shapes import (
-    reshape, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
+    reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
     expand, broadcast_to, unfold)
 

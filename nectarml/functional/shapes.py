@@ -3,6 +3,9 @@ from nectarml.tensor import Tensor
 def reshape(input: Tensor, shape: tuple[int, ...]) -> Tensor:
     return input.reshape(shape)
 
+def view(input: Tensor, shape: tuple[int, ...]) -> Tensor:
+    return input.view(shape)
+
 def flatten(input: Tensor, start_dim: int = 0, end_dim: int = -1) -> Tensor:
     return input.flatten(start_dim, end_dim)
 

@@ -2373,6 +2373,38 @@ class Tensor():
                 
         out._backward = _backward
         return out
+    
+    def view(self: Tensor, shape: tuple[int, ...]) -> Tensor:
+        total = self.numel()
+        if -1 in shape:
+            idx = shape.index(-1)
+            known = 1
+            for i, s in enumerate(shape):
+                if i != idx: known *= s
+            shape = shape[:idx] + (total // known,) + shape[idx+1:]
+        
+        assert self.is_contiguous, \
+            'view() called on non-contiguous tensor. Use reshape() instead.'
+        assert np.prod(shape) == total, \
+            f'view() cannot change number of elements: {self.shape} -> {shape}'
+        
+        self_requires_grad = self.requires_grad
+        orig_shape = self.shape
+        
+        if self.device == 'cuda':
+            out = Tensor(self._data_ptr, shape, self.dtype, self.device,
+                self.requires_grad, _children=(self,))
+            self._buffer = out._buffer.increment()
+        else:
+            out = Tensor(self.data.reshape(shape), shape, self.dtype, 
+                self.device, self.requires_grad, _children=(self,))
+        
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad.view(orig_shape)
+        
+        out._backward = _backward
+        return out
         
     def flatten(self: Tensor, start_dim: int = 0, end_dim: int = -1) -> Tensor:
         end_dim = end_dim if end_dim >= 0 else self.ndim + end_dim
