@@ -3,7 +3,7 @@ from .spatial import (
     RandomCrop, CenterCrop, RandomResizedCrop, Resize, RandomHorizontalFlip,
     RandomVerticalFlip, Transpose, Rotate, RandomRotation, RandomRotate90, 
     RandomAffine, RandomPerspective, ElasticTransform, GridDistortion,
-    OpticalDistortion, Pad, FiveCrop, TenCrop, RandomCropNearBBox)
+    OpticalDistortion, Pad)
 from .color import (
     ColorJitter, RandomBrightness, RandomContrast, RandomSaturation, RandomHue,
     RandomGamma, ToGrayscale, ToBlackAndWhite, ToSepia, Equalize, AutoContrast, 

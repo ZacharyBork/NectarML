@@ -884,36 +884,3 @@ class GridDistortion(_GridSampleTransform):
             keypoints = input.keypoints # TODO: transform keypoint coords
         )
 
-class FiveCrop(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
-class TenCrop(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
-class RandomCropNearBBox(Transform):
-    def __init__(self) -> None:
-        raise NotImplementedError
-        super().__init__()
-    
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        pass
-
