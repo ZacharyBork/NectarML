@@ -18,14 +18,10 @@ class Solid(Generator):
         super().__init__(size, dtype, device)
         self.color = color
         
-    def _generate(self) -> np.ndarray:
-        arr = np.ones(self.size, dtype=np.uint8)
-        r, g, b = self.color
-        return np.stack([arr*r, arr*g, arr*b])
-
     def forward(self) -> Tensor:
-        arr = self._generate()
-        return Tensor(arr.astype(self.dtype)).unsqueeze(0)
+        out = Tensor(self.color, dtype=uint8)
+        out = out.view((1, 3, 1, 1)).expand((1, 3)+self.size)
+        return out.to(self.device, self.dtype)
 
 class Gradient(Generator):
     def __init__(

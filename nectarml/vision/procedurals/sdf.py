@@ -2,9 +2,12 @@ from typing import Literal
 
 import numpy as np
 
+import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.creation import ones_like
 from nectarml.vision.procedurals import Generator
 from nectarml.typing import DTypeLike, float32, uint8
+from nectarml.vision.transforms.common import lerp
 
 class SdfCreate(Generator):
     def __init__(
@@ -182,4 +185,91 @@ class SdfCreate(Generator):
         arr = self._generate()
         return Tensor(arr.astype(self.dtype)).unsqueeze(0)
 
-    
+class SdfCombine(Generator):
+    def __init__(
+        self, 
+        method: Literal[
+            'union', 'intersect', 'subtract', 'difference'
+        ] = 'union',
+        radius: float = 0.0
+    ) -> None:
+        '''
+        Thank you to Inigo Quilez for the SDF combination functions:
+        - https://iquilezles.org/articles/distfunctions/
+        '''
+        super().__init__(None, None, None)
+        self.method = method
+        self.radius = radius
+
+    def generate(self, x: Tensor, y: Tensor) -> Tensor:
+        assert x.device == y.device, \
+            f'SdfCombine requires all SDF Tensors to be on the same device, ' \
+            f'but found two devices: {x.device} and {y.device}'
+        assert x.shape == y.shape, \
+            'SdfCombine requires all SDF Tensors to have the same shape.'
+        match self.method:
+            case 'union':
+                if self.radius == 0.0: return F.minimum(x, y)
+                h = F.clamp(0.5 + 0.5 * (y - x) / self.radius, 0.0, 1.0)
+                return y + (x - y) * h - self.radius * h * (1.0 - h)
+            case 'intersect':
+                if self.radius == 0.0: return F.maximum(x, y)
+                h = F.clamp(0.5 - 0.5 * (y - x) / self.radius, 0.0, 1.0)
+                return y + (x - y) * h + self.radius * h * (1.0 - h)
+            case 'subtract':
+                if self.radius == 0.0: return F.maximum(x, -y)
+                h = F.clamp(0.5 - 0.5 * (-y - x) / self.radius, 0.0, 1.0)
+                return -y + (x - -y)*h + self.radius*h*(1.0 - h)
+            case 'difference':
+                if self.radius == 0.0: return -F.minimum(-x, -y)
+                h = F.clamp(0.5 + 0.5 * (x - y) / self.radius, 0.0, 1.0)
+                return y + (x - y)*h + self.radius*h*(1.0 - h)
+            case _: raise ValueError(
+                f'Combination method not valid: {self.method}')
+
+class SdfToGray(Generator):
+    def __init__(
+        self, 
+        iso_value: float = 0.0
+    ) -> None:
+        super().__init__(None, None, None)
+        self.iso_value = iso_value
+
+    def generate(self, sdf: Tensor) -> Tensor:
+        max_value = sdf.max().item()
+        norm = sdf / max_value
+        iso = F.where(norm<self.iso_value, ones_like(norm), 0.0)
+        return iso * max_value
+
+class SdfColorRamp(Generator):
+    def __init__(
+        self, 
+        color1: tuple[int, int, int] = (255, 0, 0),
+        color2: tuple[int, int, int] = (0, 255, 0),
+        contrast: float = 3.0
+    ) -> None:
+        super().__init__(None, None, None)
+        self.color1 = color1
+        self.color2 = color2
+        self.contrast = contrast
+
+    def generate(self, sdf: Tensor) -> Tensor:
+        _min, _max = sdf.min().item(), sdf.max().item()
+        spatial = (sdf.shape[-2], sdf.shape[-1])
+        
+        if _min == _max:
+            if _min == 0.0: ramp = sdf
+            ramp = sdf / _min
+        else: ramp = (sdf - _min) / (_max - _min)
+        
+        color1 = Tensor(self.color1, dtype=uint8)
+        color1 = color1.view((1, 3, 1, 1)).expand((1, 3)+spatial)
+        
+        color2 = Tensor(self.color2, dtype=uint8)
+        color2 = color2.view((1, 3, 1, 1)).expand((1, 3)+spatial)
+        
+        out = lerp(color1, color2, ramp).to(sdf.device, sdf.dtype)
+        out = (((out / _max) - 0.5) * self.contrast + 0.5) * _max
+        return out.clamp(0.0, _max)
+
+
