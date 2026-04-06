@@ -22,10 +22,10 @@ class Checkerboard(Generator):
         x = np.linspace(0, self.tiling[1], self.size[1], endpoint=False)        
         xx, yy = np.meshgrid(x, y)
         pattern = (np.floor(xx).astype(int) + np.floor(yy).astype(int)) % 2
-        return pattern.astype(np.float32)
+        return (pattern * 255).astype(np.uint8)
 
     def forward(self) -> Tensor:
         arr = self._generate()
-        return Tensor(arr).unsqueeze(0).unsqueeze(0)
+        return Tensor(arr.astype(self.dtype)).unsqueeze(0).unsqueeze(0)
 
 

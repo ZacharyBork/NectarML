@@ -95,5 +95,5 @@ class Noise(Generator):
 
     def forward(self) -> Tensor:
         arr = self._generate()
-        out = Tensor(arr).unsqueeze(0).unsqueeze(0)
+        out = Tensor(arr.astype(self.dtype)).unsqueeze(0).unsqueeze(0)
         return self._map_output_range(out)
