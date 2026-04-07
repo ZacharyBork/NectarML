@@ -65,7 +65,7 @@ class ColorOrbitTrap(Generator):
                 case 'gold':        self.colors = _colors.GOLD
         else: self.colors = custom_colors
 
-    def apply_colormap(self, input: Tensor) -> None:
+    def apply_colormap(self, input: Tensor) -> Tensor:
         colors = Tensor(np.array(self.colors, dtype=np.float32)) / 255.0
         colors = colors.to(input.device)
         n = len(colors) - 1
@@ -99,7 +99,7 @@ class Mandelbrot(Generator):
             'point', 'cross', 'circle', 'box', 'cross+circle'
         ] = 'cross+circle',
         trap_radius: float = 1.5,
-        trap_center: tuple[float, complex] = (0.0, 0.0j),
+        trap_center: complex = 0.0 + 0.0j,
         custom_trap_fn: Callable[[complex], float] | None = None,
         dtype: DTypeLike = float32,
         device: Literal['cpu', 'cuda'] = 'cpu'
@@ -117,45 +117,44 @@ class Mandelbrot(Generator):
         self.trap_center = trap_center
         self.custom_trap_fn = custom_trap_fn
 
-    def _function(self, z: float, p: float, c: float) -> float:
+    def _function(self, z: complex, p: float, c: complex) -> complex:
         return z**p + c
 
-    def _iterate(self, c):
+    def _iterate(self, c: complex) -> float:
         z, p = 0.0, self.power
         for iteration_number in range(self.max_iterations):
             if abs(z) >= self.bound:
                 return iteration_number
             try: z = self._function(z, p, c)
             except (ValueError, ZeroDivisionError): z = c
-        return 0
+        return 0.0
 
     def _trap(self, z: complex) -> float:
         match self.trap_type:
-            case 'point': dist = abs(z - self._trap_center)
+            case 'point': dist = abs(z - self.trap_center)
             case 'cross':
                 dist = min(
-                    abs(abs(z.real-self._trap_center.real) - self.trap_radius),
-                    abs(abs(z.imag-self._trap_center.imag) - self.trap_radius))
+                    abs(abs(z.real-self.trap_center.real) - self.trap_radius),
+                    abs(abs(z.imag-self.trap_center.imag) - self.trap_radius))
             case 'circle':
-                dist = abs(abs(z - self._trap_center) - self.trap_radius)
+                dist = abs(abs(z - self.trap_center) - self.trap_radius)
             case 'box':
-                dx = abs(z.real-self._trap_center.real) - self.trap_radius
-                dy = abs(z.imag-self._trap_center.imag) - self.trap_radius
+                dx = abs(z.real-self.trap_center.real) - self.trap_radius
+                dy = abs(z.imag-self.trap_center.imag) - self.trap_radius
                 dist = max(min(dx, dy), 0.0)
             case 'cross+circle':
                 dist = min(
-                    abs(abs(z.real-self._trap_center.real) - self.trap_radius),
-                    abs(abs(z.imag-self._trap_center.imag) - self.trap_radius),
-                    abs(abs(z - self._trap_center) - self.trap_radius))
+                    abs(abs(z.real-self.trap_center.real) - self.trap_radius),
+                    abs(abs(z.imag-self.trap_center.imag) - self.trap_radius),
+                    abs(abs(z - self.trap_center) - self.trap_radius))
             case _: raise ValueError(
                 f'trap_type not valid: {self.trap_type}')
         
         return dist
 
-    def _iterate_trap(self, c):
+    def _iterate_trap(self, c: complex) -> float:
         z, p = 0.0, self.power
         min_dist = float('inf')
-        self._trap_center = self.trap_center[0] + self.trap_center[1]
         escaped = False
         for _ in range(self.max_iterations):
             if abs(z) >= self.bound:
