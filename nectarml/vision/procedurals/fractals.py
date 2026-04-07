@@ -46,7 +46,7 @@ class TrapColors:
         [255, 220, 100],
         [255, 255, 240]]
 
-class ColorOrbitTrap(Generator):
+class ColorFractal(Generator):
     def __init__(
         self,
         preset: Literal[
@@ -84,7 +84,7 @@ class ColorOrbitTrap(Generator):
         out = self.apply_colormap(norm)
         return (out * 255).clamp(0.0, 255.0).to(input.device, input.dtype)
 
-class Mandelbrot(Generator):
+class _Fractal(Generator):
     def __init__(
         self, 
         size: tuple[int, int] = (256, 256),
@@ -117,17 +117,11 @@ class Mandelbrot(Generator):
         self.trap_center = trap_center
         self.custom_trap_fn = custom_trap_fn
 
-    def _function(self, z: complex, p: float, c: complex) -> complex:
-        return z**p + c
-
     def _iterate(self, c: complex) -> float:
-        z, p = 0.0, self.power
-        for iteration_number in range(self.max_iterations):
-            if abs(z) >= self.bound:
-                return iteration_number
-            try: z = self._function(z, p, c)
-            except (ValueError, ZeroDivisionError): z = c
-        return 0.0
+        raise NotImplementedError
+
+    def _iterate_trap(self, c: complex) -> float:
+        raise NotImplementedError
 
     def _trap(self, z: complex) -> float:
         match self.trap_type:
@@ -151,24 +145,6 @@ class Mandelbrot(Generator):
                 f'trap_type not valid: {self.trap_type}')
         
         return dist
-
-    def _iterate_trap(self, c: complex) -> float:
-        z, p = 0.0, self.power
-        min_dist = float('inf')
-        escaped = False
-        for _ in range(self.max_iterations):
-            if abs(z) >= self.bound:
-                escaped = True
-                break
-            try: z = self._function(z, p, c)
-            except (ValueError, ZeroDivisionError): z = c
-            
-            if self.custom_trap_fn is None: dist = self._trap(z)
-            else: dist = self.custom_trap_fn(z)
-            if dist < min_dist: min_dist = dist
-            
-        if not escaped: return 0.0
-        return min_dist
 
     def _generate(self) -> np.ndarray:
         y_domain = np.linspace(-2, 2, self.size[0], dtype=float32)
@@ -199,5 +175,149 @@ class Mandelbrot(Generator):
         arr = self._generate()
         return Tensor(arr.astype(self.dtype)).unsqueeze(0)
 
+class Mandelbrot(_Fractal):
+    def __init__(
+        self, 
+        size: tuple[int, int] = (256, 256),
+        center: tuple[float, float] = (0.5, 0.5),
+        zoom: float = 1.0,
+        angle: float = 0.0,
+        bound: int = 2,
+        power: float = 2.0,
+        max_iterations: int = 50,
+        trap: bool = False,
+        trap_type: Literal[
+            'point', 'cross', 'circle', 'box', 'cross+circle'
+        ] = 'cross+circle',
+        trap_radius: float = 1.5,
+        trap_center: complex = 0.0 + 0.0j,
+        custom_trap_fn: Callable[[complex], float] | None = None,
+        dtype: DTypeLike = float32,
+        device: Literal['cpu', 'cuda'] = 'cpu'
+    ) -> None:
+        super().__init__(
+            size, center, zoom, angle, bound, power, max_iterations, trap, 
+            trap_type, trap_radius, trap_center, custom_trap_fn, dtype, device)
 
+    def _function(self, z: complex, p: float, c: complex) -> complex:
+        return z**p + c
+
+    def _iterate(self, c: complex) -> float:
+        z, p = 0.0, self.power
+        for iteration_number in range(self.max_iterations):
+            if abs(z) >= self.bound:
+                return iteration_number
+            try: z = self._function(z, p, c)
+            except (ValueError, ZeroDivisionError): z = c
+        return 0.0
+
+    def _iterate_trap(self, c: complex) -> float:
+        z, p = 0.0, self.power
+        min_dist = float('inf')
+        dist = self._trap(z) if self.custom_trap_fn is None \
+            else self.custom_trap_fn(z)
+        min_dist = dist
+        escaped = False
+        for _ in range(self.max_iterations):
+            if abs(z) >= self.bound:
+                escaped = True
+                break
+            try: z = self._function(z, p, c)
+            except (ValueError, ZeroDivisionError): z = c
+            
+            dist = self._trap(z) if self.custom_trap_fn is None \
+                else self.custom_trap_fn(z)
+            if dist < min_dist: min_dist = dist
+            
+        if not escaped: return 0.0
+        return min_dist
+
+class Julia(_Fractal):
+    def __init__(
+        self, 
+        size: tuple[int, int] = (256, 256),
+        center: tuple[float, float] = (0.5, 0.5),
+        zoom: float = 1.0,
+        angle: float = 0.0,
+        bound: int = 2,
+        power: float = 2.0,
+        max_iterations: int = 50,
+        seed: complex = -0.7 + 0.27j,
+        trap: bool = False,
+        trap_type: Literal[
+            'point', 'cross', 'circle', 'box', 'cross+circle'
+        ] = 'cross+circle',
+        trap_radius: float = 1.5,
+        trap_center: complex = 0.0 + 0.0j,
+        custom_trap_fn: Callable[[complex], float] | None = None,
+        dtype: DTypeLike = float32,
+        device: Literal['cpu', 'cuda'] = 'cpu'
+    ) -> None:
+        super().__init__(
+            size, center, zoom, angle, bound, power, max_iterations, trap, 
+            trap_type, trap_radius, trap_center, custom_trap_fn, dtype, device)
+        
+        self.seed = seed
+
+    def _function(self, z: complex, p: float, c: complex) -> complex:
+        return z**p + c
+
+    def _iterate(self, z: complex) -> float:
+        p = self.power
+        for iteration_number in range(self.max_iterations):
+            if abs(z) >= self.bound:
+                return float(iteration_number)
+            try: z = self._function(z, p, self.seed)
+            except (ValueError, ZeroDivisionError): z = self.seed
+        return 0.0
+
+    def _iterate_trap(self, z: complex) -> float:
+        p = self.power
+        escaped = False
+
+        dist = self._trap(z) if self.custom_trap_fn is None \
+            else self.custom_trap_fn(z)
+        min_dist = dist
+
+        for _ in range(self.max_iterations):
+            if abs(z) >= self.bound:
+                escaped = True
+                break
+            try: z = self._function(z, p, self.seed)
+            except (ValueError, ZeroDivisionError): z = self.seed
+            
+            dist = self._trap(z) if self.custom_trap_fn is None \
+                else self.custom_trap_fn(z)
+            if dist < min_dist: min_dist = dist
+                
+        if not escaped: return 0.0
+        return min_dist
+
+class BurningShip(Mandelbrot):
+    def __init__(
+        self, 
+        size: tuple[int, int] = (256, 256),
+        center: tuple[float, float] = (0.5, 0.5),
+        zoom: float = 1.0,
+        angle: float = 0.0,
+        bound: int = 2,
+        power: float = 2.0,
+        max_iterations: int = 50,
+        trap: bool = False,
+        trap_type: Literal[
+            'point', 'cross', 'circle', 'box', 'cross+circle'
+        ] = 'cross+circle',
+        trap_radius: float = 1.5,
+        trap_center: complex = 0.0 + 0.0j,
+        custom_trap_fn: Callable[[complex], float] | None = None,
+        dtype: DTypeLike = float32,
+        device: Literal['cpu', 'cuda'] = 'cpu'
+    ) -> None:
+        super().__init__(
+            size, center, zoom, angle, bound, power, max_iterations, trap,
+            trap_type, trap_radius, trap_center, custom_trap_fn, dtype, device)
+
+    def _function(self, z: complex, p: float, c: complex) -> complex:
+        z = abs(z.real) + 1j * abs(z.imag)
+        return z**p + c
 
