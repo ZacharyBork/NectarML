@@ -9,7 +9,7 @@ from .color import (
     RandomGamma, ToGrayscale, ToBlackAndWhite, ToSepia, Equalize, AutoContrast, 
     Solarize, Posterize, Invert, CLAHE, ChannelShuffle, ChannelDropout, 
     RGBShift, HueSaturationValue, TonemapHDR, ChromaticAberration, 
-    Vignetting, Illumination)
+    Vignetting, Illumination, Quantize)
 from .blur import (
     GaussianBlur, MotionBlur, MedianBlur, BoxBlur, RandomBlur, Sharpen, 
     Emboss, UnsharpMask)

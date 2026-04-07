@@ -874,3 +874,42 @@ class Illumination(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+
+class Quantize(Transform):
+    def __init__(
+        self,
+        levels: int | tuple[int, int] = (3, 5),
+        palette: Tensor | None = None,
+        p: float = 0.5    
+    ) -> None:
+        super().__init__()
+        self.levels = (levels, levels) if isinstance(levels, int) else levels
+        for i in self.levels:
+            assert i > 0, 'Quantize levels must be greater than 0.'
+        self.palette = palette
+        self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        if self.palette is None:
+            return (input * self._levels).round() / self._levels
+        else:
+            palette = self.palette.to(input.device, input.dtype)
+            diff = (input.unsqueeze(-1) - palette)
+            idx = diff.abs().argmin(dim=-1)
+            return palette[idx]
+                
+    def _build_parameters(self) -> None:
+        self._levels = int(round(self._random_in_range(self.levels)))
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
