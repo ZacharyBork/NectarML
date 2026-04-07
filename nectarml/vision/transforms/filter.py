@@ -1,10 +1,12 @@
+import warnings
 from typing import Literal
 
 import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.typing import float32
+from nectarml.creation import zeros
+from nectarml.typing import float32, int32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.common import apply_kernel_2d
 
@@ -12,10 +14,12 @@ class Sobel(Transform):
     def __init__(
         self,
         per_channel: bool = False,
-        feldman: bool = False
+        feldman: bool = False,
+        p: float = 1.0
     ) -> None:
         super().__init__()
         self.per_channel = per_channel
+        self.p = p
         
         if not feldman:
             kx = [[ 1,   0,  -1],
@@ -63,6 +67,7 @@ class Sobel(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -74,10 +79,12 @@ class Sobel(Transform):
 class Prewitt(Transform):
     def __init__(
         self,
-        per_channel: bool = False
+        per_channel: bool = False,
+        p: float = 1.0
     ) -> None:
         super().__init__()
         self.per_channel = per_channel
+        self.p = p
         
         self.prewitt_x = Tensor([
             [1, 0, -1],
@@ -118,6 +125,7 @@ class Prewitt(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
 
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -129,10 +137,12 @@ class Prewitt(Transform):
 class Laplacian(Transform):
     def __init__(
         self,
-        per_channel: bool = False
+        per_channel: bool = False,
+        p: float = 1.0
     ) -> None:
         super().__init__()
         self.per_channel = per_channel
+        self.p = p
         
         self.kernel = Tensor([
             [0,  1, 0],
@@ -161,6 +171,7 @@ class Laplacian(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -175,7 +186,8 @@ class Dither(Transform):
         levels: int = 4,
         algorithm: Literal['floyd-steinberg'] = 'floyd-steinberg',
         per_channel: bool = True,
-        from_channel: Literal['r', 'g', 'b'] = 'r'
+        from_channel: Literal['r', 'g', 'b'] = 'r',
+        p: float = 1.0
     ) -> None:
         '''
         Fully sequential and pure CPU so very slow on large tensors. Likely 
@@ -190,6 +202,7 @@ class Dither(Transform):
         self.algorithm = algorithm
         self.per_channel = per_channel
         self.from_channel = from_channel
+        self.p = p
 
     def _get_new_val(self, old_val) -> np.ndarray:
         return np.round(old_val * (self.levels - 1)) / (self.levels - 1)
@@ -235,6 +248,7 @@ class Dither(Transform):
                 f'Invalid Dither algortihm: {self.algorithm}')
 
     def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -250,7 +264,7 @@ class Halftone(Transform):
         foreground: tuple[float, float, float] = (0.0, 0.0, 0.0),
         background: tuple[float, float, float] = (1.0, 1.0, 1.0),
         blend: float | tuple[float, float] = 0.5,
-        p: float = 0.5
+        p: float = 1.0
     ) -> None:
         super().__init__()
         self.cell_size = cell_size
@@ -313,3 +327,58 @@ class Halftone(Transform):
             keypoints = input.keypoints
         )
 
+class Kuwahara(Transform):
+    def __init__(
+        self,
+        radius: int = 7,
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.radius = radius
+        self.p = p
+      
+    def make_kernel(self, row_slice: slice, col_slice: slice) -> Tensor:
+        size = 2 * self.radius + 1
+        k = zeros((size, size))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            k[row_slice, col_slice] = 1.0
+        k /= k.sum()
+        return k
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        B, C, H, W = input.shape
+        r = self.radius
+        h = r + 1
+
+        kernels = F.stack([
+            self.make_kernel(slice(0, h), slice(0, h)),
+            self.make_kernel(slice(0, h), slice(r, None)),
+            self.make_kernel(slice(r, None), slice(0, h)), 
+            self.make_kernel(slice(r, None), slice(r, None)),
+        ]).to(input.device, input.dtype)
+
+        kernels = kernels.unsqueeze(1)
+
+        x_flat = input.reshape((B * C, 1, H, W))
+        x2_flat = x_flat ** 2
+
+        means = F.conv2d(x_flat,  kernels, padding=r, groups=1)
+        means2 = F.conv2d(x2_flat, kernels, padding=r, groups=1)
+        variances = means2 - means ** 2
+
+        best = variances.argmin(dim=1, keepdim=True)        
+        result = means.gather(dim=1, index=best).squeeze(1)
+
+        return result.reshape((B, C, H, W))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )

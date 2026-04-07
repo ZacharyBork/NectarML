@@ -19,7 +19,7 @@ from .noise import (
 from .erasing import (
     Erasing, CoarseDropout, GridDropout, RandomLensFlare, RandomFog, 
     RandomRain, RandomSnow, RandomShadow)
-from .filter import Sobel, Prewitt, Laplacian, Dither, Halftone
+from .filter import Sobel, Prewitt, Laplacian, Dither, Halftone, Kuwahara
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import (
