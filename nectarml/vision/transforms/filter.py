@@ -382,3 +382,35 @@ class Kuwahara(Transform):
             boxes     = input.boxes,
             keypoints = input.keypoints
         )
+
+class Pixelate(Transform):
+    def __init__(
+        self,
+        block_size: int | tuple[int, int] = (6, 12),
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.block_size = (block_size, block_size) \
+            if isinstance(block_size, int) else block_size
+        self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        _, _, H, W = input.shape
+        down = F.avg_pool2d(input, self._block_size, self._block_size)
+        return F.upsample(down, size=(H, W), mode='nearest')
+        
+    def _build_parameters(self) -> None:
+        self._block_size = int(self._random_in_range(self.block_size))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
