@@ -884,3 +884,68 @@ class GridDistortion(_GridSampleTransform):
             keypoints = input.keypoints # TODO: transform keypoint coords
         )
 
+class Swirl(_GridSampleTransform):
+    def __init__(
+        self,
+        strength: float | tuple[float, float] = (1.0, 3.0),
+        radius: float | tuple[float, float] = (0.0, 360.0),
+        center: tuple[float, float] = (0.5, 0.5),
+        border_mode: Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill: float = 0.0,
+        p: float = 0.5,
+        transform_mask: bool = True
+    ) -> None:
+        super().__init__()
+        self.strength = (strength, strength) \
+            if isinstance(strength, int | float) else strength
+        self.radius = (-radius, radius) \
+            if isinstance(radius, int | float) else radius
+        self.center = center
+        self.border_mode = border_mode
+        self.fill = fill
+        self.p = p
+        self.transform_mask = transform_mask
+
+    def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
+        cx, cy = self.center[1] * W, self.center[0] * H
+        px, py = np.meshgrid(
+            np.arange(W, dtype=np.float32), 
+            np.arange(H, dtype=np.float32))
+
+        dx, dy = px - cx, py - cy
+        dist = np.sqrt(dx**2 + dy**2)
+        angle = self._strength * np.exp(-dist / self._radius)
+        
+        cos_a, sin_a = np.cos(angle), np.sin(angle)
+        swirled_x = cos_a * dx - sin_a * dy
+        swirled_y = sin_a * dx + cos_a * dy
+
+        return swirled_x + cx, swirled_y + cy
+
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        _, _, H, W = input.shape
+        a = input.cpu().numpy()[0]
+        src_x, src_y = self._compute_flow(H, W)
+        result = self._apply_flow(a, src_x, src_y)
+        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+
+    def _build_parameters(self) -> None:
+        self._strength = self._random_in_range(self.strength)
+        self._radius = self._random_in_range(self.radius)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = self._transform(input.mask) \
+                        if self.transform_mask else input.mask,
+            boxes     = input.boxes,    # TODO: transform box coords
+            keypoints = input.keypoints # TODO: transform keypoint coords
+        )
+
