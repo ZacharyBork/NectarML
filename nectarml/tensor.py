@@ -2218,6 +2218,46 @@ class Tensor():
         out._backward = _backward
         return out
     
+    def argmin(
+        self: Tensor,
+        dim: int | None = None,
+        keepdim: bool = False
+    ) -> Tensor:
+        self._bool_type_check('Tensor.argmin()')
+        
+        data = np.argmin(self.cpu().numpy(), axis=dim)
+        if keepdim and dim is not None:
+            data = np.expand_dims(data, axis=dim)
+        out = Tensor(data, dtype=typing.int32, device=self.device)
+            
+        def _backward() -> None:
+            raise RuntimeError(
+                'argmin is not differentiable. Use amin() if you need '
+                'gradients through a min operation.')
+
+        out._backward = _backward
+        return out
+
+    def argmax(
+        self: Tensor,
+        dim: int | None = None,
+        keepdim: bool = False
+    ) -> Tensor:
+        self._bool_type_check('Tensor.argmax()')
+        
+        data = np.argmax(self.cpu().numpy(), axis=dim)
+        if keepdim and dim is not None:
+            data = np.expand_dims(data, axis=dim)
+        out = Tensor(data, dtype=typing.int32, device=self.device)
+        
+        def _backward() -> None:
+            raise RuntimeError(
+                'argmargmaxin is not differentiable. Use amax() if you need '
+                'gradients through a max operation.')
+
+        out._backward = _backward
+        return out
+    
     def mean(
         self: Tensor, 
         dim: int | tuple[int, ...] | None = None,

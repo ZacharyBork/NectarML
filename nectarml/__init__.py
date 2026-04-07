@@ -41,7 +41,7 @@ from .functional.normalization import (
 from .functional.pooling import (
     avg_pool1d, avg_pool2d, avg_pool3d, max_pool1d, max_pool2d, max_pool3d)
 from .functional.reductions import(
-    min, amin, max, amax, mean, sum, prod, quantile)
+    min, amin, max, amax, argmin, argmax, mean, sum, prod, quantile)
 from .functional.shapes import (
     reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
     expand, broadcast_to, unfold)

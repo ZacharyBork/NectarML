@@ -32,6 +32,20 @@ def amax(
 ) -> Tensor:
     return input.amax(dim, keepdim)
 
+def argmin(
+    input: Tensor,
+    dim: int | None = None,
+    keepdim: bool = False
+) -> Tensor:
+    return input.argmin(dim, keepdim)
+    
+def argmax(
+    input: Tensor,
+    dim: int | None = None,
+    keepdim: bool = False
+) -> Tensor:
+    return input.argmax(dim, keepdim)
+
 def mean(
     input: Tensor, 
     dim: int | tuple[int, ...] | None = None,
