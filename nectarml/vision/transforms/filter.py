@@ -2,11 +2,12 @@ import warnings
 from typing import Literal
 
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros
-from nectarml.typing import float32, int32
+from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.common import apply_kernel_2d
 
@@ -447,6 +448,114 @@ class Pixelate(Transform):
         if self.rng.random() > self.p: return input
         self._build_parameters()
         
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class AsciiRender(Transform):
+    def __init__(
+        self,
+        block_size: int = 12,
+        font: str | None = None,
+        charset: Literal['minimal', 'dense', 'block'] = 'dense',
+        custom_charset: str | None = None,
+        sample_color: bool = True,
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.block_size = block_size
+        self.sample_color = sample_color
+        self.p = p
+        self.font_path = font
+
+        if custom_charset is None:
+            match charset:
+                case 'block': self.charset = '█▓▒░ '
+                case 'minimal': self.charset = '@%#*+=-:. '
+                case 'dense': 
+                    self.charset = (
+                        '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunx'
+                        'rjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ')
+        else: self.charset = custom_charset
+
+    def _get_font(self) -> ImageFont.FreeTypeFont:
+        lo, hi = 1, self.block_size * 2
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            font = ImageFont.truetype(self.font_path, mid) \
+                if self.font_path else ImageFont.load_default(mid)
+            bbox = font.getbbox('A')
+            w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            if max(w, h) <= self.block_size: lo = mid
+            else: hi = mid - 1
+            
+        return ImageFont.truetype(self.font_path, lo) \
+            if self.font_path else ImageFont.load_default(lo)
+
+    def _to_ascii(self, input: Tensor) -> list[str]:
+        _, _, H, W = input.shape
+        width  = max(1, W // self.block_size)
+        height = max(1, H // self.block_size)
+
+        gray = input.mean(dim=1, keepdim=True)
+        gray = F.upsample(gray, size=(height, width), mode='nearest')
+
+        pixels = gray.cpu().numpy()[0, 0]
+        lo, hi = np.percentile(pixels, 2), np.percentile(pixels, 98)
+        pixels = np.clip((pixels - lo) / (hi - lo), 0.0, 1.0)
+
+        indices = np.clip(
+            (pixels * (len(self.charset) - 1)).astype(int),
+            0, len(self.charset) - 1)
+        char_array = np.array(list(self.charset))[indices]
+
+        return [''.join(row) for row in char_array]
+
+    def _to_image(self, lines: list[str], original: Tensor) -> np.ndarray:
+        font = self._get_font()
+        bbox = font.getbbox('A')
+        char_w, char_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+        rows, cols = len(lines), max(len(line) for line in lines)
+
+        if self.sample_color:
+            small = F.upsample(original, size=(rows, cols), mode='nearest')
+            small = small.cpu().numpy()[0]
+            lo, hi = small.min(), small.max()
+            small = ((small - lo) / (hi - lo) * 255).astype(int)
+
+        img = Image.new('RGB', (char_w * cols, char_h * rows), color=(0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        for row, line in enumerate(lines):
+            for col, char in enumerate(line):
+                if self.sample_color: r, g, b = small[:, row, col].tolist()
+                else: r, g, b = 255, 255, 255
+                x, y = col * char_w, row * char_h
+                if char == ' ':
+                    draw.rectangle([x, y, x+char_w, y+char_h], fill=(r, g, b))
+                else: draw.text((x, y), char, fill=(r, g, b), font=font)
+
+        return np.array(img)
+                
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        _, _, H, W = input.shape
+        
+        lines = self._to_ascii(input)
+        arr = self._to_image(lines, input)
+        arr = arr.transpose(2, 0, 1).astype(np.float32) / arr.max().item()
+        out = Tensor(arr[np.newaxis], dtype=input.dtype).to(input.device)
+        out = F.upsample(out, size=(H, W), mode='nearest')
+
+        return out * input.max().item()
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

@@ -20,7 +20,8 @@ from .erasing import (
     Erasing, CoarseDropout, GridDropout, RandomLensFlare, RandomFog, 
     RandomRain, RandomSnow, RandomShadow)
 from .filter import (
-    Convolve, Sobel, Prewitt, Laplacian, Dither, Halftone, Kuwahara, Pixelate)
+    Convolve, Sobel, Prewitt, Laplacian, Dither, Halftone, Kuwahara, Pixelate,
+    AsciiRender)
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import (
