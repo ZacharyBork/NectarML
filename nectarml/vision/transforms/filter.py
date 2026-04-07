@@ -10,6 +10,46 @@ from nectarml.typing import float32, int32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.common import apply_kernel_2d
 
+class Convolve(Transform):
+    def __init__(
+        self,
+        kernel: list[list[int | float]] = [
+            [-2, -1,  0],
+            [-1,  1,  1],
+            [ 0,  1,  2]
+        ],
+        alpha: float | tuple[float, float] = 1.0,
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.kernel = Tensor(kernel, dtype=float32)
+        self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
+        self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        max_value = input.max().item()
+        kernel = self.kernel.to(input.device, input.dtype)
+        
+        result = F.sqrt(apply_kernel_2d(input, kernel)**2 + 1e-6)
+        blended = (1 - self._alpha) * input + self._alpha * result
+        return blended.clamp(0.0, max_value)
+        
+    def _build_parameters(self) -> None:
+        self._alpha = self._random_in_range(self.alpha)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
 class Sobel(Transform):
     def __init__(
         self,
