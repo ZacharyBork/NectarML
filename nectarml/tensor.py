@@ -736,8 +736,21 @@ class Tensor():
     
     ### GETTERS / SETTERS ###
         
-    def __getitem__(self: Tensor, idx: int | slice | tuple[slice]) -> Tensor:
+    def __getitem__(
+        self: Tensor, 
+        idx: Tensor | int | slice | tuple[slice]
+    ) -> Tensor:
         self_requires_grad = self.requires_grad
+        if isinstance(idx, Tensor):
+            print(self.device)
+            assert idx.device == self.device, (
+                f'Tensor.__getitem__() expects input Tensor and index Tensor '
+                f'to be on same device, but found two devices: '
+                f'{self.device} and {idx.device}')
+            assert idx.dtype in (typing.int32, typing.int64), \
+                'Tensor index must be integer dtype'
+            out = self.index_select(0, idx.flatten())
+            return out.reshape(idx.shape + self.shape[1:])
         
         if not isinstance(idx, tuple): idx = (idx,)
         
@@ -2228,7 +2241,7 @@ class Tensor():
         data = np.argmin(self.cpu().numpy(), axis=dim)
         if keepdim and dim is not None:
             data = np.expand_dims(data, axis=dim)
-        out = Tensor(data, dtype=typing.int32, device=self.device)
+        out = Tensor(data, dtype=typing.int32).to(self.device)
             
         def _backward() -> None:
             raise RuntimeError(
@@ -2248,7 +2261,7 @@ class Tensor():
         data = np.argmax(self.cpu().numpy(), axis=dim)
         if keepdim and dim is not None:
             data = np.expand_dims(data, axis=dim)
-        out = Tensor(data, dtype=typing.int32, device=self.device)
+        out = Tensor(data, dtype=typing.int32).to(self.device)
         
         def _backward() -> None:
             raise RuntimeError(
