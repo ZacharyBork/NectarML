@@ -742,7 +742,6 @@ class Tensor():
     ) -> Tensor:
         self_requires_grad = self.requires_grad
         if isinstance(idx, Tensor):
-            print(self.device)
             assert idx.device == self.device, (
                 f'Tensor.__getitem__() expects input Tensor and index Tensor '
                 f'to be on same device, but found two devices: '
