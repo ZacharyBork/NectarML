@@ -20,6 +20,12 @@ void launch_reduce_dim(
     int reduce_dim, float identity = std::numeric_limits<float>::quiet_NaN()
 );
 
+template<typename T>
+void launch_cumsum(
+    T* input, T* output,
+    int outer, int dim_size, int inner
+);
+
 namespace nectar {
 
     /* MIN */
@@ -197,6 +203,23 @@ namespace nectar {
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim, initial);
             return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t reduce_cumsum(
+        uintptr_t in_ptr,
+        int total,
+        int dim_size,
+        int outer,
+        int inner,
+        DType dtype
+    ) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_input  = reinterpret_cast<T*>(in_ptr);
+            T* d_output;
+            cudaMalloc(&d_output, total * sizeof(T));
+            launch_cumsum<T>(d_input, d_output, outer, dim_size, inner);
+            return reinterpret_cast<uintptr_t>(d_output);
         });
     }
 

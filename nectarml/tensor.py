@@ -2393,6 +2393,29 @@ class Tensor():
         out._backward = _backward
         return out
     
+    def cumsum(self: Tensor, dim: int) -> Tensor:
+        self._bool_type_check('Tensor.cumsum()')
+        self_requires_grad = self.requires_grad
+
+        dim = dim if dim >= 0 else self.ndim + dim
+
+        if self.device == 'cuda':
+            out_data = cuda.reductions.cumsum(self, dim)
+        else: out_data = np.cumsum(self.data, axis=dim)
+
+        out = Tensor(out_data, self.shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if self_requires_grad:
+                grad = out.grad
+                flipped = grad.flip(dim)
+                flipped_csum = flipped.cumsum(dim)
+                self.grad += flipped_csum.flip(dim)
+
+        out._backward = _backward
+        return out
+        
     def prod(
         self: Tensor, 
         dim: int | tuple[int, ...] | None = None,
@@ -2628,6 +2651,24 @@ class Tensor():
                 grad_tensor = Tensor(
                     grad_input, self.shape, self.dtype, 'cpu').to(self.device)
                 self.grad += grad_tensor
+
+        out._backward = _backward
+        return out
+        
+    def flip(self: Tensor, dim: int) -> Tensor:
+        self_requires_grad = self.requires_grad
+        dim = dim if dim >= 0 else self.ndim + dim
+
+        if self.device == 'cuda':
+            out_data = cuda.shapes.flip(self, dim)
+        else: out_data = np.flip(self.data, axis=dim).copy()
+
+        out = Tensor(out_data, self.shape, self.dtype, self.device,
+            self.requires_grad, _children=(self,))
+
+        def _backward() -> None:
+            if self_requires_grad:
+                self.grad += out.grad.flip(dim)
 
         out._backward = _backward
         return out

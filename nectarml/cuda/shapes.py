@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nectarml import Tensor
 
+import math
+
 import _nectarml
 from nectarml.cuda.utils import map_dtype
 
@@ -73,3 +75,13 @@ def col2im_2d(
         H_out, W_out, SH, SW, 
         0, 0, 1, 1, map_dtype(input.dtype))
 
+def flip(input: Tensor, dim: int) -> int:
+    dim      = dim if dim >= 0 else input.ndim + dim
+    outer    = int(math.prod(input.shape[:dim]))
+    dim_size = input.shape[dim]
+    inner    = int(math.prod(input.shape[dim+1:]))
+    total    = input.numel()
+    return _nectarml.tensor.shapes.flip(
+        input._data_ptr, total, dim_size,
+        outer, inner,
+        map_dtype(input.dtype))

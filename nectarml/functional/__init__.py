@@ -48,9 +48,9 @@ from .pooling import (
     max_pool1d, max_pool2d, max_pool3d)
 
 from .reductions import (
-    min, amin, max, amax, argmin, argmax, mean, sum, prod, quantile)
+    min, amin, max, amax, argmin, argmax, mean, sum, prod, quantile, cumsum)
 
 from .shapes import (
     reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
-    expand, broadcast_to, unfold)
+    expand, broadcast_to, unfold, flip)
 

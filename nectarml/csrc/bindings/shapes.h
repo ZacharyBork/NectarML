@@ -3,8 +3,28 @@
 namespace py = pybind11;
 
 namespace nectar {
-    uintptr_t permute(uintptr_t in_ptr, std::vector<int> shape, std::vector<int> dims, DType dtype);
-    uintptr_t expand(uintptr_t in_ptr, std::vector<int> in_shape, std::vector<int> target_shape, DType dtype);
+    uintptr_t permute(
+        uintptr_t in_ptr, 
+        std::vector<int> shape, 
+        std::vector<int> dims, 
+        DType dtype
+    );
+    
+    uintptr_t expand(
+        uintptr_t in_ptr, 
+        std::vector<int> in_shape, 
+        std::vector<int> target_shape, 
+        DType dtype
+    );
+    
+    uintptr_t flip(
+        uintptr_t in_ptr,
+        int total,
+        int dim_size,
+        int outer,
+        int inner,
+        DType dtype
+    );
 }
 
 void register_shapes(py::module_& m) {
@@ -24,6 +44,13 @@ void register_shapes(py::module_& m) {
         py::arg("target_shape"),
         py::arg("dtype"),
         "Expands input tensor's shape to match given target_shape.");
+
+    m_shapes.def("flip", &nectar::flip, 
+        py::arg("in_ptr"), 
+        py::arg("total"), py::arg("dim_size"),  
+        py::arg("outer"), py::arg("inner"), 
+        py::arg("dtype"),
+        "");
 
 }
 

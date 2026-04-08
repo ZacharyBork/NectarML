@@ -174,3 +174,37 @@ template void launch_reduce_dim<int32_t, MinOp>(int32_t*, int32_t*, TensorIndex,
 template void launch_reduce_dim<int32_t, MaxOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int, float);
 template void launch_reduce_dim<int32_t, ProdOp>(int32_t*, int32_t*, TensorIndex, TensorIndex, int, float);
 
+template<typename T>
+__global__ void cumsum_kernel(
+    T* input, T* output,
+    int outer, int dim_size, int inner
+) {
+    int o = blockIdx.x;
+    int i = blockIdx.y;
+    if (o >= outer || i >= inner) return;
+
+    if (threadIdx.x == 0) {
+        T running = static_cast<T>(0);
+        for (int k = 0; k < dim_size; k++) {
+            int idx = o * dim_size * inner + k * inner + i;
+            running += input[idx];
+            output[idx] = running;
+        }
+    }
+}
+
+template<typename T>
+void launch_cumsum(
+    T* input, T* output,
+    int outer, int dim_size, int inner
+) {
+    dim3 blocks(outer, inner);
+    int  threads = 1;
+    cumsum_kernel<T><<<blocks, threads>>>(
+        input, output, outer, dim_size, inner);
+}
+
+template void launch_cumsum<float>(float*, float*, int, int, int);
+template void launch_cumsum<half>(half*, half*, int, int, int);
+template void launch_cumsum<int32_t>(int32_t*, int32_t*, int, int, int);
+template void launch_cumsum<uint8_t>(uint8_t*, uint8_t*, int, int, int);

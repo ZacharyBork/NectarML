@@ -167,3 +167,6 @@ def quantile(
         out = stack(results, dim=0)
         if keepdim: out = out.unsqueeze(dim + 1)
         return out
+
+def cumsum(input: Tensor, dim: int) -> Tensor:
+    return input.cumsum(dim)

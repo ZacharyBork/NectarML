@@ -44,6 +44,15 @@ namespace nectar {
         float initial,
         DType dtype
     );
+
+    uintptr_t reduce_cumsum(
+        uintptr_t input_ptr,
+        int total,
+        int dim_size,
+        int outer,
+        int inner,
+        DType dtype
+    );
 }
 
 void register_reductions(py::module_& m) {
@@ -118,6 +127,13 @@ void register_reductions(py::module_& m) {
         py::arg("initial"),
         py::arg("dtype"),
         "Performs a dimension-wise product reduction on a CUDA tensor.");
+
+    m_reductions.def("reduce_cumsum", &nectar::reduce_cumsum, 
+        py::arg("in_ptr"),
+        py::arg("total"), py::arg("dim_size"),
+        py::arg("outer"), py::arg("inner"),
+        py::arg("dtype"),
+        "Performs a cumulative sum operation on a CUDA tensor.");
 
 }
 

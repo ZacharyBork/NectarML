@@ -21,6 +21,12 @@ void launch_expand(
     size_t total_elements
 );
 
+template<typename T>
+void launch_flip(
+    T* input, T* output,
+    int outer, int dim_size, int inner
+);
+
 namespace nectar {
 
     uintptr_t permute(
@@ -66,6 +72,23 @@ namespace nectar {
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, out_idx.n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t flip(
+        uintptr_t in_ptr,
+        int total,
+        int dim_size,
+        int outer,
+        int inner,
+        DType dtype
+    ) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_input  = reinterpret_cast<T*>(in_ptr);
+            T* d_output;
+            cudaMalloc(&d_output, total * sizeof(T));
+            launch_flip<T>(d_input, d_output, outer, dim_size, inner);
+            return reinterpret_cast<uintptr_t>(d_output);
         });
     }
 

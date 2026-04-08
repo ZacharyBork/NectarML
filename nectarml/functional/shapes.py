@@ -33,3 +33,5 @@ def broadcast_to(input: Tensor, shape: tuple[int, ...]) -> Tensor:
 def unfold(input: Tensor, dimension: int, size: int, step: int) -> Tensor:
     return input.unfold(dimension, size, step)
 
+def flip(input: Tensor, dim: int) -> Tensor:
+    return input.flip(dim)
