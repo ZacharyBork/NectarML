@@ -457,7 +457,7 @@ class RandomRain(Transform[Tensor, Tensor]):
     def __init__(
         self,
         brightness_coef: float | tuple[float, float] = (0.5, 0.8),
-        num_drops: int | tuple[int, int] = (100, 500),
+        num_drops: int | tuple[int, int] = (100, 300),
         drop_length: int | tuple[int, int] = (20, 35),
         drop_width: int | tuple[int, int] = (1, 2),
         drop_color: tuple[int, int, int] = (200, 200, 200),
@@ -484,8 +484,8 @@ class RandomRain(Transform[Tensor, Tensor]):
     def _transform(self, input: Tensor) -> Tensor:
         if input is None: return input
         _, C, H, W = input.shape
-        out = input.clone() * self._brightness_coef
-        color = self._color.to(input.device, input.dtype)
+        out = input.cpu() * self._brightness_coef
+        color = self._color.to(out.device, input.dtype)
         color = color / 255 * input.max().item() * self._brightness_coef
         
         for i in range(self._num_drops):
@@ -521,7 +521,7 @@ class RandomRain(Transform[Tensor, Tensor]):
                                 out[:, c, py, px] = color[:, c, py, px] \
                                     if c < 3 else out[:, c, py, px]
             
-        return out
+        return out.to(input.device)
     
     def _build_parameters(self, H: int, W: int) -> None:
         self._brightness_coef = self._random_in_range(self.brightness_coef)
