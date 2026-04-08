@@ -21,7 +21,7 @@ from .erasing import (
     RandomRain, RandomSnow, RandomShadow)
 from .filter import (
     Convolve, Sobel, Prewitt, Laplacian, Dither, Halftone, Kuwahara, Pixelate,
-    AsciiRender)
+    AsciiRender, DifferenceOfGaussians)
 from .normalization import (
     Normalize, Denormalize, MinMaxNormalize, ToFloat, ToUint8)
 from .format import (

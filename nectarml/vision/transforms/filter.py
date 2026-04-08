@@ -6,10 +6,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.creation import zeros
+from nectarml.creation import zeros, ones_like
 from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.common import apply_kernel_2d
+from nectarml.vision.transforms.blur import GaussianBlur
 
 class Convolve(Transform):
     def __init__(
@@ -556,6 +557,97 @@ class AsciiRender(Transform):
 
     def forward(self, input: TransformInput) -> TransformInput:
         if self.rng.random() > self.p: return input
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
+
+class DifferenceOfGaussians(Transform):
+    def __init__(
+        self,
+        kernel_size:  int | tuple[int, int] = 7,
+        sigma1: float | tuple[float, float] = 1.5,
+        sigma2: float | tuple[float, float] = 1.0,
+        iterations:   int | tuple[int, int] = 1,
+        alpha:  float | tuple[float, float] = 1.0,
+        phi:    float | tuple[float, float] = 0.0,
+        tau:    float | tuple[float, float] = 0.99,
+        threshold: float | None = None,
+        invert: bool = False,
+        gray: bool = True,
+        p: float = 1.0
+    ) -> None:
+        super().__init__()
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+        self.sigma1 = (sigma1, sigma1) \
+            if isinstance(sigma1, float|int) else sigma1
+        self.sigma2 = (sigma2, sigma2) \
+            if isinstance(sigma2, float|int) else sigma2
+        self.iterations = (iterations, iterations) \
+            if isinstance(iterations, int) else iterations
+        self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
+        self.phi = (phi, phi) if isinstance(phi, int|float) else phi
+        self.tau = (tau, tau) if isinstance(tau, int|float) else tau
+        self.threshold = threshold
+        self.invert = invert
+        self.gray = gray
+        self.p = p
+        
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+        out = input.detach()
+        if self.gray: out = out.mean(dim=1, keepdim=True)
+
+        g1 = self._g1._transform(out)
+        g2 = self._g2._transform(out) 
+
+        if self.invert: diff = g2 - self._tau * g1
+        else: diff = g1 - self._tau * g2
+
+        diff_min = diff.min().item()
+        diff_max = diff.max().item()
+        diff = (diff - diff_min) / (diff_max - diff_min)
+
+        if self.threshold is not None:
+            if self._phi == 0.0:
+                diff = F.where(diff >= self.threshold, ones_like(diff), 0.0)
+            else:
+                diff = F.where(
+                    diff >= self.threshold,
+                    ones_like(diff),
+                    1 + F.tanh(self._phi * (diff - self.threshold)))
+
+        result = (1 - self._alpha) * input + self._alpha * diff
+        return result.clamp(0.0, input.max().item())
+            
+    def _build_parameters(self) -> None:
+        valid_sizes = [
+            i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
+            if i % 2 != 0]
+        _ks         = int(self.rng.choice(valid_sizes))
+        _iterations = int(self._random_in_range(self.iterations))
+        _sigma1     = self._random_in_range(self.sigma1)
+        _sigma2     = self._random_in_range(self.sigma2)
+        
+        
+        self._g1 = GaussianBlur(_ks, _sigma1, _iterations, p=1)
+        self._g2 = GaussianBlur(_ks, _sigma2, _iterations, p=1)
+        
+        self._g1._build_parameters()
+        self._g2._build_parameters()
+        
+        self._alpha = self._random_in_range(self.alpha)
+        self._phi   = self._random_in_range(self.phi)
+        self._tau   = self._random_in_range(self.tau)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        self._build_parameters()
+        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
