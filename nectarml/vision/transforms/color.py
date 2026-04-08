@@ -503,13 +503,92 @@ class CLAHE(Transform):
         tile_grid_size: tuple[int, int] = (8, 8),
         p: float = 0.5
     ) -> None:
-        raise NotImplementedError
         super().__init__()
-    
+        self.clip_limit = clip_limit
+        self.tile_grid_size = (tile_grid_size, tile_grid_size) \
+            if isinstance(tile_grid_size, int) else tile_grid_size
+        self.p = p
+        
+    def _clahe_mapping(self, tile: np.ndarray) -> np.ndarray:
+        hist, _ = np.histogram(tile.ravel(), bins=256, range=(0, 256))
+        
+        limit = self.clip_limit * tile.size / 256
+        excess = np.sum(np.maximum(hist - limit, 0))
+        hist = np.minimum(hist, limit)
+        hist += excess / 256
+        
+        cdf = np.cumsum(hist)
+        cdf = (cdf - cdf.min()) / (tile.size - cdf.min()) * 255
+        return cdf.astype(np.float32)        
+
+    def _interp(
+        self, 
+        input: np.ndarray, 
+        mappings: np.ndarray, 
+        th: int, 
+        tw: int, 
+        ty: int, 
+        tx: int
+    ) -> np.ndarray:
+        H, W = input.shape
+        result = np.zeros_like(input, dtype=np.float32)
+        ys, xs = np.mgrid[0:H, 0:W]
+
+        ty_f = ys / th - 0.5
+        tx_f = xs / tw - 0.5
+        
+        t_row0 = np.clip(np.floor(ty_f).astype(int), 0, ty - 1)
+        t_col0 = np.clip(np.floor(tx_f).astype(int), 0, tx - 1)
+        t_row1 = np.clip(t_row0 + 1, 0, ty - 1)
+        t_col1 = np.clip(t_col0 + 1, 0, tx - 1)
+        
+        wy1 = np.clip(ty_f - t_row0, 0.0, 1.0)
+        wx1 = np.clip(tx_f - t_col0, 0.0, 1.0)
+        wy0 = 1.0 - wy1
+        wx0 = 1.0 - wx1
+        
+        v = input.astype(int)
+        q00 = mappings[t_row0, t_col0, v]
+        q10 = mappings[t_row1, t_col0, v]
+        q01 = mappings[t_row0, t_col1, v]
+        q11 = mappings[t_row1, t_col1, v]
+        
+        result = (
+            wy0 * wx0 * q00 
+          + wy1 * wx0 * q10 
+          + wy0 * wx1 * q01 
+          + wy1 * wx1 * q11)
+        
+        return np.clip(result, 0, 255).astype(np.uint8)
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         
+        B, C, H, W = input.shape
+        ty, tx = self.tile_grid_size
+        max_val = input.max().item()
+
+        arr = (input.cpu().numpy() / max_val * 255).astype(np.uint8)
+        out = np.zeros_like(arr, dtype=np.float32)
+        
+        th, tw = H // ty, W // tx
+    
+        for b in range(B):
+            for c in range(C):
+                channel = arr[b, c]
+                mappings = np.zeros((ty, tx, 256), dtype=np.float32)
+                for row in range(ty):
+                    for col in range(tx):
+                        tile = channel[row*th:(row+1)*th, col*tw:(col+1)*tw]
+                        mappings[row, col] = self._clahe_mapping(tile)
+                
+                out[b, c] = self._interp(channel, mappings, th, tw, ty, tx)
+        
+        out = (out / 255.0 * max_val).astype(input.dtype)
+        return Tensor(out, dtype=input.dtype).to(input.device)
+        
     def forward(self, input: Tensor) -> Tensor:
+        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

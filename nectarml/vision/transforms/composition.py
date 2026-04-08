@@ -113,12 +113,6 @@ class Compose(Transform):
                         f'Remove existing file or run generate_examples '
                         f'with allow_overwrite=True to continue.')
                 utility.SaveImageFile(output_path)(output)
-        
-    # def __call__(
-    #     self, 
-    #     input: Tensor | np.ndarray | Image.Image | None = None
-    # ) -> Tensor:
-    #     return self.forward(input)
     
     def __repr__(self) -> str:
         output = '\nCompose:\n\n'
