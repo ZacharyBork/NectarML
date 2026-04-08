@@ -4,9 +4,10 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, int32
+from nectarml.typing import DTypeLike, float32, int32, uint8
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.common import lerp
 
 class Erasing(Transform):
     def __init__(
@@ -505,3 +506,129 @@ class RandomShadow(Transform[Tensor, Tensor]):
     def forward(self, input: Tensor) -> Tensor:
         pass
 
+class Spatter(Transform):
+    def __init__(
+        self,
+        droplet_scales: int | tuple[int, int] = (3, 5),
+        droplet_density: float | tuple[float, float] = (0.08, 0.12),
+        droplet_color: tuple[int, int, int] = (255, 255, 255),
+        droplet_refraction: float = 0.15,
+        p: float = 0.5
+    ) -> None:
+        '''
+        Adapted from Élie Michel's awesome GLSL shader, found here:
+        - https://www.shadertoy.com/view/ldSBWW
+        '''
+        super().__init__()
+        self.droplet_scales = (droplet_scales, droplet_scales) \
+            if isinstance(droplet_scales, int) else droplet_scales
+        self.droplet_density = (droplet_density, droplet_density) \
+            if isinstance(droplet_density, float | int) else droplet_density
+        self.droplet_color = droplet_color
+        self.droplet_refraction = droplet_refraction
+        self.p = p
+
+    def _transform(self, input: Tensor) -> Tensor:
+        if input is None: return input
+        _, C, H, W = input.shape
+        out = input.clone()
+        
+        u = linspace(0, 1, W).unsqueeze(0)
+        v = linspace(0, 1, H).unsqueeze(1)
+        u = u.broadcast_to((H, W)).to(input.device)
+        v = v.broadcast_to((H, W)).to(input.device)
+        
+        n_x = F.upsample(
+            self._base_noise[0].to(input.device), 
+            size=(H, W), mode='bilinear')
+        n_x = n_x.squeeze(0).squeeze(0)
+        n_y = F.upsample(
+            self._base_noise[1].to(input.device), 
+            size=(H, W), mode='bilinear')
+        n_y = n_y.squeeze(0).squeeze(0)   
+        
+        drop_mask = zeros((H, W), dtype=input.dtype).to(input.device)
+        disp_x    = zeros((H, W), dtype=input.dtype).to(input.device)
+        disp_y    = zeros((H, W), dtype=input.dtype).to(input.device)
+        
+        for r in range(self._droplet_scales, 0, -1):
+            d = Tensor(self._ds[r-1], dtype=float32).to(input.device)
+            ds = F.unbind(d, dim=0)
+            
+            ux, uy = u * self._gx, v * self._gy
+            cell_x = (ux-0.25).round().to(dtype=int32).clamp(0, self._n_cx-1)
+            cell_y = (uy-0.25).round().to(dtype=int32).clamp(0, self._n_cy-1)
+            d_r, d_g = ds[0][cell_y, cell_x], ds[1][cell_y, cell_x]
+                        
+            phase = d_g
+            p_x = 6.28 * ux + (n_x - 0.5) * 2.0
+            p_y = 6.28 * uy + (n_y - 0.5) * 2.0
+            s_x, s_y = (p_x + phase * 6.28).sin(), (p_y + phase * 6.28).sin()
+            
+            t = (s_x + s_y) * F.maximum(1.0 - d_g * 2.0, 0.0)
+            
+            active = (d_r < (5 - r) * self._droplet_density).to(dtype=float32)
+            active = F.minimum(active, (t > 0.5).to(dtype=float32))
+            
+            cos_px = (p_x + phase * 6.28).cos()
+            cos_py = (p_y + phase * 6.28).cos()
+            
+            nx, ny = -cos_px, -cos_py
+            nz = F.where(active, (2.0 * (t - 0.5)).clamp(0.2, 2.0), 1.0)
+            norm = (nx**2 + ny**2 + nz**2).sqrt() + 1e-8
+            nx /= norm
+            ny /= norm
+            
+            disp_x    = F.where(active, nx, disp_x)
+            disp_y    = F.where(active, ny, disp_y)
+            drop_mask = F.where(active, 1.0, drop_mask)
+
+        src_x = (u - disp_x * self.droplet_refraction).clamp(0, 1)
+        src_y = (v - disp_y * self.droplet_refraction).clamp(0, 1)
+        
+        px = (src_x * (W - 1)).clamp(0, W-1).to(dtype=int32)
+        py = (src_y * (H - 1)).clamp(0, H-1).to(dtype=int32)
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            for c in range(C):
+                refracted = input[:, c].squeeze(0)[py, px]
+                out[:, c] = F.where(drop_mask > 0, refracted, out[:, c])
+        
+        color = (self._color/255).to(input.device, input.dtype)
+        out = lerp(out, out * color, drop_mask)
+        return out.to(input.device, input.dtype)
+
+    def _build_parameters(self, H: int, W: int) -> None:
+        self._droplet_scales = int(
+            round(self._random_in_range(self.droplet_scales)))
+        self._droplet_density = self._random_in_range(self.droplet_density)
+        
+        noise_scale = max(1, int(min(H, W) * 0.1))
+        self._base_noise = [
+            rand((1, 1, noise_scale, noise_scale)).to(dtype=float32),
+            rand((1, 1, noise_scale, noise_scale)).to(dtype=float32)]
+        
+        self._color = Tensor(self.droplet_color, dtype=float32)
+        self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))    
+    
+        self._ds = []
+        for r in range(self._droplet_scales, 0, -1):
+            self._gy, self._gx = H * r * 0.015, W * r * 0.015
+            self._n_cy = max(1, int(self._gy))
+            self._n_cx = max(1, int(self._gx))
+            self._ds.append(self.rng.random(
+                (2, self._n_cy, self._n_cx)).astype(float32))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )

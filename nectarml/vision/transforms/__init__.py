@@ -18,7 +18,7 @@ from .noise import (
     MultiplicativeNoise, ImageCompression)
 from .erasing import (
     Erasing, CoarseDropout, GridDropout, RandomLensFlare, RandomFog, 
-    RandomRain, RandomSnow, RandomShadow)
+    RandomRain, RandomSnow, RandomShadow, Spatter)
 from .filter import (
     Convolve, Sobel, Prewitt, Laplacian, Dither, Halftone, Kuwahara, Pixelate,
     AsciiRender, DifferenceOfGaussians)
