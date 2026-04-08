@@ -69,9 +69,10 @@ class _Crop(Transform):
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
+        p: float = 1.0,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         if isinstance(size, int): self.size = (size, size)
         else: self.size = size
         
@@ -127,8 +128,8 @@ class RandomCrop(_Crop):
         transform_mask: bool = True
     ) -> None:
         super().__init__(
-            size, padding, pad_if_needed, fill, padding_mode, transform_mask)
-        self.p = p
+            size, padding, pad_if_needed, fill, 
+            padding_mode, p, transform_mask)
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -138,9 +139,7 @@ class RandomCrop(_Crop):
             self._offset_h:self._offset_h+self.size[0], 
             self._offset_w:self._offset_w+self.size[1]]
 
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-        
+    def forward(self, input: TransformInput) -> TransformInput:        
         shape = input.image.shape
         max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
@@ -168,7 +167,8 @@ class CenterCrop(_Crop):
         transform_mask: bool = True
     ) -> None:
         super().__init__(
-            size, padding, pad_if_needed, fill, padding_mode, transform_mask)
+            size, padding, pad_if_needed, fill, 
+            padding_mode, 1.0, transform_mask)
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -212,11 +212,10 @@ class RandomResizedCrop(_Crop):
     ) -> None:
         super().__init__(
             crop_size, padding, pad_if_needed, fill, 
-            padding_mode, transform_mask)
+            padding_mode, p, transform_mask)
         self.output_size = output_size
         self.scaling_mode = scaling_mode
         self.a = a
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -230,9 +229,7 @@ class RandomResizedCrop(_Crop):
         return F.upsample(
             out, size=out_size, mode=self.scaling_mode, a=self.a)
         
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-        
+    def forward(self, input: TransformInput) -> TransformInput:        
         shape = input.image.shape
         max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
@@ -293,8 +290,7 @@ class RandomHorizontalFlip(Transform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -303,7 +299,6 @@ class RandomHorizontalFlip(Transform):
         return output
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -319,8 +314,7 @@ class RandomVerticalFlip(Transform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -329,7 +323,6 @@ class RandomVerticalFlip(Transform):
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -345,8 +338,7 @@ class Transpose(Transform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -355,7 +347,6 @@ class Transpose(Transform):
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -372,9 +363,10 @@ class Rotate(Transform):
         self,
         angle: float = 90.0,
         fill_value: float = 0.0,
-        transform_mask: bool = True
+        transform_mask: bool = True,
+        p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.angle = angle
         self.fill_value = fill_value
         self.transform_mask = transform_mask
@@ -415,11 +407,10 @@ class RandomRotation(Transform):
         transform_mask: bool = True,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.rotation_range = rotation_range
         self.fill_value = fill_value
         self.transform_mask = transform_mask
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -427,7 +418,6 @@ class RandomRotation(Transform):
         return rotate(input)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._angle = self._random_in_range(self.rotation_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -446,10 +436,9 @@ class RandomRotate90(Transform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.fill_value = fill_value
         self.max_step = ['90', '180', '270', '360'].index(mode) + 1
-        self.p = p
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -458,9 +447,7 @@ class RandomRotate90(Transform):
         return rotate(input)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._step = 90 * int(round(self._random_in_range((0, self.max_step))))
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -473,8 +460,8 @@ class RandomRotate90(Transform):
 ### GRID SAMPLERS ###
   
 class _GridSampleTransform(Transform):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, p: float = 1.0) -> None:
+        super().__init__(p=p)
         
     def _apply_flow(
         self,
@@ -515,7 +502,7 @@ class RandomAffine(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.degrees = (-degrees, degrees) \
             if isinstance(degrees, (int, float)) else degrees
         self.translate = translate
@@ -524,7 +511,6 @@ class RandomAffine(_GridSampleTransform):
             if isinstance(shear, (int, float)) else shear
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_flow(
@@ -578,7 +564,6 @@ class RandomAffine(_GridSampleTransform):
         return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
 
         self._angle = self._random_in_range(self.degrees)
@@ -616,11 +601,10 @@ class RandomPerspective(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.distortion_scale = distortion_scale
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_homography(
@@ -666,7 +650,6 @@ class RandomPerspective(_GridSampleTransform):
         return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
         half_h = H * self.distortion_scale / 2
         half_w = W * self.distortion_scale / 2
@@ -705,14 +688,13 @@ class OpticalDistortion(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.distort_limit = (-distort_limit, distort_limit) \
             if isinstance(distort_limit, (int, float)) else distort_limit
         self.shift_limit = (-shift_limit, shift_limit) \
             if isinstance(shift_limit, (int, float)) else shift_limit
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_flow(
@@ -749,9 +731,7 @@ class OpticalDistortion(_GridSampleTransform):
         self._dy = self._random_in_range(self.shift_limit)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -773,12 +753,11 @@ class ElasticTransform(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
         self.sigma = (sigma, sigma) if isinstance(sigma, int|float) else sigma
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
@@ -804,9 +783,7 @@ class ElasticTransform(_GridSampleTransform):
         self._sigma = self._random_in_range(self.sigma)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -828,13 +805,12 @@ class GridDistortion(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.num_steps = num_steps
         self.distort_limit = (-distort_limit, distort_limit) \
             if isinstance(distort_limit, int | float) else distort_limit
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
@@ -872,10 +848,8 @@ class GridDistortion(_GridSampleTransform):
         self._stepsy = np.clip(stepsy, 0, H - 1)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
         self._build_parameters(H, W)
-
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -898,7 +872,7 @@ class Swirl(_GridSampleTransform):
         p: float = 0.5,
         transform_mask: bool = True
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.strength = (strength, strength) \
             if isinstance(strength, int | float) else strength
         self.radius = (-radius, radius) \
@@ -906,7 +880,6 @@ class Swirl(_GridSampleTransform):
         self.center = center
         self.border_mode = border_mode
         self.fill = fill
-        self.p = p
         self.transform_mask = transform_mask
 
     def _compute_flow(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
@@ -938,9 +911,7 @@ class Swirl(_GridSampleTransform):
         self._radius = self._random_in_range(self.radius)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

@@ -10,8 +10,9 @@ TInputType  = TypeVar('TInputType')
 TOutputType = TypeVar('TOutputType')
             
 class Transform():
-    def __init__(self) -> None:
+    def __init__(self, p: float = 1.0) -> None:
         self.rng = RNG
+        self.p = p
     
     ### UTILS ###
     
@@ -26,13 +27,18 @@ class Transform():
     def forward(self, input: TransformInput) -> TransformInput:
         raise NotImplementedError
     
+    def _call(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: result = input
+        else: result = self.forward(input)
+        return result
+    
     def __call__(
         self, 
         *args: Tensor, 
         **kwargs: Tensor
     ) -> Tensor | tuple[Tensor]:
         input = TransformInput.from_args(args, kwargs)
-        result = self.forward(input)
+        result = self._call(input)
         return result.to_output(args, kwargs)
     
     ### INSPECTION ###

@@ -23,10 +23,9 @@ class Convolve(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel = Tensor(kernel, dtype=float32)
         self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -41,9 +40,7 @@ class Convolve(Transform):
         self._alpha = self._random_in_range(self.alpha)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -59,9 +56,8 @@ class Sobel(Transform):
         feldman: bool = False,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.per_channel = per_channel
-        self.p = p
         
         if not feldman:
             kx = [[ 1,   0,  -1],
@@ -109,7 +105,6 @@ class Sobel(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -124,9 +119,8 @@ class Prewitt(Transform):
         per_channel: bool = False,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.per_channel = per_channel
-        self.p = p
         
         self.prewitt_x = Tensor([
             [1, 0, -1],
@@ -167,7 +161,6 @@ class Prewitt(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -182,9 +175,8 @@ class Laplacian(Transform):
         per_channel: bool = False,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.per_channel = per_channel
-        self.p = p
         
         self.kernel = Tensor([
             [0,  1, 0],
@@ -213,7 +205,6 @@ class Laplacian(Transform):
         return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -239,12 +230,11 @@ class Dither(Transform):
         adapted from his which can be found here:
             - https://scipython.com/blog/floyd-steinberg-dithering/
         '''
-        super().__init__()
+        super().__init__(p=p)
         self.levels = levels
         self.algorithm = algorithm
         self.per_channel = per_channel
         self.from_channel = from_channel
-        self.p = p
 
     def _get_new_val(self, old_val) -> np.ndarray:
         return np.round(old_val * (self.levels - 1)) / (self.levels - 1)
@@ -290,7 +280,6 @@ class Dither(Transform):
                 f'Invalid Dither algortihm: {self.algorithm}')
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -308,12 +297,11 @@ class Halftone(Transform):
         blend: float | tuple[float, float] = 0.5,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.cell_size = cell_size
         self.foreground = foreground
         self.background = background
         self.blend = (blend, blend) if isinstance(blend, float|int) else blend
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -359,7 +347,6 @@ class Halftone(Transform):
         return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._blend = self._random_in_range(self.blend)
         return TransformInput(
             image     = self._transform(input.image),
@@ -375,9 +362,8 @@ class Kuwahara(Transform):
         radius: int = 7,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.radius = radius
-        self.p = p
       
     def make_kernel(self, row_slice: slice, col_slice: slice) -> Tensor:
         size = 2 * self.radius + 1
@@ -416,7 +402,6 @@ class Kuwahara(Transform):
         return result.reshape((B, C, H, W))
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -431,10 +416,9 @@ class Pixelate(Transform):
         block_size: int | tuple[int, int] = (6, 12),
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.block_size = (block_size, block_size) \
             if isinstance(block_size, int) else block_size
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -446,9 +430,7 @@ class Pixelate(Transform):
         self._block_size = int(self._random_in_range(self.block_size))
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -467,10 +449,9 @@ class AsciiRender(Transform):
         sample_color: bool = True,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.block_size = block_size
         self.sample_color = sample_color
-        self.p = p
         self.font_path = font
 
         if custom_charset is None:
@@ -556,7 +537,6 @@ class AsciiRender(Transform):
         return out * input.max().item()
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -580,7 +560,7 @@ class DifferenceOfGaussians(Transform):
         gray: bool = True,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         self.sigma1 = (sigma1, sigma1) \
@@ -595,7 +575,6 @@ class DifferenceOfGaussians(Transform):
         self.threshold = threshold
         self.invert = invert
         self.gray = gray
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -645,9 +624,7 @@ class DifferenceOfGaussians(Transform):
         self._tau   = self._random_in_range(self.tau)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

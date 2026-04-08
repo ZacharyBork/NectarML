@@ -13,10 +13,9 @@ class Normalize(Transform):
         mean: list[float],
         std: list[float],
         eps: float = 1e-8,
-        inplace: bool = False,
-        device: Literal['auto', 'cpu', 'cuda'] = 'auto'
+        inplace: bool = False
     ) -> None:
-        super().__init__(device)
+        super().__init__()
         self.mean = mean
         self.std = std
         self.eps = eps

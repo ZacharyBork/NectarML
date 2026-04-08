@@ -19,7 +19,7 @@ class Compose(Transform):
         self.transforms = transforms
     
     def forward(self, input: TransformInput) -> TransformInput:
-        for transform in self.transforms: input = transform.forward(input)
+        for transform in self.transforms: input = transform._call(input)
         return input
     
     def optimize(self) -> None:
@@ -124,15 +124,14 @@ class RandomApply(Transform):
         transforms: list[Transform],
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.transforms = transforms
-        self.probability = p
     
     def forward(self, input: TransformInput) -> TransformInput:
         threshold = self._random_in_range()
-        if threshold <= self.probability:
+        if threshold <= self.p:
             for transform in self.transforms:
-                input = transform.forward(input)
+                input = transform._call(input)
         return input
 
 class RandomChoice(Transform):
@@ -154,7 +153,7 @@ class RandomChoice(Transform):
     def forward(self, input: TransformInput) -> TransformInput:
         for xform, p in list(zip(self.transforms, self.probabilities)):
             threshold = self._random_in_range()
-            if threshold <= p: input = xform.forward(input)
+            if threshold <= p: input = xform._call(input)
         return input
 
 class RandomOrder(Transform):
@@ -168,7 +167,7 @@ class RandomOrder(Transform):
     def forward(self, input: TransformInput) -> TransformInput:
         xforms = self.transforms.copy()
         RNG.shuffle(xforms)
-        for transform in xforms: input = transform.forward(input)
+        for transform in xforms: input = transform._call(input)
         return input
 
 class OneOf(Transform):
@@ -182,6 +181,6 @@ class OneOf(Transform):
     def forward(self, input: TransformInput) -> TransformInput:
         rand = self._random_in_range((0, len(self.transforms)))
         xform = self.transforms[int(math.floor(rand))]
-        return xform.forward(input)
+        return xform._call(input)
 
 

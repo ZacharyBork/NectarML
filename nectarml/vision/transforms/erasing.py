@@ -20,9 +20,10 @@ class Erasing(Transform):
         scale: tuple[float, float] = (0.02, 0.33),
         ratio: tuple[float, float] = (0.3, 3.3),
         fill: float = 0.0,
-        erase_mask: bool = False
+        erase_mask: bool = False,
+        p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.scale = scale
         self.ratio = ratio
         self.fill = fill
@@ -85,9 +86,10 @@ class CoarseDropout(Transform):
         holes_height_range: tuple[float, float] = (0.1, 0.2),
         holes_width_range: tuple[float, float] = (0.1, 0.2),
         fill: float = 0.0,
-        erase_mask: bool = False
+        erase_mask: bool = False,
+        p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.num_holes_range = num_holes_range
         self.holes_height_range = holes_height_range
         self.holes_width_range = holes_width_range
@@ -161,7 +163,8 @@ class GridDropout(Transform):
         holes_number_xy: tuple[int, int] = (10, 10),
         shift_xy: tuple[float, float] = (0.0, 0.0),
         fill: float = 0.0,
-        erase_mask: bool = False
+        erase_mask: bool = False,
+        p: float = 0.5
     ) -> None:
         super().__init__()
         self.ratio = ratio
@@ -246,13 +249,14 @@ class RandomLensFlare(Transform):
         chromatic_shift: float = 2.0,
         glow_radius: float = 0.05,
         global_scale: float = 1.0,
-        source_position: tuple[float, float] | None = None
+        source_position: tuple[float, float] | None = None,
+        p: float = 0.5
     ) -> None:
         '''
         Based on the lens flare algorithm described in this paper:
             - https://resources.mpi-inf.mpg.de/lensflareRendering/pdf/flare.pdf
         '''
-        super().__init__()
+        super().__init__(p=p)
         self.num_ghosts = num_ghosts
         self.ghost_radius_range = tuple(
             [i*global_scale for i in ghost_radius_range])
@@ -370,7 +374,7 @@ class RandomLensFlare(Transform):
         return input
 
     def forward(self, input: TransformInput) -> TransformInput:
-        B, C, H, W = input.image.shape
+        _, _, H, W = input.image.shape
         if self.source_position is not None:
             self._sx = self.source_position[0] * W
             self._sy = self.source_position[1] * H
@@ -397,9 +401,10 @@ class RandomFog(Transform):
         scale: int = 100,
         octaves: int = 4,
         intensity_range: tuple[float, float] = (0.3, 0.7),
-        fog_color: tuple[int, int, int] = (255, 255, 255)
+        fog_color: tuple[int, int, int] = (255, 255, 255),
+        p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.scale = scale
         self.octaves = octaves
         self.intensity_range = intensity_range
@@ -473,7 +478,7 @@ class RandomRain(Transform):
         Reference:
             - https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         '''
-        super().__init__()
+        super().__init__(p=p)
         self.brightness_coef = (brightness_coef, brightness_coef) \
             if isinstance(brightness_coef, int | float) else brightness_coef
         self.num_drops = (num_drops, num_drops) \
@@ -484,7 +489,6 @@ class RandomRain(Transform):
             if isinstance(drop_width, int) else drop_width
         self.drop_color = drop_color
         self.blur_value = blur_value
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -549,10 +553,8 @@ class RandomRain(Transform):
                 int(round(self._random_in_range(self.drop_length))))
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
         self._build_parameters(H, W)
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -565,9 +567,10 @@ class RandomSnow(Transform):
     def __init__(
         self,
         brighness_coef: float = 1.5,
-        snow_point_range: tuple[float, float] = (0.1, 0.3)
+        snow_point_range: tuple[float, float] = (0.1, 0.3),
+        p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.brightness_coef = brighness_coef
         self.snow_point_range = snow_point_range
     
@@ -611,7 +614,7 @@ class RandomShadow(Transform):
         falloff_contrast: float | tuple[float, float] = (0.8, 1.6),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.shadow_intensity = (shadow_intensity, shadow_intensity) \
             if isinstance(shadow_intensity, int|float) else shadow_intensity
         self.noise_frequency = (noise_frequency, noise_frequency) \
@@ -626,7 +629,6 @@ class RandomShadow(Transform):
             if isinstance(falloff_intensity, int|float) else falloff_intensity
         self.falloff_contrast = (falloff_contrast, falloff_contrast) \
             if isinstance(falloff_contrast, int|float) else falloff_contrast
-        self.p = p
     
     def _make_cloud_mask(self, H: int, W: int) -> None:
         fn = FastNoiseLite(seed=int(self.rng.integers(0, 2**31)))
@@ -682,10 +684,8 @@ class RandomShadow(Transform):
         self._make_cloud_mask(H, W)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
         self._build_parameters(H, W)
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -707,14 +707,13 @@ class Spatter(Transform):
         Adapted from Élie Michel's awesome GLSL shader, found here:
         - https://www.shadertoy.com/view/ldSBWW
         '''
-        super().__init__()
+        super().__init__(p=p)
         self.droplet_scales = (droplet_scales, droplet_scales) \
             if isinstance(droplet_scales, int) else droplet_scales
         self.droplet_density = (droplet_density, droplet_density) \
             if isinstance(droplet_density, float | int) else droplet_density
         self.droplet_color = droplet_color
         self.droplet_refraction = droplet_refraction
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -809,10 +808,8 @@ class Spatter(Transform):
                 (2, self._n_cy, self._n_cx)).astype(float32))
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         _, _, H, W = input.image.shape
         self._build_parameters(H, W)
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

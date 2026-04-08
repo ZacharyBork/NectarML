@@ -233,7 +233,7 @@ class Derivative(Transform):
             t = input.mean(dim=1, keepdim=True)
         else: t = input
         
-        B, C, H, W = t.shape
+        B, C, _, _ = t.shape
         axis = 0 if self.mode == 'ddx' else 1
         outputs = []
         
@@ -342,14 +342,13 @@ class ApplyLUT(Transform):
         alpha: float = 1.0,
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         lut_file = Path(lut_file)
         assert lut_file.exists, \
             f'Unable to locate LUT file at: {lut_file.as_posix()}'
         assert lut_file.suffix == '.cube', 'LUTs must be ".cube" files.'
         self._read_lut(lut_file)
         self.alpha = alpha
-        self.p = p
         
     def _read_lut(self, lut_file: Path) -> None:
         with open(lut_file, 'r') as file:
@@ -511,11 +510,10 @@ class Morphological(Transform):
         per_channel: bool = False,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.scale = (scale, scale) if isinstance(scale, int) else scale
         self.operation = operation
         self.per_channel = per_channel
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -541,7 +539,6 @@ class Morphological(Transform):
         self._scale = int(self._random_in_range(self.scale))
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
@@ -568,7 +565,7 @@ class OverlayElements(Transform):
         - Reference location is from top left corner of input.
         - Scale is taken as percentage of input.
         '''
-        super().__init__()
+        super().__init__(p=p)
         self.element = element
         self.location = (location, location) \
             if isinstance(location, int | float) else location
@@ -576,7 +573,6 @@ class OverlayElements(Transform):
             if isinstance(scale, int | float) else scale
         self.resample_mode = resample_mode
         self.preserve_aspect_ratio = preserve_aspect_ratio
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -605,7 +601,6 @@ class OverlayElements(Transform):
         return output
             
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -626,7 +621,7 @@ class OverlayText(Transform):
         location: float | tuple[float, float] = (0.1, 0.1),
         p: float = 1.0
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.text = text
         self.font = ImageFont.truetype(font, font_size) \
             if font is not None else ImageFont.load_default(font_size)
@@ -639,7 +634,6 @@ class OverlayText(Transform):
             if background_color is not None else (0, 0, 0, 0)
         self.location = (location, location) \
             if isinstance(location, int | float) else location
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -684,7 +678,6 @@ class OverlayText(Transform):
         return output
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

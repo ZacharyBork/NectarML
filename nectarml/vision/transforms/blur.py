@@ -20,7 +20,7 @@ class GaussianBlur(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         for size in self.kernel_size:
@@ -31,7 +31,6 @@ class GaussianBlur(Transform):
             if isinstance(iterations, int) else iterations
         self.alpha = (alpha, alpha) \
             if isinstance(alpha, int | float) else alpha
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -59,7 +58,6 @@ class GaussianBlur(Transform):
         self._alpha = self._random_in_range(self.alpha)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
@@ -77,7 +75,7 @@ class BoxBlur(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         for size in self.kernel_size:
@@ -86,7 +84,6 @@ class BoxBlur(Transform):
             if isinstance(iterations, int) else iterations
         self.alpha = (alpha, alpha) \
             if isinstance(alpha, int | float) else alpha
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -108,7 +105,6 @@ class BoxBlur(Transform):
         self._alpha = self._random_in_range(self.alpha)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
@@ -127,7 +123,7 @@ class MotionBlur(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         for size in self.kernel_size:
@@ -137,7 +133,6 @@ class MotionBlur(Transform):
             if isinstance(iterations, int) else iterations
         self.alpha = (alpha, alpha) \
             if isinstance(alpha, int | float) else alpha
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -170,7 +165,6 @@ class MotionBlur(Transform):
         self._alpha = self._random_in_range(self.alpha)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
@@ -187,7 +181,7 @@ class MedianBlur(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         for size in self.kernel_size:
@@ -214,7 +208,6 @@ class MedianBlur(Transform):
         self._alpha = self._random_in_range(self.alpha)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
@@ -237,7 +230,7 @@ class RandomBlur(Transform):
         motion_blur:   bool = True,
         p:            float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         assert gaussian_blur + box_blur + motion_blur != 0, \
             'At least one blur type must be enabled.'
 
@@ -258,11 +251,8 @@ class RandomBlur(Transform):
         self.gaussian_blur = gaussian_blur
         self.box_blur = box_blur
         self.motion_blur = motion_blur
-        self.p = p
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-
         valid_sizes = [
             i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
             if i % 2 != 0]
@@ -293,12 +283,11 @@ class Sharpen(Transform):
         method: Literal['gaussian', 'box'] = 'gaussian',
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.alpha = (alpha, alpha) \
             if isinstance(alpha, int | float) else alpha
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
-        self.p = p
             
         match method:
             case 'box': 
@@ -320,7 +309,6 @@ class Sharpen(Transform):
         return output
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._alpha = self._random_in_range(self.alpha)
         self._iters = int(self._random_in_range(self.iterations))
         return TransformInput(
@@ -340,13 +328,12 @@ class Emboss(Transform):
         alpha:   float | tuple[float, float] = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.gray_level = (gray_level, gray_level) \
             if isinstance(gray_level, int | float) else gray_level
         self.gray_level = tuple([i/255 for i in self.gray_level])
         self.alpha = (alpha, alpha) \
             if isinstance(alpha, int | float) else alpha
-        self.p = p
         
         match kernel_mode:
             case 0: 
@@ -388,7 +375,6 @@ class Emboss(Transform):
         return blend * max_value
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._gray_level = self._random_in_range(self.gray_level)
         self._alpha = self._random_in_range(self.alpha)
         return TransformInput(
@@ -408,7 +394,7 @@ class UnsharpMask(Transform):
         strength: float | tuple[float, float] = (0.5, 1.5),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
         for size in self.kernel_size:
@@ -419,7 +405,6 @@ class UnsharpMask(Transform):
             if isinstance(iterations, int) else iterations
         self.strength = (strength, strength) \
             if isinstance(strength, int | float) else strength
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -447,7 +432,6 @@ class UnsharpMask(Transform):
         self._strength = float(self.rng.choice(self.strength))
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),

@@ -27,7 +27,7 @@ class ColorJitter(Transform):
         hue: float | tuple[float, float] = (-0.1, 0.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         if isinstance(brightness, float): 
             brightness = (1.0 - brightness, 1.0 + brightness)
         if isinstance(contrast, float): 
@@ -40,7 +40,6 @@ class ColorJitter(Transform):
         self.contrast = contrast
         self.saturation = saturation
         self.hue = hue
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -53,9 +52,7 @@ class ColorJitter(Transform):
 
         return hsv_adjust(input, self._hue, self._sat, self._val, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-        
+    def forward(self, input: TransformInput) -> TransformInput:        
         self._hue      = self._random_in_range(self.hue)
         self._sat      = self._random_in_range(self.saturation)
         self._val      = self._random_in_range(self.brightness)
@@ -75,16 +72,14 @@ class RandomBrightness(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.value_range = value_range
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         return hsv_adjust(input,  0.0, 1.0, self._brightness)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._brightness = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -100,9 +95,8 @@ class RandomContrast(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.value_range = value_range
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -111,7 +105,6 @@ class RandomContrast(Transform):
         return out.clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._contrast = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -127,16 +120,14 @@ class RandomSaturation(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.value_range = value_range
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         return hsv_adjust(input,  0.0, self._saturation, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._saturation = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -152,16 +143,14 @@ class RandomHue(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.value_range = value_range
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         return hsv_adjust(input, self._hue, 1.0, 1.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._hue = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -177,9 +166,8 @@ class RandomGamma(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.value_range = value_range
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -187,9 +175,7 @@ class RandomGamma(Transform):
         out = (input / max_value) ** self._gamma * max_value
         return out.clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-        
+    def forward(self, input: TransformInput) -> TransformInput:        
         self._gamma = self._random_in_range(self.value_range)
         return TransformInput(
             image     = self._transform(input.image),
@@ -201,8 +187,7 @@ class RandomGamma(Transform):
 
 class ToGrayscale(Transform):
     def __init__(self, p: float = 0.5) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -212,7 +197,6 @@ class ToGrayscale(Transform):
         return out.to(input.device, input.dtype)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -227,9 +211,8 @@ class ToBlackAndWhite(Transform):
         white_point: int = 125,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.white_point = white_point / 255
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -244,7 +227,6 @@ class ToBlackAndWhite(Transform):
         return result * max_value
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -255,8 +237,7 @@ class ToBlackAndWhite(Transform):
 
 class ToSepia(Transform):
     def __init__(self, p: float = 0.5) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -269,7 +250,6 @@ class ToSepia(Transform):
         return out.to(input.device, input.dtype)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -287,10 +267,9 @@ class Equalize(Transform):
         by_channel: bool = True,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.mode = mode
         self.by_channel = by_channel
-        self.p = p
     
     def _eq_cv(self, input: Tensor) -> Tensor:
         batches = input.unbind(dim=0)
@@ -354,7 +333,6 @@ class Equalize(Transform):
             case _: raise ValueError(f'Invalid Equalize mode: {self.mode}')
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -370,12 +348,11 @@ class AutoContrast(Transform):
         method: Literal['cdf', 'pil'] = 'pil',
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         assert 0.0 <= cutoff <= 1.0, \
             'AutoContrast cutoff should be in 0-1 range.'
         self.cutoff = cutoff * 100.0
         self.method = method
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -400,7 +377,6 @@ class AutoContrast(Transform):
         return ((norm - lo) / (hi - lo + 1e-8)).clamp(0.0, 1.0) * max_value
     
     def forward(self, input: Tensor) -> Tensor:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -420,10 +396,9 @@ class Solarize(Transform):
         per_channel: bool = False,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.threshold_range = threshold_range
         self.per_channel = per_channel
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -436,8 +411,6 @@ class Solarize(Transform):
         return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-
         if self.per_channel:
             self._thresholds = [
                 self._random_in_range(self.threshold_range)
@@ -455,10 +428,9 @@ class Solarize(Transform):
 
 class Posterize(Transform):
     def __init__(self, levels: int = 10, p: float = 0.5) -> None:
-        super().__init__()
+        super().__init__(p=p)
         assert levels >= 2, 'levels must be >= 2'
         self.levels = levels
-        self.p = p
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -467,7 +439,6 @@ class Posterize(Transform):
         return (input / step).floor() * step
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -478,8 +449,7 @@ class Posterize(Transform):
 
 class Invert(Transform):
     def __init__(self, p: float = 0.5) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -488,7 +458,6 @@ class Invert(Transform):
         return (base - input).clamp(0.0, max_value)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -504,11 +473,10 @@ class CLAHE(Transform):
         tile_grid_size: tuple[int, int] = (8, 8),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.clip_limit = clip_limit
         self.tile_grid_size = (tile_grid_size, tile_grid_size) \
             if isinstance(tile_grid_size, int) else tile_grid_size
-        self.p = p
         
     def _clahe_mapping(self, tile: np.ndarray) -> np.ndarray:
         hist, _ = np.histogram(tile.ravel(), bins=256, range=(0, 256))
@@ -589,7 +557,6 @@ class CLAHE(Transform):
         return Tensor(out, dtype=input.dtype).to(input.device)
         
     def forward(self, input: Tensor) -> Tensor:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -600,8 +567,7 @@ class CLAHE(Transform):
 
 class ChannelShuffle(Transform):
     def __init__(self, p: float = 0.5) -> None:
-        super().__init__()
-        self.p = p
+        super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -610,7 +576,6 @@ class ChannelShuffle(Transform):
         return F.stack(shuffled, dim=1).to(input.device, input.dtype)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._channels = list(range(input.image.shape[1]))
         RNG.shuffle(self._channels)
         return TransformInput(
@@ -628,10 +593,9 @@ class ChannelDropout(Transform):
         fill: float = 0.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.range = range
         self.fill = fill
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -643,7 +607,6 @@ class ChannelDropout(Transform):
         return F.stack(channels, dim=1).clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._index = RNG.randint(self.range[0], self.range[1])
         return TransformInput(
             image     = self._transform(input.image),
@@ -661,11 +624,10 @@ class RGBShift(Transform):
         b_shift_limit: tuple[int, int] = (-20, 20),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.r_shift_limit = r_shift_limit
         self.g_shift_limit = g_shift_limit
         self.b_shift_limit = b_shift_limit
-        self.p = p
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -678,8 +640,6 @@ class RGBShift(Transform):
         return (out / 255.0 * max_value).clamp(0.0, max_value)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-
         self._r = self._random_in_range(self.r_shift_limit)
         self._g = self._random_in_range(self.g_shift_limit)
         self._b = self._random_in_range(self.b_shift_limit)
@@ -700,18 +660,16 @@ class HueSaturationValue(Transform):
         value: float = 1.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.hue = hue
         self.sat = saturation
         self.val = value
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         return hsv_adjust(input, self.hue, self.sat, self.val)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -730,11 +688,10 @@ class TonemapHDR(Transform):
         gamma: float = 2.2,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.method = method
         self.exposure = exposure
         self.gamma = gamma
-        self.p = p
     
     def _hable(self, x: Tensor | float) -> Tensor:
         A, B, C, D, E, F = 0.15, 0.50, 0.10, 0.20, 0.02, 0.30
@@ -773,7 +730,6 @@ class TonemapHDR(Transform):
         return self._gamma_encode(tonemapped) * max_value
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -790,14 +746,13 @@ class ChromaticAberration(Transform):
         falloff_power: float = 2.0,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         inner, outer = inner_distortion_limit, outer_distortion_limit
         self.inner_limit = (-inner, inner) \
             if isinstance(inner, float | int) else inner
         self.outer_limit = (-outer, outer) \
             if isinstance(outer, float | int) else outer
         self.falloff_power = falloff_power
-        self.p = p 
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -834,9 +789,7 @@ class ChromaticAberration(Transform):
         self._outer2 = OpticalDistortion(outer_limit/2, inner_limit/2, p=1)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -852,12 +805,11 @@ class Vignetting(Transform):
         center_range: float | tuple[float, float] = (0.3, 0.7),
         p: float = 0.5    
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.intensity_range = (intensity_range, intensity_range) \
             if isinstance(intensity_range, float | int) else intensity_range
         self.center_range = (center_range, center_range) \
             if isinstance(center_range, float | int) else center_range
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -875,9 +827,7 @@ class Vignetting(Transform):
         self._center = self._random_in_range(self.center_range)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -896,14 +846,13 @@ class Illumination(Transform):
         center_range: tuple[float, float] = (0.25, 0.75),
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.mode = mode
         self.intensity_range = (intensity_range, intensity_range) \
             if isinstance(intensity_range, (int, float)) else intensity_range
         self.effect_type = effect_type
         self.angle_range = angle_range
         self.center_range = center_range
-        self.p = p
 
     def _linear_mask(self, H: int, W: int) -> Tensor:
         angle_rad = math.radians(self._angle)
@@ -944,9 +893,7 @@ class Illumination(Transform):
         self._cy        = self._random_in_range(self.center_range)
 
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -962,12 +909,11 @@ class Quantize(Transform):
         palette: Tensor | None = None,
         p: float = 0.5    
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.levels = (levels, levels) if isinstance(levels, int) else levels
         for i in self.levels:
             assert i > 0, 'Quantize levels must be greater than 0.'
         self.palette = palette
-        self.p = p
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -983,9 +929,7 @@ class Quantize(Transform):
         self._levels = int(round(self._random_in_range(self.levels)))
     
     def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
         self._build_parameters()
-        
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
