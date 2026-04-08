@@ -4,7 +4,7 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32, int32, uint8
+from nectarml.typing import DTypeLike, float32, int32
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms.transform import Transform, TransformInput 
 from nectarml.vision.transforms.common import lerp
@@ -454,11 +454,107 @@ class RandomFog(Transform):
         )
         
 class RandomRain(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        brightness_coef: float | tuple[float, float] = (0.5, 0.8),
+        num_drops: int | tuple[int, int] = (100, 500),
+        drop_length: int | tuple[int, int] = (20, 35),
+        drop_width: int | tuple[int, int] = (1, 2),
+        drop_color: tuple[int, int, int] = (200, 200, 200),
+        blur_value: int = 3,
+        p: float = 0.5
+    ) -> None:
+        '''
+        Reference:
+            - https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+        '''
         super().__init__()
+        self.brightness_coef = (brightness_coef, brightness_coef) \
+            if isinstance(brightness_coef, int | float) else brightness_coef
+        self.num_drops = (num_drops, num_drops) \
+            if isinstance(num_drops, int) else num_drops
+        self.drop_length = (drop_length, drop_length) \
+            if isinstance(drop_length, int) else drop_length
+        self.drop_width = (drop_width, drop_width) \
+            if isinstance(drop_width, int) else drop_width
+        self.drop_color = drop_color
+        self.blur_value = blur_value
+        self.p = p
     
-    def forward(self, input: Tensor) -> Tensor:
-        pass
+    def _transform(self, input: Tensor) -> Tensor:
+        if input is None: return input
+        _, C, H, W = input.shape
+        out = input.clone() * self._brightness_coef
+        color = self._color.to(input.device, input.dtype)
+        color = color / 255 * input.max().item() * self._brightness_coef
+        
+        for i in range(self._num_drops):
+            x, y = self._xs[i-1], self._ys[i-1]
+            angle = self._angles[i-1]
+            
+            dy = self._lengths[i-1]
+            dx = int(math.sin(math.radians(angle)) * dy)
+            
+            x2 = max(0.0, min(x + dx, W - 1))
+            y2 = max(0.0, min(y + dy, H - 1))
+            
+            steps = max(abs(x2 - x), abs(y2 - y))
+            if steps == 0: continue
+            
+            length = math.sqrt((x2-x)**2 + (y2-y)**2) + 1e-8
+            perp_x = -(y2 - y) / length
+            perp_y =  (x2 - x) / length
+            half_w = self._drop_width // 2
+
+            for s in range(steps):
+                t = s / steps
+                cx = int(x + t * (x2 - x))
+                cy = int(y + t * (y2 - y))
+                
+                for w in range(-half_w, half_w + 1):
+                    px = int(cx + w * perp_x)
+                    py = int(cy + w * perp_y)
+                    if 0 <= px < W and 0 <= py < H:
+                        for c in range(C):
+                            with warnings.catch_warnings():
+                                warnings.simplefilter('ignore')
+                                out[:, c, py, px] = color[:, c, py, px] \
+                                    if c < 3 else out[:, c, py, px]
+            
+        return out
+    
+    def _build_parameters(self, H: int, W: int) -> None:
+        self._brightness_coef = self._random_in_range(self.brightness_coef)
+        self._num_drops = int(round(self._random_in_range(self.num_drops)))
+        self._drop_length = int(round(self._random_in_range(self.drop_length)))
+        self._drop_width = int(round(self._random_in_range(self.drop_width)))
+        
+        self._color = Tensor(self.drop_color, dtype=float32)
+        self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))
+        
+        self._xs = []
+        self._ys = []
+        self._angles = []
+        self._lengths = []
+        for _ in range(self._num_drops):
+            self._xs.append(self.rng.integers(0, W))
+            self._ys.append(self.rng.integers(0, H))
+            self._angles.append(self.rng.uniform(-15, 15))
+            self._lengths.append(
+                int(round(self._random_in_range(self.drop_length))))
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class RandomSnow(Transform):
     def __init__(
