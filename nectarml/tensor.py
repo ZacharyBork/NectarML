@@ -735,66 +735,114 @@ class Tensor():
         return self.to(device='cpu')
     
     ### GETTERS / SETTERS ###
-        
+
     def __getitem__(
         self: Tensor, 
-        idx: Tensor | int | slice | tuple[slice]
+        idx: Tensor | tuple[Tensor, Tensor] | int | slice | tuple[slice]
     ) -> Tensor:
         self_requires_grad = self.requires_grad
-        if isinstance(idx, Tensor):
-            assert idx.device == self.device, (
-                f'Tensor.__getitem__() expects input Tensor and index Tensor '
-                f'to be on same device, but found two devices: '
-                f'{self.device} and {idx.device}')
-            assert idx.dtype in (typing.int32, typing.int64), \
-                'Tensor index must be integer dtype'
-            out = self.index_select(0, idx.flatten())
-            return out.reshape(idx.shape + self.shape[1:])
-        
         if not isinstance(idx, tuple): idx = (idx,)
-        
-        idx = list(idx)
-        while len(idx) < self.ndim: idx.append(slice(None))
-        
-        squeeze_dims = []
-        normalized: list[slice] = []
-        for i, index in enumerate(idx):
-            if isinstance(index, int):
-                if index < 0: index = self.shape[i] + index
-                normalized.append(slice(index, index + 1, 1))
-                squeeze_dims.append(i)
-            elif isinstance(index, slice): normalized.append(index)
-            else: raise ValueError(f'Index type not valid: {type(index)}')
-        
-        starts, stops, steps, counts = [], [], [], []
-        for i, s in enumerate(normalized):
-            start, stop, step = s.indices(self.shape[i])
-            count = len(range(start, stop, step))
-            starts.append(start)
-            stops.append(stop)
-            steps.append(step)
-            counts.append(count)
-
-        if self.device == 'cuda':
-            out_data = cuda.indexing.slice_tensor(
-                self, starts, counts, steps)
-        else: out_data = self.data[tuple(normalized)]
-
-        out_shape = typing.Size(counts)
-        out = Tensor(out_data, out_shape, self.dtype, self.device,
-            self.requires_grad, _children=(self,))
-        for dim in reversed(squeeze_dims): out = out.squeeze(dim)
-        
-        def _backward() -> None:
-            if self_requires_grad:
-                grad = Tensor(np.zeros(self.shape, typing.float32), self.shape, 
-                    typing.float32, self.device, requires_grad=False)
-                grad[tuple(normalized)] = out.grad
-                self.grad += grad
-        
-        out._backward = _backward
-        return out
+        tensor_indices = [
+            (i, v) for i, v in enumerate(idx) if isinstance(v, Tensor)]
+        for _, index in tensor_indices:
+            assert index.device == self.device, (
+                    f'Tensor.__getitem__() expects input Tensor and index '
+                    f'Tensor to be on same device, but found two devices: '
+                    f'{self.device} and {index.device}')
+            assert index.dtype in (typing.int32, typing.int64), \
+                'Tensor index must be integer dtype'
     
+        if len(tensor_indices) == 0:
+            idx = list(idx)
+            while len(idx) < self.ndim: idx.append(slice(None))
+            
+            squeeze_dims = []
+            normalized: list[slice] = []
+            for i, index in enumerate(idx):
+                if isinstance(index, int):
+                    if index < 0: index = self.shape[i] + index
+                    normalized.append(slice(index, index + 1, 1))
+                    squeeze_dims.append(i)
+                elif isinstance(index, slice): normalized.append(index)
+                else: raise ValueError(f'Index type not valid: {type(index)}')
+            
+            starts, stops, steps, counts = [], [], [], []
+            for i, s in enumerate(normalized):
+                start, stop, step = s.indices(self.shape[i])
+                count = len(range(start, stop, step))
+                starts.append(start)
+                stops.append(stop)
+                steps.append(step)
+                counts.append(count)
+
+            if self.device == 'cuda':
+                out_data = cuda.indexing.slice_tensor(
+                    self, starts, counts, steps)
+            else: out_data = self.data[tuple(normalized)]
+
+            out_shape = typing.Size(counts)
+            out = Tensor(out_data, out_shape, self.dtype, self.device,
+                self.requires_grad, _children=(self,))
+            for dim in reversed(squeeze_dims): out = out.squeeze(dim)
+            
+            def _backward() -> None:
+                if self_requires_grad:
+                    grad = Tensor(
+                        np.zeros(self.shape, typing.float32),
+                        self.shape, typing.float32, self.device, 
+                        requires_grad=False)
+                    grad[tuple(normalized)] = out.grad
+                    self.grad += grad
+            
+            out._backward = _backward
+            return out
+            
+        elif len(tensor_indices) == 1:
+            dim, t_idx = tensor_indices[0]
+            
+            result = self
+            for i, v in enumerate(idx):
+                if isinstance(v, slice) and v != slice(None):
+                    result = result[tuple(
+                        v if j == i else slice(None) 
+                        for j in range(result.ndim))]
+            
+            return result.index_select(dim, t_idx.flatten()).reshape(
+                t_idx.shape + result.shape[dim+1:])
+                
+        elif len(tensor_indices) == 2:
+            dim0, idx0 = tensor_indices[0]
+            dim1, idx1 = tensor_indices[1]
+            
+            assert idx0.shape == idx1.shape, \
+                'Multiple tensor indices must have the same shape'
+            assert dim0 == 0 and dim1 == 1, (
+                'Paired tensor indexing only supported on dims '
+                '0 and 1 currently')
+            
+            K = idx0.numel()
+            flat0 = idx0.flatten()
+            flat1 = idx1.flatten()
+            
+            if self.ndim == 2:
+                rows   = self.index_select(0, flat0)
+                result = rows.gather(1, flat1.unsqueeze(1))
+                result = result.squeeze(1)
+                return result.reshape(idx0.shape)
+            else:
+                rows      = self.index_select(0, flat0)
+                remaining = self.shape[2:]
+                
+                flat1_exp = flat1.reshape((K,) + (1,) * (self.ndim - 1))
+                flat1_exp = flat1_exp.expand((K, 1) + remaining)
+                result    = rows.gather(1, flat1_exp).squeeze(1)
+                return result.reshape(idx0.shape + remaining)
+        
+        else:
+            raise NotImplementedError(
+                f'Tensor indexing with {len(tensor_indices)} tensor indices '
+                f'is not currently supported. Use gather() instead.')
+
     def __setitem__(
         self: Tensor, 
         idx: int | slice | tuple[slice],
