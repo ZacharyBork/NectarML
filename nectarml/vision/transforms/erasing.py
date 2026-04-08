@@ -58,18 +58,19 @@ class Erasing(Transform):
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
     
-    def forward(self, input: TransformInput) -> TransformInput:
-        B = input.image.shape[0]
+    def _build_parameters(self, batches: int) -> None:
         self._scale = []
         self._ratio = []
         self._cy = []
         self._cx = []
-        for _ in range(B):
+        for _ in range(batches):
             self._scale.append(self._random_in_range(self.scale))
             self._ratio.append(self._random_in_range(self.ratio))
             self._cy.append(self._random_in_range((0.0, 1.0)))
             self._cx.append(self._random_in_range((0.0, 1.0)))
-            
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape[0])
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -122,15 +123,14 @@ class CoarseDropout(Transform):
         if input is None: return input
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
-        
-    def forward(self, input: TransformInput) -> TransformInput:
-        B = input.image.shape[0]
+     
+    def _build_parameters(self, batches: int) -> None:
         self._num_holes = []
         self._hole_h = []
         self._hole_w = []
         self._cy = []
         self._cx = []
-        for _ in range(B):
+        for _ in range(batches):
             num_holes = int(round(self._random_in_range(self.num_holes_range)))
             self._num_holes.append(num_holes)
             self._hole_h.append(
@@ -145,7 +145,9 @@ class CoarseDropout(Transform):
             self._cx.append(
                 [self._random_in_range((0.0, 1.0)) 
                  for _ in range(num_holes)])
-                
+            
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape[0])
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -166,7 +168,7 @@ class GridDropout(Transform):
         erase_mask: bool = False,
         p: float = 0.5
     ) -> None:
-        super().__init__()
+        super().__init__(p=p)
         self.ratio = ratio
         self.random_offset = random_offset
         self.holes_number_xy = holes_number_xy
@@ -213,10 +215,9 @@ class GridDropout(Transform):
         mask = self._build_mask(input)
         return input * mask + self.fill * input.max().item() * (1 - mask)
     
-    def forward(self, input: TransformInput) -> TransformInput:
-        B = input.image.shape[0]
+    def _build_parameters(self, batches: int) -> None:
         self._offsets = []
-        for b in range(B):
+        for _ in range(batches):
             offset = {}
             for x in range(self.holes_number_xy[0]):
                 offset[x] = {}
@@ -225,7 +226,9 @@ class GridDropout(Transform):
                         self._random_in_range((0.0, 1.0)),
                         self._random_in_range((0.0, 1.0)))
             self._offsets.append(offset)
-                
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape[0])
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -373,8 +376,7 @@ class RandomLensFlare(Transform):
 
         return input
 
-    def forward(self, input: TransformInput) -> TransformInput:
-        _, _, H, W = input.image.shape
+    def _build_parameters(self, H: int, W: int) -> None:
         if self.source_position is not None:
             self._sx = self.source_position[0] * W
             self._sy = self.source_position[1] * H
@@ -386,7 +388,10 @@ class RandomLensFlare(Transform):
         self._radius = self._random_in_range(self.ghost_radius_range)
         self._alpha  = self._random_in_range(self.ghost_alpha_range)
         self._shift  = self.rng.uniform(0, self.chromatic_shift)
-        
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -452,9 +457,12 @@ class RandomFog(Transform):
         out = input + fog
         return (out / out.max().item() * max_value).clamp(0.0, max_value)
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
         self._seed = int(self._random_in_range((0.0, 999999999.0)))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -591,9 +599,12 @@ class RandomSnow(Transform):
         out = norm + snow_mask * (1.0 - norm) * self.brightness_coef
         return (out * max_value).clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._snow_point = self._random_in_range(self.snow_point_range)
         self._seed = int(self._random_in_range((0.0, 999999999.0)))
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

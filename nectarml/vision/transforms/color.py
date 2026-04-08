@@ -52,12 +52,14 @@ class ColorJitter(Transform):
 
         return hsv_adjust(input, self._hue, self._sat, self._val, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:        
+    def _build_parameters(self) -> None:
         self._hue      = self._random_in_range(self.hue)
         self._sat      = self._random_in_range(self.saturation)
         self._val      = self._random_in_range(self.brightness)
         self._contrast = self._random_in_range(self.contrast)
-
+    
+    def forward(self, input: TransformInput) -> TransformInput:        
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -79,8 +81,11 @@ class RandomBrightness(Transform):
         if input is None: return input
         return hsv_adjust(input,  0.0, 1.0, self._brightness)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._brightness = self._random_in_range(self.value_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -104,8 +109,11 @@ class RandomContrast(Transform):
         out = (((input / max_value) - 0.5) * self._contrast + 0.5) * max_value
         return out.clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._contrast = self._random_in_range(self.value_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -127,8 +135,11 @@ class RandomSaturation(Transform):
         if input is None: return input
         return hsv_adjust(input,  0.0, self._saturation, 1.0)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._saturation = self._random_in_range(self.value_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -150,8 +161,11 @@ class RandomHue(Transform):
         if input is None: return input
         return hsv_adjust(input, self._hue, 1.0, 1.0)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._hue = self._random_in_range(self.value_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -175,8 +189,11 @@ class RandomGamma(Transform):
         out = (input / max_value) ** self._gamma * max_value
         return out.clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:        
+    def _build_parameters(self) -> None:
         self._gamma = self._random_in_range(self.value_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:        
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -410,14 +427,16 @@ class Solarize(Transform):
             F.where((b < self._thresholds[2]), b, 1-b)]
         return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         if self.per_channel:
             self._thresholds = [
                 self._random_in_range(self.threshold_range)
                 for _ in range(3)]
         else: self._thresholds = [
             self._random_in_range(self.threshold_range)] * 3
-        
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -575,9 +594,12 @@ class ChannelShuffle(Transform):
         shuffled = [ch[i] for i in self._channels]
         return F.stack(shuffled, dim=1).to(input.device, input.dtype)
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._channels = list(range(input.image.shape[1]))
-        RNG.shuffle(self._channels)
+        self.rng.shuffle(self._channels)
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -606,8 +628,11 @@ class ChannelDropout(Transform):
         channels[self._index] = new_channel.to(input.device, input.dtype)
         return F.stack(channels, dim=1).clamp(0.0, max_value)
     
+    def _build_parameters(self) -> None:
+        self._index = self.rng.randint(self.range[0], self.range[1])
+    
     def forward(self, input: TransformInput) -> TransformInput:
-        self._index = RNG.randint(self.range[0], self.range[1])
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -639,11 +664,13 @@ class RGBShift(Transform):
         out = F.stack(channels, dim=1)
         return (out / 255.0 * max_value).clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._r = self._random_in_range(self.r_shift_limit)
         self._g = self._random_in_range(self.g_shift_limit)
         self._b = self._random_in_range(self.b_shift_limit)
-        
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

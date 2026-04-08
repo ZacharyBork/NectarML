@@ -308,9 +308,12 @@ class Sharpen(Transform):
             output = output.clamp(0.0, max_value)
         return output
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._alpha = self._random_in_range(self.alpha)
         self._iters = int(self._random_in_range(self.iterations))
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -374,9 +377,12 @@ class Emboss(Transform):
         blend = ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)
         return blend * max_value
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._gray_level = self._random_in_range(self.gray_level)
         self._alpha = self._random_in_range(self.alpha)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

@@ -6,6 +6,7 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.typing import Size, float32
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.common import TransformInput
 
@@ -36,13 +37,16 @@ class GaussianNoise(Transform):
         if not self.per_channel: noise = noise.expand(input.shape)
         return ((norm + noise) * max_value).clamp(0.0, max_value)
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         loc = self._random_in_range(self.mean_range)
         scale = self._random_in_range(self.std_range)
         
-        if self.per_channel: noise_shape = input.image.shape
-        else: noise_shape = (input.image.shape[0], 1) + input.image.shape[2:]
+        if self.per_channel: noise_shape = input_shape
+        else: noise_shape = (input_shape[0], 1) + input_shape[2:]
         self._rand = self.rng.normal(loc, scale, noise_shape)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -73,18 +77,20 @@ class SaltAndPepperNoise(Transform):
         output = (F.minimum(pepper, F.maximum(norm, salt))) * max_value
         return output.clamp(0.0, max_value)
     
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         amt = self._random_in_range(self.amount)
 
-        shape = (input.image.shape[0], 1) + input.image.shape[2:]
+        shape = (input_shape[0], 1) + input_shape[2:]
         salt_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[0]*amt)
-        salt_arr = salt_arr.astype(input.image.dtype)
+        salt_arr = salt_arr.astype(float32)
         pepper_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[1]*amt)
-        pepper_arr = (1 - pepper_arr).astype(input.image.dtype)
+        pepper_arr = (1 - pepper_arr).astype(float32)
         
-        self._salt = Tensor(salt_arr**10, shape)
-        self._pepper = Tensor(pepper_arr**10, shape)
-        
+        self._salt = Tensor(salt_arr**10, shape, dtype=float32)
+        self._pepper = Tensor(pepper_arr**10, shape, dtype=float32)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -104,17 +110,17 @@ class SpeckleNoise(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        self._noise = self._noise.to(input.device, input.dtype)
         out = input + input * self._noise
         return out.clamp(0.0, input.max().item())
     
-    def forward(self, input: TransformInput) -> TransformInput:
-        dtype = input.image.dtype
-        device = input.image.device
-        
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         std = self._random_in_range(self.std_range)
-        arr = self.rng.normal(0, std, input.image.shape).astype(dtype)
-        self._noise = Tensor(arr).to(device, dtype)
-        
+        arr = self.rng.normal(0, std, input_shape).astype(float32)
+        self._noise = Tensor(arr, dtype=float32)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -143,23 +149,22 @@ class ISONoise(Transform):
         luma = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
         luma_weight = (1.0 - luma).expand(input.shape)
 
+        self._luma_noise = self._luma_noise.to(input.device, input.dtype)
+        self._color_noise = self._color_noise.to(input.device, input.dtype)
         out = norm + self._luma_noise * luma_weight + self._color_noise
         return (out * max_value).clamp(0.0, max_value)
         
-    def forward(self, input: TransformInput) -> TransformInput:
-        dtype = input.image.dtype
-        device = input.image.device
-        
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         luma_std = self._random_in_range(self.intensity)
-        self._luma_noise = Tensor(
-            self.rng.normal(0, luma_std, input.image.shape).astype(dtype)
-        ).to(device, dtype)
+        _luma = self.rng.normal(0, luma_std, input_shape).astype(float32)
+        self._luma_noise = Tensor(_luma, dtype=float32)
         
         color_std = self._random_in_range(self.color_shift)
-        self._color_noise = Tensor(
-            self.rng.normal(0, color_std, input.image.shape).astype(dtype)
-        ).to(device, dtype)
+        _color = self.rng.normal(0, color_std, input_shape).astype(float32)
+        self._color_noise = Tensor(_color, dtype=float32)
         
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -181,20 +186,20 @@ class MultiplicativeNoise(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        self._noise = self._noise.to(input.device, input.dtype)
         return (input * self._noise).clamp(0.0, input.max().item())
         
-    def forward(self, input: TransformInput) -> TransformInput:
-        dtype = input.image.dtype
-        device = input.image.device
-        
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         if self.per_channel:
-            noise_shape = (input.image.shape[0], input.image.shape[1], 1, 1)
-        else: noise_shape = input.image.shape
+            noise_shape = (input_shape[0], input_shape[1], 1, 1)
+        else: noise_shape = input_shape
         
         r = self.multiplier_range
-        arr = self.rng.uniform(r[0], [1], noise_shape).astype(dtype)
-        self._noise = Tensor(arr).to(device, dtype)
+        arr = self.rng.uniform(r[0], [1], noise_shape).astype(float32)
+        self._noise = Tensor(arr, dtype=float32)
         
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

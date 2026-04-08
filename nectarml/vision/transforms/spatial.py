@@ -7,6 +7,7 @@ from scipy.ndimage import map_coordinates, gaussian_filter
 import _nectarml
 import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.typing import Size
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput
 from nectarml.cuda.utils import map_dtype
@@ -139,12 +140,13 @@ class RandomCrop(_Crop):
             self._offset_h:self._offset_h+self.size[0], 
             self._offset_w:self._offset_w+self.size[1]]
 
-    def forward(self, input: TransformInput) -> TransformInput:        
-        shape = input.image.shape
-        max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
+        max_offset = (input_shape[2]-self.size[0], input_shape[3]-self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
         self._offset_w = int(round(self._random_in_range((0, max_offset[1]))))
         
+    def forward(self, input: TransformInput) -> TransformInput:        
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -229,12 +231,13 @@ class RandomResizedCrop(_Crop):
         return F.upsample(
             out, size=out_size, mode=self.scaling_mode, a=self.a)
         
-    def forward(self, input: TransformInput) -> TransformInput:        
-        shape = input.image.shape
-        max_offset = (shape[2] - self.size[0], shape[3] - self.size[1])
+    def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
+        max_offset = (input_shape[2]-self.size[0], input_shape[3]-self.size[1])
         self._offset_h = int(round(self._random_in_range((0, max_offset[0]))))
         self._offset_w = int(round(self._random_in_range((0, max_offset[1]))))
         
+    def forward(self, input: TransformInput) -> TransformInput:        
+        self._build_parameters(input.image.shape)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -417,8 +420,11 @@ class RandomRotation(Transform):
         rotate = Rotate(self._angle, self.fill_value)
         return rotate(input)
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._angle = self._random_in_range(self.rotation_range)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -445,9 +451,12 @@ class RandomRotate90(Transform):
         if input is None: return input
         rotate = Rotate(self._step, self.fill_value)
         return rotate(input)
-
-    def forward(self, input: TransformInput) -> TransformInput:
+    
+    def _build_parameters(self) -> None:
         self._step = 90 * int(round(self._random_in_range((0, self.max_step))))
+        
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -563,9 +572,7 @@ class RandomAffine(_GridSampleTransform):
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
-    def forward(self, input: TransformInput) -> TransformInput:
-        _, _, H, W = input.image.shape
-
+    def _build_parameters(self, H: int, W: int) -> None:
         self._angle = self._random_in_range(self.degrees)
 
         self._tx, self._ty = 0.0, 0.0
@@ -580,7 +587,10 @@ class RandomAffine(_GridSampleTransform):
 
         self._shear = 0.0 if self.shear is None else \
             self._random_in_range(self.shear)
-
+            
+    def forward(self, input: TransformInput) -> TransformInput:
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -649,8 +659,7 @@ class RandomPerspective(_GridSampleTransform):
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
 
-    def forward(self, input: TransformInput) -> TransformInput:
-        _, _, H, W = input.image.shape
+    def _build_parameters(self, H: int, W: int) -> None:
         half_h = H * self.distortion_scale / 2
         half_w = W * self.distortion_scale / 2
 
@@ -669,6 +678,9 @@ class RandomPerspective(_GridSampleTransform):
             [uniform(0, half_w),       uniform(H-1-half_h, H-1)]
         ], dtype=np.float64)
 
+    def forward(self, input: TransformInput) -> TransformInput:
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

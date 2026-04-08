@@ -346,8 +346,11 @@ class Halftone(Transform):
         result = result.to(input.device, input.dtype)
         return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
 
-    def forward(self, input: TransformInput) -> TransformInput:
+    def _build_parameters(self) -> None:
         self._blend = self._random_in_range(self.blend)
+
+    def forward(self, input: TransformInput) -> TransformInput:
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
