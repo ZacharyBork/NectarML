@@ -2,6 +2,11 @@ import math
 import warnings
 from typing import Literal
 
+import numpy as np
+from scipy.ndimage import gaussian_filter
+from pyfastnoiselite.pyfastnoiselite import \
+    FastNoiseLite, NoiseType, FractalType
+
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32, int32
@@ -481,7 +486,7 @@ class RandomRain(Transform[Tensor, Tensor]):
         self.blur_value = blur_value
         self.p = p
     
-    def _transform(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         _, C, H, W = input.shape
         out = input.cpu() * self._brightness_coef
@@ -594,13 +599,100 @@ class RandomSnow(Transform):
             keypoints = input.keypoints
         )
 
-class RandomShadow(Transform[Tensor, Tensor]):
-    def __init__(self) -> None:
-        raise NotImplementedError
+class RandomShadow(Transform):
+    def __init__(
+        self,
+        shadow_intensity: float | tuple[float, float] = (0.3, 0.7),
+        noise_frequency: float | tuple[float, float] = (0.01, 0.04),
+        noise_threshold: float | tuple[float, float] = (0.1, 0.4),
+        blur_sigma: float | tuple[float, float] = (15.0, 40.0),
+        color_shift: float | tuple[float, float] = (0.0, 0.05),
+        falloff_intensity: float | tuple[float, float] = (1.0, 1.5),
+        falloff_contrast: float | tuple[float, float] = (0.8, 1.6),
+        p: float = 0.5
+    ) -> None:
         super().__init__()
+        self.shadow_intensity = (shadow_intensity, shadow_intensity) \
+            if isinstance(shadow_intensity, int|float) else shadow_intensity
+        self.noise_frequency = (noise_frequency, noise_frequency) \
+            if isinstance(noise_frequency, int|float) else noise_frequency
+        self.noise_threshold = (noise_threshold, noise_threshold) \
+            if isinstance(noise_threshold, int|float) else noise_threshold
+        self.blur_sigma = (blur_sigma, blur_sigma) \
+            if isinstance(blur_sigma, int|float) else blur_sigma
+        self.color_shift = (color_shift, color_shift) \
+            if isinstance(color_shift, int|float) else color_shift
+        self.falloff_intensity = (falloff_intensity, falloff_intensity) \
+            if isinstance(falloff_intensity, int|float) else falloff_intensity
+        self.falloff_contrast = (falloff_contrast, falloff_contrast) \
+            if isinstance(falloff_contrast, int|float) else falloff_contrast
+        self.p = p
     
-    def forward(self, input: Tensor) -> Tensor:
-        pass
+    def _make_cloud_mask(self, H: int, W: int) -> None:
+        fn = FastNoiseLite(seed=int(self.rng.integers(0, 2**31)))
+        fn.noise_type         = NoiseType.NoiseType_OpenSimplex2
+        fn.frequency          = self._frequency
+        fn.fractal_type       = FractalType.FractalType_FBm
+        fn.fractal_octaves    = 4
+        fn.fractal_gain       = 0.5
+        fn.fractal_lacunarity = 2.0
+
+        ramp = np.linspace(0.0, 1.0, H, dtype=float32)
+        ramp = np.broadcast_to(ramp[:, np.newaxis], (H, W))
+        ramp = ramp * self._falloff_intensity
+
+        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        noise = np.vectorize(fn.get_noise)(xx, yy).astype(float32)
+        noise = (noise - noise.min()) / (noise.max() - noise.min() + 1e-8)
+        
+        mask = (noise > self._threshold).astype(float32)
+        mask = gaussian_filter(mask, sigma=self._sigma)
+        if mask.max() > 0: mask = mask / mask.max()
+        mask = mask * ramp**self._falloff_contrast
+        
+        self._mask = Tensor(mask, mask.shape, dtype=float32)
+    
+    def _transform(self, input: Tensor | None) -> Tensor | None:
+        if input is None: return input
+
+        out = input.clone()
+        mask = self._mask.unsqueeze(0).to(input.device, input.dtype)
+        shadow = 1.0 - self._intensity * mask
+        out = out * shadow
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            if self._shift > 0.0 and input.shape[1] >= 3:
+                amt = self._intensity * mask
+                out[0] = out[0] * (1.0-amt[0] * self._shift)
+                out[1] = out[1] * (1.0-amt[0] * self._shift * 0.5)
+                out[2] = (out[2] + amt[0] * self._shift * 0.1).clamp(0.0, 1.0)
+
+        return out
+    
+    def _build_parameters(self, H: int, W: int) -> None:
+        self._intensity = self._random_in_range(self.shadow_intensity)
+        self._frequency = self._random_in_range(self.noise_frequency)
+        self._threshold = self._random_in_range(self.noise_threshold)
+        self._sigma = self._random_in_range(self.blur_sigma)
+        self._shift = self._random_in_range(self.color_shift)
+        self._falloff_intensity = self._random_in_range(self.falloff_intensity)
+        self._falloff_contrast = self._random_in_range(self.falloff_contrast)
+        
+        self._make_cloud_mask(H, W)
+    
+    def forward(self, input: TransformInput) -> TransformInput:
+        if self.rng.random() > self.p: return input
+        _, _, H, W = input.image.shape
+        self._build_parameters(H, W)
+        
+        return TransformInput(
+            image     = self._transform(input.image),
+            image2    = self._transform(input.image2),
+            mask      = input.mask,
+            boxes     = input.boxes,
+            keypoints = input.keypoints
+        )
 
 class Spatter(Transform):
     def __init__(
@@ -624,7 +716,7 @@ class Spatter(Transform):
         self.droplet_refraction = droplet_refraction
         self.p = p
 
-    def _transform(self, input: Tensor) -> Tensor:
+    def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         _, C, H, W = input.shape
         out = input.clone()
