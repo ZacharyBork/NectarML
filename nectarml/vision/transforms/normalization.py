@@ -4,7 +4,8 @@ import numpy as np
 
 from nectarml.tensor import Tensor
 from nectarml.typing import float16, float32, uint8
-from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.transform import Transform 
+from nectarml.vision.transforms.common import TransformInput
 
 class Normalize(Transform):
     def __init__(

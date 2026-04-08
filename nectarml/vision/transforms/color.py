@@ -11,9 +11,10 @@ from nectarml.random import RNG
 from nectarml.tensor import Tensor
 from nectarml.typing import float32
 from nectarml.creation import full, ones, zeros, linspace
-from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.spatial import OpticalDistortion
-from nectarml.vision.transforms.common import hsv_adjust, gradient_mask, lerp3
+from nectarml.vision.transforms.common import \
+    TransformInput, hsv_adjust, gradient_mask, lerp3
 
 ### TRANSFORMS ###
 
@@ -691,7 +692,7 @@ class RGBShift(Transform):
             keypoints = input.keypoints
         )
         
-class HueSaturationValue(Transform[Tensor, Tensor]):
+class HueSaturationValue(Transform):
     def __init__(
         self,
         hue: float = 0.0,
@@ -719,7 +720,7 @@ class HueSaturationValue(Transform[Tensor, Tensor]):
             keypoints = input.keypoints
         ) 
 
-class TonemapHDR(Transform[Tensor, Tensor]):
+class TonemapHDR(Transform):
     def __init__(
         self, 
         method: Literal[

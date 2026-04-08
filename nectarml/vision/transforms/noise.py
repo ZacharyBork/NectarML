@@ -6,7 +6,8 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.transform import Transform 
+from nectarml.vision.transforms.common import TransformInput
 
 class GaussianNoise(Transform):
     def __init__(

@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import colorsys
 from typing import Literal
+from dataclasses import dataclass
 
 import numpy as np
+from PIL import Image
 
 import _nectarml
 import nectarml.functional as F
@@ -9,6 +13,68 @@ from nectarml.tensor import Tensor
 from nectarml.typing import Size
 from nectarml.creation import linspace
 from nectarml.cuda.utils import map_dtype
+
+### DATA ###
+
+@dataclass
+class TransformInput:
+    image:     Tensor | np.ndarray | Image.Image
+    image2:    Tensor | np.ndarray | Image.Image | None = None
+    mask:      Tensor | np.ndarray | Image.Image | None = None
+    boxes:     Tensor | np.ndarray | Image.Image | None = None
+    keypoints: Tensor | np.ndarray | Image.Image | None = None
+
+    def __post_init__(self):
+        assert self.image is not None, \
+            'TransformInput requires at least an image.'
+
+    @classmethod
+    def from_args(
+        cls,
+        args: tuple[Tensor, ...],
+        kwargs: dict[str, Tensor]
+    ) -> TransformInput:
+        '''
+        Positional Convention:
+        (image,)
+        (image, mask)
+        (image, image2, mask)
+        '''
+        if kwargs: return cls(**kwargs)
+        
+        match len(args):
+            case 1: return cls(image=args[0])
+            case 2: return cls(image=args[0], mask=args[1])
+            case 3: return cls(image=args[0], image2=args[1], mask=args[2])
+            case _: 
+                raise ValueError(
+                    f'Expected 1-3 positional args (image, image2, mask) '
+                    f'or keyword args, got {len(args)}')
+
+    def to_output(
+        self,
+        original_args: tuple,
+        original_kwargs: dict
+    ) -> Tensor | tuple[Tensor, ...]:
+        if original_kwargs:
+            output = tuple(
+                {k: getattr(self, k) for k in original_kwargs}.values())
+            if len(output) == 1: return output[0]
+            return output
+
+        match len(original_args):
+            case 1: return self.image
+            case 2: return self.image, self.mask
+            case 3: return self.image, self.image2, self.mask
+            
+    def as_dict(self) -> dict[str, Tensor | None]:
+        return {
+            'image':     self.image,
+            'image2':    self.image2,
+            'mask':      self.mask,
+            'boxes':     self.boxes,
+            'keypoints': self.keypoints
+        }
 
 ### UTILS ###
 

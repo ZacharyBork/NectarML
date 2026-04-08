@@ -11,8 +11,8 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32, int32
 from nectarml.creation import zeros, rand, ones, linspace
-from nectarml.vision.transforms.transform import Transform, TransformInput 
-from nectarml.vision.transforms.common import lerp
+from nectarml.vision.transforms.transform import Transform 
+from nectarml.vision.transforms.common import TransformInput, lerp
 
 class Erasing(Transform):
     def __init__(
@@ -193,8 +193,6 @@ class GridDropout(Transform):
                     else:
                         offset_y = self._offsets[b][x][y][0] * (grid_y // 2)
                         offset_x = self._offsets[b][x][y][1] * (grid_x // 2)
-                        # offset_y = self._random_in_range((0, grid_y // 2))
-                        # offset_x = self._random_in_range((0, grid_x // 2))
                         cy += int((offset_y - (offset_y * 0.5)) * 2)
                         cx += int((offset_x - (offset_x * 0.5)) * 2)
                     
@@ -275,7 +273,7 @@ class RandomLensFlare(Transform):
         alpha: float,
         chroma_shift: float
     ) -> Tensor:
-        ghost = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+        ghost = zeros(self.layer_shape, dtype=self._dtype, device=self._device)
 
         for c, shift in enumerate([-chroma_shift, 0, chroma_shift]):
             cx_c = cx + shift
@@ -287,7 +285,7 @@ class RandomLensFlare(Transform):
         return ghost
 
     def _make_halo(self, cx: float, cy: float) -> Tensor:
-        halo = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+        halo = zeros(self.layer_shape, dtype=self._dtype, device=self._device)
         
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
         r_px = self.halo_radius * self.smaller_side
@@ -297,7 +295,8 @@ class RandomLensFlare(Transform):
         return halo
 
     def _make_streaks(self, cx: float, cy: float) -> Tensor:
-        streaks = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+        streaks = zeros(
+            self.layer_shape, dtype=self._dtype, device=self._device)
 
         for i in range(self.streak_count):
             angle = (i / self.streak_count) * 3.1415926535
@@ -319,7 +318,7 @@ class RandomLensFlare(Transform):
         return streaks.clamp(0.0, 1.0)
 
     def _make_glow(self, cx: float, cy: float, alpha: float) -> Tensor:
-        glow = zeros(self.layer_shape, dtype=self.dtype, device=self.device)
+        glow = zeros(self.layer_shape, dtype=self._dtype, device=self._device)
                 
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
         r_px = self.glow_radius * self.smaller_side
@@ -328,15 +327,15 @@ class RandomLensFlare(Transform):
         return glow
 
     def _build_projections(self, H: int, W: int) -> None:
-        self.proj_y = linspace(0, H-1, H, self.dtype, self.device)
+        self.proj_y = linspace(0, H-1, H, self._dtype, self._device)
         self.proj_y = self.proj_y.reshape((H, 1)).expand((H, W))
-        self.proj_x = linspace(0, W-1, W, self.dtype, self.device)
+        self.proj_x = linspace(0, W-1, W, self._dtype, self._device)
         self.proj_x = self.proj_x.reshape((1, W)).expand((H, W))
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        self.device = input.device
-        self.dtype = input.dtype
+        self._device = input.device
+        self._dtype = input.dtype
         
         B, C, H, W = input.shape
         max_value = input.max().item()
@@ -349,7 +348,8 @@ class RandomLensFlare(Transform):
             warnings.simplefilter("ignore")
             
             for b in range(B):
-                flare = zeros((3, H, W), dtype=self.dtype, device=self.device)
+                flare = zeros(
+                    (3, H, W), dtype=self._dtype, device=self._device)
                 cx, cy = W/2, H/2
                 axis_dx, axis_dy = cx-self._sx, cy-self._sy
 
@@ -458,7 +458,7 @@ class RandomFog(Transform):
             keypoints = input.keypoints
         )
         
-class RandomRain(Transform[Tensor, Tensor]):
+class RandomRain(Transform):
     def __init__(
         self,
         brightness_coef: float | tuple[float, float] = (0.5, 0.8),

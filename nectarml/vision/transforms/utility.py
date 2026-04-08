@@ -16,8 +16,8 @@ from nectarml.typing import DTypeLike, float32
 from nectarml.cuda.utils import map_dtype
 from nectarml.functional.interpolation import upsample
 
-from nectarml.vision.transforms.transform import \
-    Transform, UtilityTransform, TransformInput
+from nectarml.vision.transforms.transform import Transform, UtilityTransform
+from nectarml.vision.transforms.common import TransformInput
 from nectarml.vision.transforms.format import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 

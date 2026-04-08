@@ -5,8 +5,8 @@ from PIL import Image
 
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32, uint8
-from nectarml.vision.transforms.transform import \
-    Transform, UtilityTransform, TransformInput
+from nectarml.vision.transforms.transform import Transform, UtilityTransform
+from nectarml.vision.transforms.common import TransformInput
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):

@@ -3,11 +3,9 @@ from os import PathLike
 from pathlib import Path
 from contextlib import nullcontext
 
-import numpy as np
-from PIL import Image
-
 from nectarml.tensor import Tensor
-from nectarml.vision.transforms.transform import Transform, TransformInput 
+from nectarml.vision.transforms.transform import Transform
+from nectarml.vision.transforms.common import TransformInput
 from nectarml.vision.transforms import format, utility
 from nectarml.utils.benchmark import benchmark_time
 from nectarml.random import RNG
@@ -120,7 +118,7 @@ class Compose(Transform):
             output += f'    {idx} : {xform}\n'
         return output
 
-class RandomApply(Transform[Tensor, Tensor]):
+class RandomApply(Transform):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -130,14 +128,14 @@ class RandomApply(Transform[Tensor, Tensor]):
         self.transforms = transforms
         self.probability = p
     
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
         threshold = self._random_in_range()
         if threshold <= self.probability:
             for transform in self.transforms:
                 input = transform.forward(input)
         return input
 
-class RandomChoice(Transform[Tensor, Tensor]):
+class RandomChoice(Transform):
     def __init__(
         self, 
         transforms: list[Transform],
@@ -153,13 +151,13 @@ class RandomChoice(Transform[Tensor, Tensor]):
         self.transforms = transforms
         self.probabilities = p
     
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
         for xform, p in list(zip(self.transforms, self.probabilities)):
             threshold = self._random_in_range()
             if threshold <= p: input = xform.forward(input)
         return input
 
-class RandomOrder(Transform[Tensor, Tensor]):
+class RandomOrder(Transform):
     def __init__(
         self, 
         transforms: list[Transform]
@@ -167,13 +165,13 @@ class RandomOrder(Transform[Tensor, Tensor]):
         super().__init__()
         self.transforms = transforms
     
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
         xforms = self.transforms.copy()
         RNG.shuffle(xforms)
         for transform in xforms: input = transform.forward(input)
         return input
 
-class OneOf(Transform[Tensor, Tensor]):
+class OneOf(Transform):
     def __init__(
         self, 
         transforms: list[Transform]
@@ -181,7 +179,7 @@ class OneOf(Transform[Tensor, Tensor]):
         super().__init__()
         self.transforms = transforms
     
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: TransformInput) -> TransformInput:
         rand = self._random_in_range((0, len(self.transforms)))
         xform = self.transforms[int(math.floor(rand))]
         return xform.forward(input)

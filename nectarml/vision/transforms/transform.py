@@ -1,83 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Literal, TypeVar, Generic
-
-import numpy as np
-from PIL import Image
+from typing import TypeVar, Generic
 
 from nectarml.tensor import Tensor
 from nectarml.random import RNG
+from nectarml.vision.transforms.common import TransformInput
 
 TInputType  = TypeVar('TInputType')
 TOutputType = TypeVar('TOutputType')
-
-@dataclass
-class TransformInput:
-    image:     Tensor | np.ndarray | Image.Image
-    image2:    Tensor | np.ndarray | Image.Image | None = None
-    mask:      Tensor | np.ndarray | Image.Image | None = None
-    boxes:     Tensor | np.ndarray | Image.Image | None = None
-    keypoints: Tensor | np.ndarray | Image.Image | None = None
-
-    def __post_init__(self):
-        assert self.image is not None, \
-            'TransformInput requires at least an image.'
-
-    @classmethod
-    def from_args(
-        cls,
-        args: tuple[Tensor, ...],
-        kwargs: dict[str, Tensor]
-    ) -> TransformInput:
-        '''
-        Positional Convention:
-        (image,)
-        (image, mask)
-        (image, image2, mask)
-        '''
-        if kwargs: return cls(**kwargs)
-        
-        match len(args):
-            case 1: return cls(image=args[0])
-            case 2: return cls(image=args[0], mask=args[1])
-            case 3: return cls(image=args[0], image2=args[1], mask=args[2])
-            case _: 
-                raise ValueError(
-                    f'Expected 1-3 positional args (image, image2, mask) '
-                    f'or keyword args, got {len(args)}')
-
-    def to_output(
-        self,
-        original_args: tuple,
-        original_kwargs: dict
-    ) -> Tensor | tuple[Tensor, ...]:
-        if original_kwargs:
-            output = tuple(
-                {k: getattr(self, k) for k in original_kwargs}.values())
-            if len(output) == 1: return output[0]
-            return output
-
-        match len(original_args):
-            case 1: return self.image
-            case 2: return self.image, self.mask
-            case 3: return self.image, self.image2, self.mask
             
-    def as_dict(self) -> dict[str, Tensor | None]:
-        return {
-            'image':     self.image,
-            'image2':    self.image2,
-            'mask':      self.mask,
-            'boxes':     self.boxes,
-            'keypoints': self.keypoints
-        }
-            
-class Transform(Generic[TInputType, TOutputType]):
-    def __init__(
-        self, 
-        device: Literal['cpu', 'cuda'] | None = None
-    ) -> None:
-        self.device = device
+class Transform():
+    def __init__(self) -> None:
         self.rng = RNG
     
     ### UTILS ###
@@ -108,36 +41,9 @@ class Transform(Generic[TInputType, TOutputType]):
         return f'{self.__class__}'
     
 class UtilityTransform(Transform, Generic[TInputType, TOutputType]):
-    def __init__(
-        self, 
-        device: Literal['cpu', 'cuda'] | None = None
-    ) -> None:
-        super().__init__(device)
+    def __init__(self) -> None:
+        super().__init__()
         
     def __call__(self, input: TInputType) -> TOutputType:
         return self.forward(input)
-    
-class DummyTransform(Transform):
-    def __init__(
-        self,
-        p: float = 0.5
-    ) -> None:
-        super().__init__()
-        self.p = p
-
-    def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        
-    def _build_parameters(self) -> None:
-        pass
-
-    def forward(self, input: TransformInput) -> TransformInput:
-        if self.rng.random() > self.p: return input
-        return TransformInput(
-            image     = self._transform(input.image),
-            image2    = self._transform(input.image2),
-            mask      = input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
-        )
 

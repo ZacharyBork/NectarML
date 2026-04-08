@@ -8,8 +8,8 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros, ones_like
 from nectarml.typing import float32
-from nectarml.vision.transforms.transform import Transform, TransformInput 
-from nectarml.vision.transforms.common import apply_kernel_2d
+from nectarml.vision.transforms.transform import Transform
+from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
 from nectarml.vision.transforms.blur import GaussianBlur
 
 class Convolve(Transform):
