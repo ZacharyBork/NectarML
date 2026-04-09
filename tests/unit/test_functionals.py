@@ -1,5 +1,7 @@
-import pytest
+from typing import Any
+from collections.abc import Callable
 
+import pytest
 import numpy as np
 
 import torch
@@ -32,7 +34,12 @@ ACTIVATION_FUNCTIONS = [
 ]
 
 @pytest.mark.parametrize('nectarml_fn, torch_fn, kwargs', ACTIVATION_FUNCTIONS)
-def test_activation(nectarml_fn, torch_fn, kwargs, sample_input1d):
+def test_activation(
+    nectarml_fn: Callable, 
+    torch_fn: Callable, 
+    kwargs: dict[str, Any], 
+    sample_input1d: np.ndarray
+) -> None:
     nectar_input = nectarml.Tensor(sample_input1d, requires_grad=True)
     torch_input  = torch.tensor(sample_input1d, requires_grad=True)
     
@@ -54,4 +61,41 @@ def test_activation(nectarml_fn, torch_fn, kwargs, sample_input1d):
     assert np.allclose(nectar_grad, torch_grad, atol=1e-5), (
         f'{nectarml_fn.__name__} (backward): '
         f'max diff = {np.abs(nectar_grad - torch_grad).max()}')
+
+### COMBINATION FUNCTIONS ###
+
+COMBINATION_FUNCTIONS = [
+    (nectarml.concatenate,  torch.concatenate),
+    (nectarml.cat,          torch.cat),
+    (nectarml.stack,        torch.stack)
+]
+
+@pytest.mark.parametrize('nectarml_fn, torch_fn', COMBINATION_FUNCTIONS)
+def test_combinations(
+    nectarml_fn: Callable, 
+    torch_fn: Callable, 
+    sample_input1d: np.ndarray
+) -> None:
+    n = nectarml.Tensor(sample_input1d, requires_grad=True)
+    t = torch.tensor(sample_input1d, requires_grad=True)
+    
+    nectar_out = nectarml_fn([n, n, n])
+    torch_out  = torch_fn([t, t, t])
+    
+    _nectar = nectar_out.detach().numpy()
+    _torch  = torch_out.detach().numpy()
+    assert np.allclose(_nectar, _torch, atol=1e-5), (
+        f'{nectarml_fn.__name__} (forward): '
+        f'max diff = {np.abs(_nectar - _torch).max()}')
+    
+    nectar_out.mean().backward()
+    torch_out.mean().backward()
+    
+    nectar_grad = n.grad.numpy()
+    torch_grad  = t.grad.numpy()
+    
+    assert np.allclose(nectar_grad, torch_grad, atol=1e-5), (
+        f'{nectarml_fn.__name__} (backward): '
+        f'max diff = {np.abs(nectar_grad - torch_grad).max()}')
+
 
