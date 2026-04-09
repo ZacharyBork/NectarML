@@ -1,10 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+    
 from typing import Literal
-from collections.abc import Callable
 
 import numpy as np
 
 def pad(
-    input: np.ndarray, 
+    input: Tensor, 
     pad: int | tuple[int, ...], 
     mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
     value: float = 0.0
@@ -22,10 +26,9 @@ def pad(
     pairs.reverse()
 
     np_pad = [(0, 0)] * (input.ndim - len(pairs)) + pairs
-    out = np.pad(
-        input, np_pad, mode=_mode, 
+    return np.pad(
+        input.data, np_pad, mode=_mode, 
         **({'constant_values': value} if _mode == 'constant' else {}))
-    
-    return out
+
 
 
