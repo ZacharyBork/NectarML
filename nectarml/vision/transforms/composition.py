@@ -8,7 +8,6 @@ from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput
 from nectarml.vision.transforms import format, utility
 from nectarml.utils.benchmark import benchmark_time
-from nectarml.random import RNG
 
 class Compose(Transform):
     def __init__(
@@ -166,7 +165,7 @@ class RandomOrder(Transform):
     
     def forward(self, input: TransformInput) -> TransformInput:
         xforms = self.transforms.copy()
-        RNG.shuffle(xforms)
+        self.rng.shuffle(xforms)
         for transform in xforms: input = transform._call(input)
         return input
 

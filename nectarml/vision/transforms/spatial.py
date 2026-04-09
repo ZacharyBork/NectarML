@@ -174,7 +174,7 @@ class CenterCrop(_Crop):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        out = super()._tranform(input)
+        out = super()._transform(input)
 
         offset = (input.shape[2]-self.size[0], input.shape[3]-self.size[1])
         offset_h = offset[0] // 2
@@ -221,7 +221,7 @@ class RandomResizedCrop(_Crop):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        out = super()._tranform(input)
+        out = super()._transform(input)
         out = out[
             :, :, 
             self._offset_h:self._offset_h+self.size[0], 

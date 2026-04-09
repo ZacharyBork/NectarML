@@ -7,9 +7,8 @@ import numpy as np
 from PIL import Image, ImageOps
 
 import nectarml.functional as F
-from nectarml.random import RNG
 from nectarml.tensor import Tensor
-from nectarml.typing import float32
+from nectarml.typing import Size, float32
 from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.spatial import OpticalDistortion
@@ -85,7 +84,7 @@ class RandomBrightness(Transform):
         self._brightness = self._random_in_range(self.value_range)
     
     def forward(self, input: TransformInput) -> TransformInput:
-        self._build_parameters
+        self._build_parameters()
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
@@ -594,12 +593,12 @@ class ChannelShuffle(Transform):
         shuffled = [ch[i] for i in self._channels]
         return F.stack(shuffled, dim=1).to(input.device, input.dtype)
 
-    def _build_parameters(self) -> None:
-        self._channels = list(range(input.image.shape[1]))
+    def _build_parameters(self, C: int) -> None:
+        self._channels = list(range(C))
         self.rng.shuffle(self._channels)
         
     def forward(self, input: TransformInput) -> TransformInput:
-        self._build_parameters()
+        self._build_parameters(input.image.shape[1])
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),

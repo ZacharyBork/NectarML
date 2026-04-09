@@ -13,6 +13,7 @@ class Transform():
     def __init__(self, p: float = 1.0) -> None:
         self.rng = RNG
         self.p = p
+        self._epsilon = 1e-8
     
     ### UTILS ###
     

@@ -15,8 +15,9 @@ def avg_pool1d_forward(
     K: int, S: int, P: int,
     count_include_pad: bool
 ) -> np.ndarray:
+    data = input.data
     if P > 0:
-        data = np.pad(input.data, ((0,0),(0,0),(P,P)), mode='constant')
+        data = np.pad(data, ((0,0),(0,0),(P,P)), mode='constant')
     out = np.zeros((B, C, L_out), dtype=input.dtype)
     for n in range(L_out):
         start  = n * S
@@ -61,9 +62,9 @@ def avg_pool2d_forward(
     count_include_pad: bool,
     divisor_override: int | float | None = None
 ) -> np.ndarray:
+    data = input.data
     if PH > 0 or PW > 0:
-        data = np.pad(
-            input.data, ((0,0),(0,0),(PH,PH),(PW,PW)), mode='constant')
+        data = np.pad(data, ((0,0),(0,0),(PH,PH),(PW,PW)), mode='constant')
     out = np.zeros((B, C, H_out, W_out), dtype=input.dtype)
     for i in range(H_out):
         for j in range(W_out):
@@ -122,9 +123,10 @@ def avg_pool3d_forward(
     count_include_pad: bool,
     divisor_override: int | float | None = None
 ) -> np.ndarray:
+    data = input.data
     if PD > 0 or PH > 0 or PW > 0:
-        data = np.pad(input.data,
-            ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)), mode='constant')
+        data = np.pad(
+            data, ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)), mode='constant')
     out = np.zeros((B, C, D_out, H_out, W_out), dtype=input.dtype)
     for d in range(D_out):
         for i in range(H_out):
@@ -195,9 +197,10 @@ def max_pool1d_forward(
     B: int, C: int, L: int, L_out: int,
     K: int, S: int, P: int, D: int
 ) -> tuple[np.ndarray, np.ndarray]:
+    data = input.data
     if P > 0:
         data = np.pad(
-            input.data, ((0,0),(0,0),(P,P)), 
+            data, ((0,0),(0,0),(P,P)), 
             mode='constant', constant_values=-np.inf)
     out     = np.full((B, C, L_out), -np.inf, dtype=input.dtype)
     indices = np.zeros((B, C, L_out), dtype=np.int64)
@@ -234,9 +237,10 @@ def max_pool2d_forward(
     SH: int, SW: int,
     PH: int, PW: int, D: int
 ) -> tuple[np.ndarray, np.ndarray]:
+    data = input.data
     if PH > 0 or PW > 0:
         data = np.pad(
-            input.data, ((0,0),(0,0),(PH,PH),(PW,PW)),
+            data, ((0,0),(0,0),(PH,PH),(PW,PW)),
             mode='constant', constant_values=-np.inf)
     out     = np.full((B, C, H_out, W_out), -np.inf, dtype=input.dtype)
     indices = np.zeros((B, C, H_out, W_out), dtype=np.int64)
@@ -288,9 +292,10 @@ def max_pool3d_forward(
     SD: int, SH: int, SW: int,
     PD: int, PH: int, PW: int, D: int
 ) -> tuple[np.ndarray, np.ndarray]:
+    data = input.data
     if PD > 0 or PH > 0 or PW > 0:
         data = np.pad(
-            input.data, ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)),
+            data, ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)),
             mode='constant', constant_values=-np.inf)
     out     = np.full((B, C, D_out, H_out, W_out), -np.inf, dtype=input.dtype)
     indices = np.zeros((B, C, D_out, H_out, W_out), dtype=np.int64)

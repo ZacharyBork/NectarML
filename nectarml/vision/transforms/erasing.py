@@ -36,7 +36,7 @@ class Erasing(Transform):
         
         for b in range(B):
             area = self._scale[b] * image_area
-            aspect_ratio = self._ratio[b]
+            aspect_ratio = max(self._epsilon, self._ratio[b])
 
             hole_h = min(int(math.sqrt(area / aspect_ratio)), H)
             hole_w = min(int(math.sqrt(area * aspect_ratio)), W)
@@ -171,6 +171,8 @@ class GridDropout(Transform):
         super().__init__(p=p)
         self.ratio = ratio
         self.random_offset = random_offset
+        for num in holes_number_xy:
+            assert num > 1, 'Hole counts must be greater than 1 on both axes.'
         self.holes_number_xy = holes_number_xy
         self.shift_xy = shift_xy
         self.fill = fill
@@ -296,8 +298,8 @@ class RandomLensFlare(Transform):
         
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
         r_px = self.halo_radius * self.smaller_side
-        ring_width = r_px * 0.2
-        ring = (-((dist - r_px) ** 2) / (2 * ring_width ** 2)).exp()
+        ring_width = max(self._epsilon, (2 * (r_px * 0.2)**2))
+        ring = (-((dist - r_px) ** 2) / ring_width).exp()
         halo[:] = ring.unsqueeze(0).expand(self.layer_shape) * self.halo_alpha
         return halo
 
@@ -313,7 +315,8 @@ class RandomLensFlare(Transform):
             proj = (self.proj_x - cx) * dx + (self.proj_y - cy) * dy
             perp = (self.proj_x - cx) * (-dy) + (self.proj_y - cy) * dx
             
-            length_px = self.streak_length * self.smaller_side
+            length_px = max(
+                self._epsilon, self.streak_length * self.smaller_side)
             streak_width = 1.5
             
             length_mask = (1.0 - proj.abs() / length_px).clamp(0.0, 1.0) ** 2
@@ -328,7 +331,8 @@ class RandomLensFlare(Transform):
         glow = zeros(self.layer_shape, dtype=self._dtype, device=self._device)
                 
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
-        r_px = self.glow_radius * self.smaller_side
+        r_px = max(
+            self._epsilon, self.glow_radius * self.smaller_side)
         soft = (-(dist ** 2) / (2 * r_px ** 2)).exp()
         glow[:] = soft.unsqueeze(0).expand(self.layer_shape) * alpha
         return glow
@@ -410,6 +414,7 @@ class RandomFog(Transform):
         p: float = 0.5
     ) -> None:
         super().__init__(p=p)
+        assert scale > 0, 'RandomFog "scale" must be > 0.'
         self.scale = scale
         self.octaves = octaves
         self.intensity_range = intensity_range
@@ -437,7 +442,8 @@ class RandomFog(Transform):
             frequency *= 2.0
         
         min_value = noise.min().item()
-        return (noise - min_value) / (noise.max().item() - min_value)
+        divisor = max(self._epsilon, noise.max().item() - min_value)
+        return (noise - min_value) / divisor
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -455,7 +461,8 @@ class RandomFog(Transform):
             + fog_color * fog_maps * self._intensity
         
         out = input + fog
-        return (out / out.max().item() * max_value).clamp(0.0, max_value)
+        divisor = max(self._epsilon, out.max().item() * max_value)
+        return (out / divisor).clamp(0.0, max_value)
 
     def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
@@ -503,7 +510,10 @@ class RandomRain(Transform):
         _, C, H, W = input.shape
         out = input.cpu() * self._brightness_coef
         color = self._color.to(out.device, input.dtype)
-        color = color / 255 * input.max().item() * self._brightness_coef
+        color = (
+            color / 255 
+          * max(self._epsilon, input.max().item()) 
+          * self._brightness_coef)
         
         for i in range(self._num_drops):
             x, y = self._xs[i-1], self._ys[i-1]
@@ -523,7 +533,7 @@ class RandomRain(Transform):
             perp_y =  (x2 - x) / length
             half_w = self._drop_width // 2
 
-            for s in range(steps):
+            for s in range(int(steps)):
                 t = s / steps
                 cx = int(x + t * (x2 - x))
                 cy = int(y + t * (y2 - y))
@@ -584,7 +594,7 @@ class RandomSnow(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
+        max_value = input.max().item() + 1e-8
         norm = input / max_value
         
         r, g, b = norm.unbind(dim=1)
@@ -660,7 +670,7 @@ class RandomShadow(Transform):
         
         mask = (noise > self._threshold).astype(float32)
         mask = gaussian_filter(mask, sigma=self._sigma)
-        if mask.max() > 0: mask = mask / mask.max()
+        if mask.max() > 0: mask = mask / (mask.max() + 1e-8)
         mask = mask * ramp**self._falloff_contrast
         
         self._mask = Tensor(mask, mask.shape, dtype=float32)

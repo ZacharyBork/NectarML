@@ -147,7 +147,7 @@ class MotionBlur(Transform):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 if 0 <= x < ks and 0 <= y < ks: k[y, x] = 1.0
-        total = k.sum()
+        total = k.sum().item()
         kernel = k / total if total > 0 else k
         
         blurred = input.clone()

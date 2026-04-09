@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros, ones_like
-from nectarml.typing import float32
+from nectarml.typing import float32, int32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
 from nectarml.vision.transforms.blur import GaussianBlur
@@ -80,7 +80,7 @@ class Sobel(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         kernel_x = self.sobel_x.to(input.device, input.dtype)
         kernel_y = self.sobel_y.to(input.device, input.dtype)
 
@@ -136,7 +136,7 @@ class Prewitt(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         kernel_x = self.prewitt_x.to(input.device, input.dtype)
         kernel_y = self.prewitt_y.to(input.device, input.dtype)
 
@@ -187,7 +187,7 @@ class Laplacian(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         kernel = self.kernel.to(input.device, input.dtype)
 
         outputs = []
@@ -231,6 +231,7 @@ class Dither(Transform):
             - https://scipython.com/blog/floyd-steinberg-dithering/
         '''
         super().__init__(p=p)
+        assert levels > 1, 'Dither "levels" must be > 1.'
         self.levels = levels
         self.algorithm = algorithm
         self.per_channel = per_channel
@@ -241,7 +242,7 @@ class Dither(Transform):
 
     def _floyd_steinberg(self, input: Tensor) -> Tensor:
         max_value = input.max().item()
-        out = np.array(input.numpy().copy()) / max_value        
+        out = np.array(input.numpy().copy()) / (max_value + self._epsilon)        
         
         if not self.per_channel: 
             out = out[:, ['r', 'g', 'b'].index(self.from_channel), :, :]
@@ -306,7 +307,7 @@ class Halftone(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         
         arr = norm.cpu().numpy()[0]
         C, H, W = arr.shape
@@ -374,7 +375,7 @@ class Kuwahara(Transform):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             k[row_slice, col_slice] = 1.0
-        k /= k.sum()
+        k /= (k.sum().item() + self._epsilon)
         return k
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -453,6 +454,7 @@ class AsciiRender(Transform):
         p: float = 1.0
     ) -> None:
         super().__init__(p=p)
+        assert block_size > 0, 'AsciiRender "block_size" must be > 0.'
         self.block_size = block_size
         self.sample_color = sample_color
         self.font_path = font
@@ -491,10 +493,10 @@ class AsciiRender(Transform):
 
         pixels = gray.cpu().numpy()[0, 0]
         lo, hi = np.percentile(pixels, 2), np.percentile(pixels, 98)
-        pixels = np.clip((pixels - lo) / (hi - lo), 0.0, 1.0)
-
+        pixels = np.clip((pixels - lo) / (hi - lo + self._epsilon), 0.0, 1.0)
+        
         indices = np.clip(
-            (pixels * (len(self.charset) - 1)).astype(int),
+            (pixels * (len(self.charset) - 1)).astype(int32),
             0, len(self.charset) - 1)
         char_array = np.array(list(self.charset))[indices]
 
@@ -511,7 +513,7 @@ class AsciiRender(Transform):
             small = F.upsample(original, size=(rows, cols), mode='nearest')
             small = small.cpu().numpy()[0]
             lo, hi = small.min(), small.max()
-            small = ((small - lo) / (hi - lo) * 255).astype(int)
+            small = ((small - lo) / (hi-lo + self._epsilon) * 255).astype(int)
 
         img = Image.new('RGB', (char_w * cols, char_h * rows), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
@@ -592,7 +594,7 @@ class DifferenceOfGaussians(Transform):
 
         diff_min = diff.min().item()
         diff_max = diff.max().item()
-        diff = (diff - diff_min) / (diff_max - diff_min)
+        diff = (diff - diff_min) / (diff_max - diff_min + self._epsilon)
 
         if self.threshold is not None:
             if self._phi == 0.0:

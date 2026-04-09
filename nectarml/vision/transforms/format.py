@@ -22,11 +22,14 @@ class ToTensor(Transform):
         
         if isinstance(input, Image.Image):
             data = np.array(input).astype(float32)
-        elif isinstance(input, np.ndarray): data = input
+            data = data.transpose((2, 0, 1))[np.newaxis]
+        elif isinstance(input, np.ndarray): 
+            data = input
+            if data.ndim == 2: data = data.unsqueeze(dim=0)
+            if data.ndim == 3: data = data.unsqueeze(dim=0)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
         output = Tensor(data, dtype=float32, device='cpu')
-        output = output.permute((2, 0, 1)).unsqueeze(dim=0)
         if self.normalize: output = output / np.maximum(data.max(), 1.0)
         return output
     
@@ -85,6 +88,9 @@ class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
 class FromTorch(Transform):
+    def __init__(self) -> None:
+        super().__init__(p=1.0)
+        
     def _transform(self, input: Any) -> Tensor:
         if input is None: return input
         from nectarml.compat.pytorch import torch as torch_compat
@@ -100,6 +106,9 @@ class FromTorch(Transform):
         ) 
         
 class ToTorch(Transform):
+    def __init__(self) -> None:
+        super().__init__(p=1.0)
+        
     def _transform(self, input: Tensor) -> Any:
         if input is None: return input
         from nectarml.compat.pytorch import torch as torch_compat
@@ -144,7 +153,7 @@ class ChangeDevice(Transform):
         new_device: Literal['cpu', 'cuda'] = 'cpu',
         transform_mask: bool = False
     ) -> None:
-        super().__init__(new_device)
+        super().__init__()
         self.new_device = new_device
         self.transform_mask = transform_mask
     
@@ -207,7 +216,7 @@ class Cast(Transform):
         new_dtype: DTypeLike | None = None, 
         transform_mask: bool = False
     ) -> None:
-        super().__init__(new_device)
+        super().__init__()
         self.new_device = new_device
         self.new_dtype = new_dtype
         self.transform_mask = transform_mask

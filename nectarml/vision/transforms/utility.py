@@ -491,6 +491,7 @@ class MaskedFill(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
+        self.mask = self.mask.to(input.device, input.dtype)
         return input.masked_fill(self.mask, self.value)
 
     def forward(self, input: TransformInput) -> TransformInput:
