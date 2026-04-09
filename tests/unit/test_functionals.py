@@ -31,16 +31,10 @@ ACTIVATION_FUNCTIONS = [
     (F.softmin,      torch_F.softmin,      {'dim': -1}),
 ]
 
-@pytest.fixture
-def sample_input():
-    np.random.seed(42)
-    data = np.random.randn(4, 16).astype(np.float32)
-    return data
-
 @pytest.mark.parametrize('nectarml_fn, torch_fn, kwargs', ACTIVATION_FUNCTIONS)
-def test_activation(nectarml_fn, torch_fn, kwargs, sample_input):
-    nectar_input = nectarml.Tensor(sample_input, requires_grad=True)
-    torch_input  = torch.tensor(sample_input, requires_grad=True)
+def test_activation(nectarml_fn, torch_fn, kwargs, sample_input1d):
+    nectar_input = nectarml.Tensor(sample_input1d, requires_grad=True)
+    torch_input  = torch.tensor(sample_input1d, requires_grad=True)
     
     nectar_out = nectarml_fn(nectar_input, **kwargs)
     torch_out  = torch_fn(torch_input, **kwargs)
