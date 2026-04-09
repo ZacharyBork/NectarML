@@ -353,6 +353,7 @@
     ✅ 3. Nograd Context/Decorator
     ❌ 4. AMP flags for functions/methods
     ❌ 5. Ensure all Transform classes work on both RGB and mono Tensors
+    ❌ 6. Investigate why the GeLU and Hardsigmoid functionals produce difference results than PyTorch
 
 ### 🟡  Compatibility Layersc
 

@@ -254,7 +254,7 @@ def softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp_x = (input - input.max(dim=dim, keepdim=True)).exp()
+    exp_x = (input - input.max(dim=dim, keepdim=True)[0]).exp()
     return exp_x / exp_x.sum(dim=dim, keepdim=True)
 
 def softmax_(input: Tensor, dim: int=-1) -> Tensor:
@@ -280,7 +280,7 @@ def softmax_(input: Tensor, dim: int=-1) -> Tensor:
 
 ### SOFTMIN ###
 
-def softmin(input: Tensor) -> Tensor:
+def softmin(input: Tensor, dim: int = -1) -> Tensor:
     '''Softmin activation function.
         
     Equation: f(x) = exp(-x_i) / sum(exp(-x_j))
@@ -292,8 +292,8 @@ def softmin(input: Tensor) -> Tensor:
         Tensor : The resulting Tensor from the activation function.
     '''
     _input = -input
-    exp_x = (_input - _input.max(dim=-1, keepdim=True)).exp()
-    return exp_x / exp_x.sum(dim=-1, keepdim=True)
+    exp_x = (_input - _input.max(dim=dim, keepdim=True)[0]).exp()
+    return exp_x / exp_x.sum(dim=dim, keepdim=True)
 
 def softmin_(input: Tensor) -> Tensor:
     '''In-place softmin activation function.
@@ -329,7 +329,7 @@ def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp_x = (input - input.max(dim=dim, keepdim=True)).exp()
+    exp_x = (input - input.max(dim=dim, keepdim=True)[0]).exp()
     softmax_x = exp_x / exp_x.sum(dim=dim, keepdim=True)
     return softmax_x.log()
 
