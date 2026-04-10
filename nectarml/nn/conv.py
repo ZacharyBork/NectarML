@@ -9,7 +9,7 @@ from nectarml.creation import empty
 from nectarml.typing import DTypeLike, float32
 from nectarml.nn.module import Module
 from nectarml.nn.init import kaiming_uniform_, uniform_
-    
+
 ### 1-Dimensional ###
     
 class Conv1d(Module):

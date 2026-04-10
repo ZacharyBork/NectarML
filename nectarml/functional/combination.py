@@ -1,7 +1,9 @@
 from nectarml.tensor import Tensor
 from nectarml.cuda import combination
 from nectarml.cpu import combination as _combination
+from nectarml.amp.precision import amp_promote
 
+@amp_promote
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])
     assert len(_devices) == 1, (
@@ -40,10 +42,11 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     
     out._backward = _backward
     return out
-    
+
 def cat(tensors: list[Tensor], dim: int = 0) -> Tensor:
     return concatenate(tensors, dim)
 
+@amp_promote
 def stack(tensors: list[Tensor], dim: int = 0) -> Tensor:
     tensors = [x.unsqueeze(dim) for x in tensors]
     return concatenate(tensors, dim)

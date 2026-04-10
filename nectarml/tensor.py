@@ -8,7 +8,7 @@ import numpy as np
 
 from nectarml import typing, cpu, cuda, autograd
 from nectarml.cuda.memory import CudaBuffer
-from nectarml.amp.precision import amp_float16, amp_float32
+from nectarml.amp.precision import amp_promote, amp_float16, amp_float32
 
 class Tensor():
     _class_type_nectar_tensor = True
@@ -917,6 +917,7 @@ class Tensor():
         return (
             f'Tensor: [\n'
             f'    shape: {self.shape},\n'
+            f'    dtype: {self.dtype}\n'
             f'    requires_grad: {self.requires_grad},\n'
             f'    data: {data_str},\n'
             f'    _prev: {self._prev}\n'
