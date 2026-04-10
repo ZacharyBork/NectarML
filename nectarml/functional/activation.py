@@ -1,5 +1,6 @@
 from nectarml.tensor import Tensor
 from nectarml.functional.indexing import where
+from nectarml.amp.precision import amp_float32
 
 ### RELU ###
 
@@ -239,6 +240,7 @@ def tanh_(input: Tensor) -> Tensor:
     
 ### SOFTMAX ###    
 
+@amp_float32
 def softmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Softmax activation function.
         
@@ -257,6 +259,7 @@ def softmax(input: Tensor, dim: int=-1) -> Tensor:
     exp_x = (input - input.max(dim=dim, keepdim=True)[0]).exp()
     return exp_x / exp_x.sum(dim=dim, keepdim=True)
 
+@amp_float32
 def softmax_(input: Tensor, dim: int=-1) -> Tensor:
     '''In-place softmax activation function.
     
@@ -280,6 +283,7 @@ def softmax_(input: Tensor, dim: int=-1) -> Tensor:
 
 ### SOFTMIN ###
 
+@amp_float32
 def softmin(input: Tensor, dim: int = -1) -> Tensor:
     '''Softmin activation function.
         
@@ -295,6 +299,7 @@ def softmin(input: Tensor, dim: int = -1) -> Tensor:
     exp_x = (_input - _input.max(dim=dim, keepdim=True)[0]).exp()
     return exp_x / exp_x.sum(dim=dim, keepdim=True)
 
+@amp_float32
 def softmin_(input: Tensor) -> Tensor:
     '''In-place softmin activation function.
     
@@ -314,6 +319,7 @@ def softmin_(input: Tensor) -> Tensor:
 
 ### LOG SOFTMAX ###
 
+@amp_float32
 def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
     '''Log softmax activation function.
         
@@ -333,6 +339,7 @@ def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
     softmax_x = exp_x / exp_x.sum(dim=dim, keepdim=True)
     return softmax_x.log()
 
+@amp_float32
 def log_softmax_(input: Tensor, dim: int=-1) -> Tensor:
     '''In-place log softmax activation function.
     
@@ -499,6 +506,7 @@ def swish_(input: Tensor) -> Tensor:
 
 ### SOFTPLUS ###
 
+@amp_float32
 def softplus(input: Tensor) -> Tensor: 
     '''Softplus activation function.
         
@@ -512,6 +520,7 @@ def softplus(input: Tensor) -> Tensor:
     '''
     return (1 + input.exp()).log()
 
+@amp_float32
 def softplus_(input: Tensor) -> Tensor: 
     '''In-place softplus activation function.
     

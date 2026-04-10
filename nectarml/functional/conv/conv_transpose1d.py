@@ -2,6 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
+from nectarml.amp.precision import amp_float16
 
 ### CPU ###
 
@@ -123,7 +124,8 @@ def _conv_transpose1d_cuda(
     return out
 
 ### WRAPPER ###
-   
+
+@amp_float16
 def conv_transpose1d(
     input: Tensor,
     weight: Tensor,

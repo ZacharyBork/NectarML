@@ -8,8 +8,11 @@ import numpy as np
 
 from nectarml import typing, cpu, cuda, autograd
 from nectarml.cuda.memory import CudaBuffer
+from nectarml.amp.precision import amp_float16, amp_float32
 
 class Tensor():
+    _class_type_nectar_tensor = True
+    
     def __init__(
         self: Tensor,
         data: Any,
@@ -1410,6 +1413,7 @@ class Tensor():
         '''
         return self * other
     
+    @amp_float16
     def __matmul__(self: Tensor, other: Tensor) -> Tensor:
         '''Performs a matrix multiplication between the data of two Tensors.
         
@@ -1451,6 +1455,7 @@ class Tensor():
         '''
         return other @ self
     
+    @amp_float32
     def __pow__(self: Tensor, exponent: float | int) -> Tensor:
         '''Raises a Tensor by the given exponent and returns as new Tensor.
         
@@ -1660,6 +1665,7 @@ class Tensor():
         
     ### EXP ###
             
+    @amp_float32
     def exp(self: Tensor) -> Tensor:
         '''Takes the exponent of a Tensor's data and returns as new Tensor.
         
@@ -1681,6 +1687,7 @@ class Tensor():
       
     ### LOG ###
             
+    @amp_float32
     def log(self: Tensor) -> Tensor:
         '''Takes the logarithm of a Tensor's data and returns as new Tensor.
         
@@ -1700,6 +1707,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def log2(self: Tensor) -> Tensor:
         '''Takes the log^2 of a Tensor's data and returns as new Tensor.
         
@@ -1719,6 +1727,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def log10(self: Tensor) -> Tensor:
         '''Takes the log^10 of a Tensor's data and returns as new Tensor.
         
@@ -1759,6 +1768,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def rsqrt(self: Tensor) -> Tensor:
         '''Takes the reciprocal sqrt of a Tensor's data, returns as new Tensor.
         
@@ -1802,6 +1812,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def asin(self: Tensor) -> Tensor:
         '''Returns the arc sine of a Tensor's data as new Tensor.
         
@@ -1823,6 +1834,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def sinh(self: Tensor) -> Tensor:
         '''Returns the hyperbolic sine of a Tensor's data as new Tensor.
         
@@ -1884,6 +1896,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def acos(self: Tensor) -> Tensor:
         '''Returns the arc cosine of a Tensor's data as new Tensor.
         
@@ -1905,6 +1918,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def cosh(self: Tensor) -> Tensor:
         '''Returns the hyperbolic cosine of a Tensor's data as new Tensor.
         
@@ -1948,6 +1962,7 @@ class Tensor():
     
     ### TAN / ATAN ###
     
+    @amp_float32
     def tan(self: Tensor) -> Tensor:
         '''Returns the tangent of a Tensor's data as new Tensor.
         
@@ -2358,6 +2373,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def sum(
         self: Tensor, 
         dim: int | tuple[int, ...] | None = None,
@@ -2393,6 +2409,7 @@ class Tensor():
         out._backward = _backward
         return out
     
+    @amp_float32
     def cumsum(self: Tensor, dim: int) -> Tensor:
         self._bool_type_check('Tensor.cumsum()')
         self_requires_grad = self.requires_grad
@@ -2416,6 +2433,7 @@ class Tensor():
         out._backward = _backward
         return out
         
+    @amp_float32
     def prod(
         self: Tensor, 
         dim: int | tuple[int, ...] | None = None,

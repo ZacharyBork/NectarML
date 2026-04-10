@@ -25,8 +25,8 @@ class ToTensor(Transform):
             data = data.transpose((2, 0, 1))[np.newaxis]
         elif isinstance(input, np.ndarray): 
             data = input
-            if data.ndim == 2: data = data.unsqueeze(dim=0)
-            if data.ndim == 3: data = data.unsqueeze(dim=0)
+            if data.ndim == 2: data = data[np.newaxis]
+            if data.ndim == 3: data = data[np.newaxis]
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
         output = Tensor(data, dtype=float32, device='cpu')

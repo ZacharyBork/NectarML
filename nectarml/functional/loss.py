@@ -3,10 +3,10 @@ from typing import Literal
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros_like, ones_like, zeros
 from nectarml.functional.reductions import mean, sum
-from nectarml.functional.math import sqrt, log, exp, cosh
+from nectarml.functional.math import sqrt, log, exp, cosh, maximum
 from nectarml.functional.indexing import where, gather
+from nectarml.amp.precision import amp_float32
 
-from nectarml.functional.math import maximum
 # ABSTRACTS
 
 def _reduce_loss(
@@ -21,6 +21,7 @@ def _reduce_loss(
 
 # LOSS - REGRESSION
 
+@amp_float32
 def L1Loss(
     input: Tensor, 
     target: Tensor, 
@@ -59,6 +60,7 @@ def MAELoss(
     '''
     return L1Loss(input, target, reduction)
 
+@amp_float32
 def L2Loss(
     input: Tensor, 
     target: Tensor, 
@@ -136,6 +138,7 @@ def BCELoss(
     loss_value = -(target * log(input) + (1 - target) * log(1 - input))
     return _reduce_loss(loss_value, reduction)
 
+@amp_float32
 def CrossEntropyLoss(
     input: Tensor, 
     target: Tensor,
@@ -143,6 +146,7 @@ def CrossEntropyLoss(
 ) -> Tensor: 
     return _reduce_loss(-sum(target * log(input)), reduction)
 
+@amp_float32
 def NLLLoss(
     input: Tensor, 
     target: Tensor,
@@ -180,6 +184,7 @@ def Hinge2Loss(
 
 # LOSS - PROBABILISTIC
 
+@amp_float32
 def KLDivergenceLoss(
     input: Tensor, 
     target: Tensor,
@@ -187,6 +192,7 @@ def KLDivergenceLoss(
 ) -> Tensor:
     return _reduce_loss(target * log(target / input), reduction)
 
+@amp_float32
 def BCEWithLogitsLoss(
     input: Tensor, 
     target: Tensor,
@@ -200,6 +206,7 @@ def BCEWithLogitsLoss(
 
 # LOSS - RANKING
 
+@amp_float32
 def TripletMarginLoss(
     anchor: Tensor, 
     positive: Tensor, 

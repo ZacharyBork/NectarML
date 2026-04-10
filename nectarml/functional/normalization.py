@@ -1,4 +1,5 @@
 from nectarml.tensor import Tensor
+from nectarml.amp.precision import amp_float32
 
 ### BATCH ###
 
@@ -74,6 +75,7 @@ def instance_norm3d(
 
 ### GROUP ###
 
+@amp_float32
 def group_norm(
     x: Tensor,
     num_groups: int,
@@ -98,6 +100,7 @@ def group_norm(
     
 ### LAYER ###
 
+@amp_float32
 def layer_norm(
     x: Tensor,
     normalized_shape: list[int],

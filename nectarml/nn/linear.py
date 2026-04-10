@@ -5,6 +5,7 @@ from nectarml.nn.module import Module
 from nectarml.nn.init import kaiming_normal_
 from nectarml.typing import DTypeLike, float32
 from nectarml.creation import empty, zeros
+from nectarml.amp.precision import amp_float16
 
 class Linear(Module):
     def __init__(
@@ -30,6 +31,7 @@ class Linear(Module):
                 device='cpu', requires_grad=True)
         else: self.bias = None
 
+    @amp_float16
     def forward(self: Linear, x: Tensor) -> Tensor:
         y = x @ self.weights.transpose((1, 0))
         if self.bias is not None: y = self.bias + y

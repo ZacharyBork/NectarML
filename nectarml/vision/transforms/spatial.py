@@ -125,7 +125,7 @@ class RandomCrop(_Crop):
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
-        p: float = 0.5,
+        p: float = 1.0,
         transform_mask: bool = True
     ) -> None:
         super().__init__(
@@ -209,7 +209,7 @@ class RandomResizedCrop(_Crop):
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
         a: float = -0.75,
-        p: float = 0.5,
+        p: float = 1.0,
         transform_mask: bool = True
     ) -> None:
         super().__init__(
