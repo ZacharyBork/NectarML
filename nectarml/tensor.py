@@ -11,6 +11,8 @@ from nectarml import typing, cpu, cuda, autograd
 from nectarml.cuda.memory import CudaBuffer
 from nectarml.amp.precision import amp_float16, amp_float32
 
+################################### tensor ###################################
+
 class tensor:
     _class_type_nectar_tensor = True
     
@@ -1111,13 +1113,8 @@ class tensor:
         index = index.expand(tuple(gather_shape))
         
         return self.gather(dim, index)
-    
-    
-    
-    
-###############################################################################
-###############################################################################
-###############################################################################
+       
+################################# BoolTensor #################################
     
 class BoolTensor(tensor):    
     def __init__(
@@ -1130,12 +1127,13 @@ class BoolTensor(tensor):
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
         super().__init__(
-            data=self._build_data(data, shape, device), 
+            data=BoolTensor._build_data(data, shape, device), 
             shape=shape, dtype=typing.bool_, 
             device=device, requires_grad=False)
 
+    @classmethod
     def _build_data(
-        self:   BoolTensor, 
+        cls,
         data:   np.ndarray,
         shape:  typing.Size,
         device: Literal['cpu', 'cuda'] 
@@ -1151,6 +1149,39 @@ class BoolTensor(tensor):
                     cuda.data_to_cuda(data, shape.numel(), np.bool_), np.bool_)
             case _: raise ValueError(f'Invalid device type: {device}')
         return ref
+    
+    def to(
+        self:   BoolTensor,
+        device: Literal['cpu', 'cuda'] | None = None,
+        dtype:  typing.DTypeLike | None = None
+    ) -> BoolTensor | Tensor: 
+        '''Casts BoolTensor to new device and/or Dtype.
+        
+        If both device and DType are the same as the device and DType of the
+        tensor this is called on, this method will return a reference to the
+        original tensor object. If you would like to make a duplicate of a
+        given tensor, please see tensor.clone() instead.
+        
+        NOTE: The returned Tensor will have requires_grad=False by default.
+        
+        Args:
+            device : The device to cast the tensor to ["cpu", "cuda"].
+            dtype : The Dtype to cast the tensor to.
+            
+        Returns:
+            tensor : The resulting tensor from the cast operation.
+        '''
+        device = device or self.device
+        dtype  = dtype  or self.dtype
+        if device == self.device and dtype == self.dtype: return self
+        if dtype != typing.bool_:
+            if self.device == 'cpu': data = self.data.astype(typing.uint8)
+            else: data = cuda.cast_tensor(self, new_dtype=typing.uint8)
+            out = Tensor._new(data, self.shape, typing.uint8, self.device)
+            return out.to(device, dtype)
+        else: return self
+    
+################################### Tensor ###################################
     
 class Tensor(tensor):    
     def __init__(
@@ -1208,14 +1239,15 @@ class Tensor(tensor):
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
         super().__init__(
-            data=self._build_data(data, shape, dtype, device), 
+            data=Tensor._build_data(data, shape, dtype, device), 
             shape=shape, dtype=dtype, device=device, 
             requires_grad=requires_grad, _children=_children)
 
     ### INIT ###
         
+    @classmethod
     def _build_data(
-        self:   Tensor, 
+        cls,
         data:   np.ndarray,
         shape:  typing.Size,
         dtype:  typing.DTypeLike,
