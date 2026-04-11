@@ -45,10 +45,10 @@ class tensor:
                 tensors during backpropagation. Used for autograd operations,
                 generally not set manually.
         '''
-        self.device = device
-        self._dtype = dtype
-        self.shape  = shape
-        self.requires_grad = requires_grad
+        self.shape          = shape
+        self._dtype         = dtype
+        self.device         = device
+        self._requires_grad = requires_grad
         
         self.grad:             tensor | None = None
         self.data:         np.ndarray | None = None
@@ -246,6 +246,30 @@ class tensor:
     def is_contiguous(self) -> bool:
         if self.device == 'cuda': return True
         else: return self.data.flags['C_CONTIGUOUS']
+        
+    @property
+    def requires_grad(self: tensor) -> bool:
+        '''Property access for tensor's requires_grad value.
+    
+        Returns:
+            bool : True if given tensor requires grad, otherwise False.
+        '''
+        return self._requires_grad
+        
+    @requires_grad.setter
+    def requires_grad(self: tensor, value: bool) -> None:
+        '''Setter for tensor's requires_grad value.
+        
+        This setter will allocate a grad tensor for the given data tensor if
+        value=True and the tensor's grad is None. If value=False, it will set
+        the given tensor's grad to None.
+        
+        Args:
+            value : True to enable grad on the given tensor, False to disable.
+        '''
+        if self.dtype != typing.bool_: 
+            self._requires_grad = value and autograd.is_grad_enabled()
+        else: self._requires_grad = False
             
     ### DATA UTILS ###
     
@@ -1105,8 +1129,10 @@ class BoolTensor(tensor):
         if not isinstance(data, np.ndarray): data = np.array(data)
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
-        data  = self._build_data(data, shape, device)
-        super().__init__(data, shape, typing.bool_, device)
+        super().__init__(
+            data=self._build_data(data, shape, device), 
+            shape=shape, dtype=typing.bool_, 
+            device=device, requires_grad=False)
 
     def _build_data(
         self:   BoolTensor, 
@@ -1181,8 +1207,10 @@ class Tensor(tensor):
         
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
-        data  = self._build_data(data, shape, dtype, device)
-        super().__init__(data, shape, dtype, device, requires_grad, _children)
+        super().__init__(
+            data=self._build_data(data, shape, dtype, device), 
+            shape=shape, dtype=dtype, device=device, 
+            requires_grad=requires_grad, _children=_children)
 
     ### INIT ###
         
@@ -1214,33 +1242,7 @@ class Tensor(tensor):
                     cuda.data_to_cuda(data, shape.numel(), dtype), dtype)
             case _: raise ValueError(f'Invalid device type: {device}')
         return ref
-    
-    ### PROPERTIES ###
-    
-    @property
-    def requires_grad(self: tensor) -> bool:
-        '''Property access for tensor's requires_grad value.
-    
-        Returns:
-            bool : True if given tensor requires grad, otherwise False.
-        '''
-        return self._requires_grad
-        
-    @requires_grad.setter
-    def requires_grad(self: tensor, value: bool) -> None:
-        '''Setter for tensor's requires_grad value.
-        
-        This setter will allocate a grad tensor for the given data tensor if
-        value=True and the tensor's grad is None. If value=False, it will set
-        the given tensor's grad to None.
-        
-        Args:
-            value : True to enable grad on the given tensor, False to disable.
-        '''
-        if self.dtype != typing.bool_: 
-            self._requires_grad = value and autograd.is_grad_enabled()
-        else: self._requires_grad = False
-        
+
     ### UTILS ###
 
     def detach(self: Tensor) -> Tensor:
