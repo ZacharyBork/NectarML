@@ -5,7 +5,7 @@ atexit.register(_nectarml.destroy_cublas_handle)
 
 from . import constants, random
 from . import amp, autograd, cpu, cuda, nn, optim, functional, utils
-from .tensor import Tensor
+from .tensor import tensor, Tensor, BoolTensor
 from .autograd import no_grad
 from .creation import (
     clone, zeros_like, ones_like, rand_like, full_like, empty_like, tril,
@@ -41,7 +41,8 @@ from .functional.normalization import (
 from .functional.pooling import (
     avg_pool1d, avg_pool2d, avg_pool3d, max_pool1d, max_pool2d, max_pool3d)
 from .functional.reductions import(
-    min, amin, max, amax, argmin, argmax, mean, sum, prod, quantile, cumsum)
+    min, amin, max, amax, argmin, argmax, mean, 
+    sum, prod, quantile, cumsum, norm)
 from .functional.shapes import (
     reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
     expand, broadcast_to, unfold, flip)

@@ -369,7 +369,7 @@ class ApplyLUT(Transform):
         S = self.lut_size
         arr = np.array(lut_data, dtype=np.float32).reshape(S, S, S, 3)
         arr = arr.transpose(2, 1, 0, 3)
-        self.lut = Tensor(arr)
+        self.lut = Tensor(arr, dtype=float32)
             
     def _apply_lut_cpu(self, image: np.ndarray) -> np.ndarray:
         S = self.lut_size
@@ -534,7 +534,7 @@ class Morphological(Transform):
                 else: outputs.append(grey_erosion(arr, size=self._scale))
             output = np.stack(outputs, axis=1)
                   
-        return Tensor(output, dtype=input.dtype).to(input.device)
+        return Tensor(output, dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
         self._scale = int(self._random_in_range(self.scale))
@@ -659,7 +659,7 @@ class OverlayText(Transform):
 
             arr = np.array(image).transpose(2, 0, 1)[np.newaxis]
             arr = arr.astype(input.dtype) / 255
-            text = Tensor(arr, dtype=input.dtype).to(input.device)
+            text = Tensor(arr, dtype=input.dtype, device=input.device)
 
             start_y = int(self.location[0] * H)
             end_y = int(self.location[0] * H) + text.shape[-2]

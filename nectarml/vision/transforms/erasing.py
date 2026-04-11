@@ -760,7 +760,7 @@ class Spatter(Transform):
         disp_y    = zeros((H, W), dtype=input.dtype).to(input.device)
         
         for r in range(self._droplet_scales, 0, -1):
-            d = Tensor(self._ds[r-1], dtype=float32).to(input.device)
+            d = Tensor(self._ds[r-1], dtype=float32, device=input.device)
             ds = F.unbind(d, dim=0)
             
             ux, uy = u * self._gx, v * self._gy

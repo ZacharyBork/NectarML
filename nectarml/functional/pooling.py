@@ -32,7 +32,7 @@ def avg_pool1d(
     else:
         out_data = cpu_pool.avg_pool1d_forward(
             input, B, C, L, L_out, K, S, P, count_include_pad)
-    out = Tensor(out_data, (B, C, L_out), input.dtype, input.device,
+    out = Tensor._new(out_data, (B, C, L_out), input.dtype, input.device,
         requires_grad=input_requires_grad, _children=(input,))
 
     def _backward() -> None:
@@ -41,12 +41,12 @@ def avg_pool1d(
             if input.device == 'cuda':
                 grad_ptr = cuda_pool.avg_pool1d_backward(
                     out_grad, B, C, L, L_out, K, S, P, count_include_pad)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_ptr, input.shape, input.dtype, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool1d_backward(
                     out_grad, B, C, L, L_out, K, S, P, count_include_pad)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_data, input.shape, input.dtype, 'cpu')
     
     out._backward = _backward
@@ -86,8 +86,8 @@ def avg_pool2d(
         out_data = cpu_pool.avg_pool2d_forward(
             input, B, C, H, W, H_out, W_out,
             KH, KW, SH, SW, PH, PW, count_include_pad, divisor_override)
-    out = Tensor(out_data, (B, C, H_out, W_out), input.dtype, input.device,
-        requires_grad=input_requires_grad, _children=(input,))
+    out = Tensor._new(out_data, (B, C, H_out, W_out), input.dtype, 
+        input.device, requires_grad=input_requires_grad, _children=(input,))
 
     def _backward() -> None:
         if input_requires_grad:
@@ -96,14 +96,14 @@ def avg_pool2d(
                 grad_ptr = cuda_pool.avg_pool2d_backward(
                     out_grad, B, C, H, W, H_out, W_out,
                     KH, KW, SH, SW, PH, PW, count_include_pad)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_ptr, input.shape, input.dtype, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool2d_backward(
                     out_grad, B, C, H, W, H_out, W_out,
                     KH, KW, SH, SW, PH, PW, 
                     count_include_pad, divisor_override)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_data, input.shape, input.dtype, 'cpu')
         
     out._backward = _backward
@@ -147,7 +147,7 @@ def avg_pool3d(
             input, B, C, D, H, W, D_out, H_out, W_out,
             KD, KH, KW, SD, SH, SW, PD, PH, PW, 
             count_include_pad, divisor_override)
-    out = Tensor(out_data, (B, C, D_out, H_out, W_out), input.dtype, 
+    out = Tensor._new(out_data, (B, C, D_out, H_out, W_out), input.dtype, 
         input.device, requires_grad=input_requires_grad, 
         _children=(input,))
 
@@ -158,14 +158,14 @@ def avg_pool3d(
                 grad_ptr = cuda_pool.avg_pool3d_backward(
                     out_grad, B, C, D, H, W, D_out, H_out, W_out,
                     KD, KH, KW, SD, SH, SW, PD, PH, PW, count_include_pad)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_ptr, input.shape, input.dtype, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool3d_backward(
                     out_grad, B, C, D, H, W, D_out, H_out, W_out,
                     KD, KH, KW, SD, SH, SW, PD, PH, PW,
                     count_include_pad, divisor_override)
-                input.grad += Tensor(
+                input.grad += Tensor._new(
                     grad_data, input.shape, input.dtype, 'cpu')
                 
     out._backward = _backward
@@ -201,7 +201,7 @@ def max_pool1d(
         out_data, indices = cpu_pool.max_pool1d_forward(
             input, B, C, L, L_out, K, S, P, D)
 
-    out = Tensor(out_data, (B, C, L_out), input.dtype, input.device,
+    out = Tensor._new(out_data, (B, C, L_out), input.dtype, input.device,
         requires_grad=input_requires_grad, _children=(input,))
 
 
@@ -214,12 +214,12 @@ def max_pool1d(
             else:
                 grad_data = cpu_pool.max_pool1d_backward(
                     out_grad, indices, B, C, L, L_out)
-            input.grad += Tensor(grad_data, input.shape, input.dtype,
-                input.grad.device)
+            input.grad += Tensor._new(
+                grad_data, input.shape, input.dtype, input.grad.device)
 
     out._backward = _backward
     if return_indices:
-        idx_tensor = Tensor(indices, (B, C, L_out), int32, 'cuda')
+        idx_tensor = Tensor._new(indices, (B, C, L_out), int32, input.device)
         return out, idx_tensor
     return out
 
@@ -259,7 +259,7 @@ def max_pool2d(
             input, B, C, H, W, H_out, W_out,
             KH, KW, SH, SW, PH, PW, D)
         
-    out = Tensor(out_data, (B, C, H_out, W_out), input.dtype, input.device,
+    out = Tensor._new(out_data, (B, C, H_out, W_out), input.dtype, input.device,
         requires_grad=input_requires_grad, _children=(input,))
         
     def _backward() -> None:
@@ -271,12 +271,12 @@ def max_pool2d(
             else:
                 grad_data = cpu_pool.max_pool2d_backward(
                     out_grad, indices, B, C, H, W, H_out, W_out)
-            input.grad += Tensor(grad_data, input.shape, input.dtype, 
+            input.grad += Tensor._new(grad_data, input.shape, input.dtype, 
                 input.grad.device)
 
     out._backward = _backward
     if return_indices:
-        idx_tensor = Tensor(
+        idx_tensor = Tensor._new(
             indices, (B, C, H_out, W_out), int32, input.device)
         return out, idx_tensor
     return out
@@ -318,7 +318,7 @@ def max_pool3d(
         out_data, indices = cpu_pool.max_pool3d_forward(
             input, B, C, Dp, H, W, D_out, H_out, W_out,
             KD, KH, KW, SD, SH, SW, PD, PH, PW, D)
-    out = Tensor(out_data, (B, C, D_out, H_out, W_out), input.dtype,
+    out = Tensor._new(out_data, (B, C, D_out, H_out, W_out), input.dtype,
         input.device, requires_grad=input_requires_grad, _children=(input,))
         
     def _backward() -> None:
@@ -331,12 +331,12 @@ def max_pool3d(
                 grad_data = cpu_pool.max_pool3d_backward(
                     out_grad, indices, B, C, Dp, H, W, D_out, H_out, W_out)
 
-            input.grad += Tensor(grad_data, input.shape, input.dtype, 
+            input.grad += Tensor._new(grad_data, input.shape, input.dtype, 
                 input.grad.device, input_requires_grad, _children=(input,))
 
     out._backward = _backward
     if return_indices:
-        idx_tensor = Tensor(
+        idx_tensor = Tensor._new(
             indices, (B, C, D_out, H_out, W_out), int32, input.device)
         return out, idx_tensor
     return out

@@ -12,7 +12,7 @@ def sort(
 ) -> tuple[np.ndarray, np.ndarray]:
     indices = np.argsort(input.data, axis=dim, kind='stable')
     if descending:
-        indices_data = np.flip(indices, axis=dim).copy()
+        indices = np.flip(indices, axis=dim).copy()
     out_data = np.take_along_axis(input.data, indices, axis=dim)
     return out_data, indices
 

@@ -17,6 +17,7 @@ def _batch_norm(
     if not beta is None: x_norm = beta + x_norm
     return x_norm, (mean, variance)
 
+@amp_float32
 def batch_norm1d(
     x: Tensor,
     gamma: Tensor | None = None,
@@ -26,6 +27,7 @@ def batch_norm1d(
     assert x.ndim == 3, 'BatchNorm1d expects 3D input (B, C, L)'
     return _batch_norm((0,), x, gamma, beta, eps)
 
+@amp_float32
 def batch_norm2d(
     x: Tensor,
     gamma: Tensor | None = None,
@@ -35,6 +37,7 @@ def batch_norm2d(
     assert x.ndim == 4, 'BatchNorm2d expects 4D input (B, C, H, W)'
     return _batch_norm((0, 2, 3), x, gamma, beta, eps)
 
+@amp_float32
 def batch_norm3d(
     x: Tensor,
     gamma: Tensor | None = None,

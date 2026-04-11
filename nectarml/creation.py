@@ -9,28 +9,26 @@ from nectarml.random import RNG
 # CREATION / DUPLICATION
 
 def clone(input: Tensor, requires_grad: bool | None = None) -> Tensor:
-    _grad = input.requires_grad if requires_grad is None else requires_grad
-    data = input.numpy()
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    out = input.clone()
+    out._prev = None
+    out.requires_grad = input.requires_grad \
+        if requires_grad is None else requires_grad
+    return out
     
 def zeros_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     _grad = input.requires_grad if requires_grad is None else requires_grad
     data = np.zeros(input.shape, dtype=input.dtype)
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def ones_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
     data = np.ones(input.shape, dtype=input.dtype)
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     _grad = input.requires_grad if requires_grad is None else requires_grad 
     data = RNG.random(input.shape, dtype=input.dtype)
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def full_like(
     input: Tensor, 
@@ -39,14 +37,12 @@ def full_like(
 ) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
     data = np.full(input.shape, fill_value, dtype=input.dtype)
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def empty_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
     data = np.empty(input.shape, dtype=input.dtype)
-    out = Tensor(data, input.shape, input.dtype, requires_grad=_grad)
-    return out.to(input.device)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 # FIXED SHAPE
 
@@ -137,8 +133,7 @@ def arange(
 ) -> Tensor: 
     if stop is None: data = np.arange(start, step=step, dtype=dtype)
     else: data = np.arange(start, stop, step, dtype=dtype)
-    out = Tensor(data, dtype=dtype, requires_grad=requires_grad)
-    return out.to(device)
+    return Tensor(data, data.shape, dtype, device, requires_grad)
 
 def linspace(
     start: float,
@@ -149,8 +144,7 @@ def linspace(
     requires_grad: bool = False
 ) -> Tensor: 
     data = np.linspace(start, stop, num_elements, dtype=dtype)
-    out = Tensor(data, dtype=dtype, requires_grad=requires_grad)
-    return out.to(device)
+    return Tensor(data, data.shape, dtype, device, requires_grad)
 
 def tril(
     size: int, 
@@ -159,5 +153,4 @@ def tril(
     requires_grad: bool = False
 ) -> Tensor:
     data = np.tril(np.ones((size, size), dtype=dtype))
-    out = Tensor(data, requires_grad=requires_grad)
-    return out.to(device=device, dtype=dtype)
+    return Tensor(data, data.shape, dtype, device, requires_grad)

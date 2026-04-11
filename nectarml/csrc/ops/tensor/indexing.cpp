@@ -155,35 +155,6 @@ namespace nectar {
         }
     }
 
-    // uintptr_t slice(
-    //     uintptr_t input_ptr,
-    //     std::vector<int> input_shape,
-    //     std::vector<int> start,
-    //     std::vector<int> stop,
-    //     std::vector<int> step,
-    //     DType dtype
-    // ) {
-    //     TensorIndex in_idx(input_shape.data(), input_shape.size());
-    
-    //     std::vector<int> out_shape(in_idx.ndim);
-    //     for (int i = 0; i < in_idx.ndim; i++)
-    //         out_shape[i] = (stop[i] - start[i] + step[i] - 1) / step[i];
-        
-    //     TensorIndex out_idx(out_shape.data(), out_shape.size());
-    //     SliceIndex slice_idx(
-    //         start.data(), stop.data(), step.data(), in_idx.ndim);
-
-    //     DISPATCH_DTYPE(dtype, T, {
-    //         T* d_out;
-    //         size_t memsize = out_idx.n_elements * sizeof(T);
-    //         cudaMalloc(&d_out, memsize);
-    //         launch_slice<T>(
-    //             reinterpret_cast<T*>(input_ptr), d_out,
-    //             in_idx, out_idx, slice_idx);
-    //         return reinterpret_cast<uintptr_t>(d_out);
-    //     });
-    // }
-
     uintptr_t slice(
         uintptr_t input_ptr,
         std::vector<int> input_shape,

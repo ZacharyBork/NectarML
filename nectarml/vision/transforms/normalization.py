@@ -33,7 +33,7 @@ class Normalize(Transform):
         mean = Tensor(np.array(self.mean, dtype=float32))
         mean = mean.reshape(broadcast_shape).to(input.device, input.dtype)
         std  = Tensor(np.array(self.std,  dtype=float32))
-        std = std.reshape(broadcast_shape).to(input.device, input.dtype)
+        std  = std.reshape(broadcast_shape).to(input.device, input.dtype)
         
         out = (input - mean) / (std + self.eps)
         if self.inplace: return input.copy_(out)
@@ -68,8 +68,8 @@ class Denormalize(Transform):
 
         mean = Tensor(np.array(self.mean, dtype=float32))
         mean = mean.reshape(broadcast_shape).to(input.device)
-        std  = Tensor(np.array(self.std,  dtype=float32))
-        std = std.reshape(broadcast_shape).to(input.device)
+        std  = Tensor(np.array(self.std, dtype=float32))
+        std  = std.reshape(broadcast_shape).to(input.device)
 
         out = input * std + mean
         if self.inplace: return input.copy_(out)

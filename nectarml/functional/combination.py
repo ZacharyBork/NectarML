@@ -26,7 +26,8 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     if device == 'cuda': data = combination.concatenate(tensors, dim)
     else: data = _combination.concatenate([t.data for t in tensors], dim=dim)
     
-    out = Tensor(data, shape, dtype, device, requires_grad, tuple(tensors))
+    out = Tensor._new(
+        data, shape, dtype, device, requires_grad, tuple(tensors))
 
     def _backward() -> None:
         offset = 0

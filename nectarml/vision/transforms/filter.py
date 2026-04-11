@@ -343,8 +343,8 @@ class Halftone(Transform):
                     cell[mask] = fg[c]
                     out[c, y0:y1, x0:x1] = cell
         
-        result = Tensor(out[np.newaxis], dtype=input.dtype, device='cpu')
-        result = result.to(input.device, input.dtype)
+        result = Tensor(out[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
         return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
 
     def _build_parameters(self) -> None:
@@ -536,7 +536,8 @@ class AsciiRender(Transform):
         lines = self._to_ascii(input)
         arr = self._to_image(lines, input)
         arr = arr.transpose(2, 0, 1).astype(np.float32) / arr.max().item()
-        out = Tensor(arr[np.newaxis], dtype=input.dtype).to(input.device)
+        out = Tensor(arr[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
         out = F.upsample(out, size=(H, W), mode='nearest')
 
         return out * input.max().item()

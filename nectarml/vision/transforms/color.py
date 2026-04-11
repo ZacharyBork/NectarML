@@ -45,7 +45,7 @@ class ColorJitter(Transform):
         max_value = input.max().item()
         
         if not np.allclose(list(self.contrast), [1, 1]):
-            input = input / max_value
+            input = input / (max_value + self._epsilon)
             input = ((input - 0.5) * self._contrast + 0.5) * max_value
             input = input.clamp(0.0, max_value)
 
@@ -105,7 +105,9 @@ class RandomContrast(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        out = (((input / max_value) - 0.5) * self._contrast + 0.5) * max_value
+        out = (
+            (input / (max_value + self._epsilon) - 0.5) 
+           * self._contrast + 0.5) * max_value
         return out.clamp(0.0, max_value)
     
     def _build_parameters(self) -> None:
@@ -185,7 +187,7 @@ class RandomGamma(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        out = (input / max_value) ** self._gamma * max_value
+        out = (input / (max_value + self._epsilon)) ** self._gamma * max_value
         return out.clamp(0.0, max_value)
     
     def _build_parameters(self) -> None:
@@ -233,7 +235,7 @@ class ToBlackAndWhite(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value+ self._epsilon)
         
         gray = norm.mean(dim=1, keepdim=True)
         result = F.where(
@@ -373,7 +375,7 @@ class AutoContrast(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         
         if self.cutoff == 0.0:
             lo = norm.amin(dim=(-2, -1), keepdim=True)
@@ -419,7 +421,7 @@ class Solarize(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        r, g, b = (input / max_value).unbind(dim=1)
+        r, g, b = (input / (max_value + self._epsilon)).unbind(dim=1)
         channels = [
             F.where((r < self._thresholds[0]), r, 1-r),
             F.where((g < self._thresholds[1]), g, 1-g),
@@ -505,7 +507,7 @@ class CLAHE(Transform):
         hist += excess / 256
         
         cdf = np.cumsum(hist)
-        cdf = (cdf - cdf.min()) / (tile.size - cdf.min()) * 255
+        cdf = (cdf - cdf.min()) / (tile.size - cdf.min() + self._epsilon) * 255
         return cdf.astype(np.float32)        
 
     def _interp(
@@ -555,7 +557,8 @@ class CLAHE(Transform):
         ty, tx = self.tile_grid_size
         max_val = input.max().item()
 
-        arr = (input.cpu().numpy() / max_val * 255).astype(np.uint8)
+        arr = (input.cpu().numpy() / (max_val + self._epsilon) * 255)
+        arr = arr.astype(np.uint8)
         out = np.zeros_like(arr, dtype=np.float32)
         
         th, tw = H // ty, W // tx
@@ -572,7 +575,7 @@ class CLAHE(Transform):
                 out[b, c] = self._interp(channel, mappings, th, tw, ty, tx)
         
         out = (out / 255.0 * max_val).astype(input.dtype)
-        return Tensor(out, dtype=input.dtype).to(input.device)
+        return Tensor(out, dtype=input.dtype, device=input.device)
         
     def forward(self, input: Tensor) -> Tensor:
         return TransformInput(
@@ -656,7 +659,7 @@ class RGBShift(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        remapped = input / max_value * 255.0
+        remapped = input / (max_value + self._epsilon) * 255.0
         r, g, b = remapped.unbind(dim=1)
         
         channels = [r + self._r, g + self._g, b + self._b]
@@ -733,7 +736,7 @@ class TonemapHDR(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         max_value = input.max().item()
-        norm = input / max_value
+        norm = input / (max_value + self._epsilon)
         
         match self.method:
             case 'reinhard': 
@@ -885,16 +888,16 @@ class Illumination(Transform):
         yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
         xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
         proj = xx * math.cos(angle_rad) + yy * math.sin(angle_rad)
-        proj = (proj - proj.min()) / (proj.max() - proj.min() + 1e-8)
+        proj = (proj - proj.min()) / (proj.max() - proj.min() + self._epsilon)
         return proj.to(dtype=float32)
 
     def _radial_mask(self, H: int, W: int) -> Tensor:
         yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
         xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
         dist = ((xx - self._cx)**2 + (yy - self._cy)**2).sqrt()
-        dist = dist / (math.sqrt(2) + 1e-8)
+        dist = dist / (math.sqrt(2) + self._epsilon)
         mask = 1.0 - dist
-        mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
+        mask = (mask - mask.min()) / (mask.max() - mask.min() + self._epsilon)
         return mask.to(dtype=float32)
 
     def _transform(self, input: Tensor | None) -> Tensor | None:

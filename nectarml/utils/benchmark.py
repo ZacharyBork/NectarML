@@ -9,7 +9,8 @@ from nectarml.cuda.memory import get_cuda_meminfo, get_memory_statistics
 @contextmanager
 def benchmark_time(
     operation_name: str | None = None,
-    new_line: bool = False
+    new_line: bool = False,
+    enabled: bool = True
 ) -> Iterator[None]:
     '''Context to track execution time of code blocks.
     
@@ -28,9 +29,11 @@ def benchmark_time(
             contextmanager.
     '''
     start_time = None
-    try: start_time = time.perf_counter()
+    try: 
+        if enabled: start_time = time.perf_counter()
     finally:
         yield operation_name, new_line
+        if not enabled: return 
         if start_time is not None:
             op_tag = '' if operation_name is None else f'({operation_name}) '
             cr = '\n' if new_line else ''

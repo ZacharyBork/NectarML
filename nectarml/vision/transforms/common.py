@@ -86,7 +86,7 @@ def hsv_adjust(
     max_value: int | float | None = None
 ) -> Tensor:
     max_value = max_value or input.max().item()
-    input = input / max_value
+    input = input / (max_value + 1e-8)
     if input.device == 'cuda':
         out_data = _nectarml.hsv_adjust(
             input._data_ptr, list(input.shape),

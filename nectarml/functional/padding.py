@@ -41,7 +41,7 @@ def pad(
         shape = out_data.shape
         
     input_requires_grad = input.requires_grad
-    out = Tensor(out_data, shape, input.dtype, input.device,
+    out = Tensor._new(out_data, shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
 
     def _backward() -> None:

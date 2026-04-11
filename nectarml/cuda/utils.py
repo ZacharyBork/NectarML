@@ -9,7 +9,7 @@ import numpy as np
 
 import _nectarml
 from nectarml.cuda.mapping import DTYPE_MAP
-from nectarml.typing import DTypeLike, Size
+from nectarml.typing import DTypeLike
 
 ### PYTHON-SIDE UTILS ###
 
@@ -19,17 +19,20 @@ def map_dtype(dtype: DTypeLike) -> Any:
 ### CUDA-SIDE UTILS ###
 
 def cast_tensor(input: Tensor, new_dtype: DTypeLike) -> int:
+    cast_dtype = map_dtype(new_dtype)
     return _nectarml.cast_tensor(
         input._data_ptr, input.size, 
-        map_dtype(input.dtype), map_dtype(new_dtype))
+        map_dtype(input.dtype), cast_dtype)
 
 def to_cuda(input: Tensor) -> int:
+    cast_dtype = map_dtype(input.dtype)
     ptr = _nectarml.to_cuda(
-        input.data.ctypes.data, input.size, map_dtype(input.dtype))
+        input.data.ctypes.data, input.size, cast_dtype)
     return ptr
 
 def data_to_cuda(data: np.ndarray, size: int, dtype: DTypeLike) -> int:
-    ptr = _nectarml.to_cuda(data.ctypes.data, size, map_dtype(dtype))
+    cast_dtype = map_dtype(dtype)
+    ptr = _nectarml.to_cuda(data.ctypes.data, size, cast_dtype)
     return ptr
 
 def to_cpu(input: Tensor, host_dtype: DTypeLike | None = None) -> np.ndarray:

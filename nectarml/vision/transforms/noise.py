@@ -31,8 +31,7 @@ class GaussianNoise(Transform):
         norm = input / max_value
         
         self._rand = self._rand.astype(input.dtype) * self.noise_scale_factor
-        noise = Tensor(self._rand, self._rand.shape)
-        noise = noise.to(input.device, input.dtype)
+        noise = Tensor(self._rand, self._rand.shape, input.dtype, input.device)
 
         if not self.per_channel: noise = noise.expand(input.shape)
         return ((norm + noise) * max_value).clamp(0.0, max_value)
@@ -236,7 +235,7 @@ class ImageCompression(Transform):
         result = np.array(compressed).astype(np.float32) / 255.0
         result = result.transpose(2, 0, 1)[np.newaxis]
 
-        return Tensor(result, dtype=input.dtype).to(input.device)
+        return Tensor(result, dtype=input.dtype, device=input.device)
             
     def _build_parameters(self) -> None:
         self._quality = int(self._random_in_range(self.quality))

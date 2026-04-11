@@ -78,14 +78,14 @@ def upsample_nearest(
     
     input_requires_grad = input.requires_grad
     output_shape = (input.shape[0], input.shape[1]) + output_size
-    out = Tensor(
+    out = Tensor._new(
         out_data, output_shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
     
     def _backward() -> None:
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_ptr, input.shape, input.dtype, input.device)
     
     out._backward = _backward
@@ -119,14 +119,14 @@ def upsample_linear(
 
     input_requires_grad = input.requires_grad
     output_shape = (input.shape[0], input.shape[1]) + output_size
-    out = Tensor(
+    out = Tensor._new(
         out_data, output_shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
     
     def _backward() -> None:
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_ptr, input.shape, input.dtype, input.device)
     
     out._backward = _backward
@@ -158,14 +158,14 @@ def upsample_bilinear(
 
     input_requires_grad = input.requires_grad
     output_shape = (input.shape[0], input.shape[1]) + output_size
-    out = Tensor(
+    out = Tensor._new(
         out_data, output_shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
     
     def _backward() -> None:
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_ptr, input.shape, input.dtype, input.device)
     
     out._backward = _backward
@@ -199,14 +199,14 @@ def upsample_trilinear(
 
     input_requires_grad = input.requires_grad
     output_shape = (input.shape[0], input.shape[1]) + output_size
-    out = Tensor(
+    out = Tensor._new(
         out_data, output_shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
     
     def _backward() -> None:
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_ptr, input.shape, input.dtype, input.device)
     
     out._backward = _backward
@@ -241,14 +241,14 @@ def upsample_bicubic(
 
     input_requires_grad = input.requires_grad
     output_shape = (input.shape[0], input.shape[1]) + output_size
-    out = Tensor(
+    out = Tensor._new(
         out_data, output_shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
     
     def _backward() -> None:
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_ptr, input.shape, input.dtype, input.device)
     
     out._backward = _backward

@@ -33,7 +33,7 @@ def _conv_transpose1d_cpu(
         B, C_in, L_in, C_out, K, 
         stride, padding, dilation, 
         output_padding, groups)
-    out = Tensor(
+    out = Tensor._new(
         out_data, (B, C_out, L_out), input.dtype, input.device,
         requires_grad=_requires_grad, _children=tuple(_children))
     
@@ -48,7 +48,7 @@ def _conv_transpose1d_cpu(
                 out_grad.data, weight.data,
                 B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_input, input.shape, input.dtype, 'cpu')
 
         if weight_requires_grad:
@@ -56,11 +56,11 @@ def _conv_transpose1d_cpu(
                 out_grad.data, input.data,
                 B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
-            weight.grad += Tensor(
+            weight.grad += Tensor._new(
                 grad_weight, weight.shape, weight.dtype, 'cpu')
 
         if bias is not None and bias_requires_grad:
-            bias.grad += Tensor(
+            bias.grad += Tensor._new(
                 out_grad.data.sum(axis=(0, 2)),
                 bias.shape, bias.dtype, 'cpu')
                 
@@ -94,7 +94,7 @@ def _conv_transpose1d_cuda(
     out_data = cuda.conv.conv_transpose1d(
         input, weight, bias, B, C_in, L_in, C_out, K,
         stride, padding, output_padding, dilation, groups)
-    out = Tensor(out_data, (B, C_out, L_out), input.dtype, input.device,
+    out = Tensor._new(out_data, (B, C_out, L_out), input.dtype, input.device,
         requires_grad=_requires_grad, _children=tuple(_children))
     
     def _backward() -> None:
@@ -107,14 +107,14 @@ def _conv_transpose1d_cuda(
             grad_input_ptr = cuda.conv.conv_transpose1d_backward_input(
                 out_grad, weight, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_input_ptr, input.shape, input.dtype, input.device)
 
         if weight_requires_grad:
             grad_weight_ptr = cuda.conv.conv_transpose1d_backward_weight(
                 out_grad, input, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation)
-            weight.grad += Tensor(
+            weight.grad += Tensor._new(
                 grad_weight_ptr, weight.shape, weight.dtype, weight.device)
 
         if bias is not None and bias_requires_grad:

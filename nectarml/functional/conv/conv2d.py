@@ -34,7 +34,7 @@ def _conv2d_cpu(
         B, C_in, H, W, C_out, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w, 
         dilation_h, dilation_w, groups)
-    out = Tensor(
+    out = Tensor._new(
         out_data, (B, C_out, H_out, W_out), input.dtype, input.device,
         requires_grad=_requires_grad, _children=tuple(_children))
     
@@ -47,7 +47,7 @@ def _conv2d_cpu(
                 KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_input, input.shape, input.dtype, 'cpu')
         
         if weight_requires_grad:
@@ -55,11 +55,11 @@ def _conv2d_cpu(
                 out_grad.data, input_padded, weight.data,
                 KH, KW, H_out, W_out,
                 stride_h, stride_w, dilation_h, dilation_w, groups)
-            weight.grad += Tensor(
+            weight.grad += Tensor._new(
                 grad_weight, weight.shape, weight.dtype, 'cpu')
         
         if bias is not None and bias_requires_grad:
-            bias.grad += Tensor(
+            bias.grad += Tensor._new(
                 out_grad.data.sum(axis=(0, 2, 3)), 
                 bias.shape, bias.dtype, 'cpu')
                 
@@ -95,7 +95,7 @@ def _conv2d_cuda(
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w, 
         dilation_h, dilation_w, groups)
-    out = Tensor(out_data, (B, C_out, H_out, W_out), input.dtype, input.device,
+    out = Tensor._new(out_data, (B, C_out, H_out, W_out), input.dtype, input.device,
         requires_grad=_requires_grad, _children=tuple(_children))
     
     def _backward() -> None:
@@ -110,7 +110,7 @@ def _conv2d_cuda(
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
-            input.grad += Tensor(
+            input.grad += Tensor._new(
                 grad_input_ptr, input.shape, input.dtype, input.device)
         
         if weight_requires_grad:
@@ -119,7 +119,7 @@ def _conv2d_cuda(
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w)
-            weight.grad += Tensor(
+            weight.grad += Tensor._new(
                 grad_weight_ptr, weight.shape, weight.dtype, weight.device)
         
         if bias is not None and bias_requires_grad:

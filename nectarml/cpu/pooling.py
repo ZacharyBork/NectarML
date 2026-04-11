@@ -5,8 +5,6 @@ if TYPE_CHECKING:
 
 import numpy as np
 
-from nectarml import typing
-
 ### AVERAGE POOL ###
 
 def avg_pool1d_forward(

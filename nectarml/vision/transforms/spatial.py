@@ -570,7 +570,9 @@ class RandomAffine(_GridSampleTransform):
             H, W, self._angle, self._tx, 
             self._ty, self._scale, self._shear)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
         self._angle = self._random_in_range(self.degrees)
@@ -657,7 +659,9 @@ class RandomPerspective(_GridSampleTransform):
         a = input.cpu().numpy()[0]
         src_x, src_y = self._compute_flow(H, W, self._src_pts, self._dst_pts)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
         half_h = H * self.distortion_scale / 2
@@ -735,7 +739,9 @@ class OpticalDistortion(_GridSampleTransform):
         a = input.cpu().numpy()[0]
         src_x, src_y = self._compute_flow(H, W, self._k, self._dx, self._dy)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
         self._k  = self._random_in_range(self.distort_limit)
@@ -788,7 +794,9 @@ class ElasticTransform(_GridSampleTransform):
         a = input.cpu().numpy()[0]
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
         self._alpha = self._random_in_range(self.alpha)
@@ -844,7 +852,9 @@ class GridDistortion(_GridSampleTransform):
         a = input.cpu().numpy()[0]
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
         stepsx = np.linspace(0, W - 1, self.num_steps + 1)
@@ -916,7 +926,9 @@ class Swirl(_GridSampleTransform):
         a = input.cpu().numpy()[0]
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
-        return Tensor(result[np.newaxis], dtype=input.dtype).to(input.device)
+        return Tensor(
+            result[np.newaxis].astype(input.dtype), 
+            dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
         self._strength = self._random_in_range(self.strength)

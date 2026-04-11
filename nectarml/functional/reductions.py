@@ -69,6 +69,14 @@ def prod(
 ) -> Tensor:
     return input.prod(dim, keepdim, initial)
 
+def norm(
+    input: Tensor,
+    p: Literal['fro', 'l1', 'inf', '-inf', 'l0', 'lp'] = 'fro',
+    dim: int | tuple[int, ...] | None = None,
+    keepdim: bool = False
+) -> Tensor:
+    return input.norm(p, dim, keepdim)
+
 def quantile(
     input: Tensor, 
     q: float | Tensor,

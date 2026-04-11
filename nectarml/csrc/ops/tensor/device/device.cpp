@@ -12,14 +12,18 @@ void launch_cast_kernel(SrcT* src, DstT* dst, size_t n_elements);
 
 namespace nectar {
     
-    uintptr_t cast_tensor(uintptr_t device_ptr, size_t n_elements, DType src_dtype, DType dst_dtype) {
+    uintptr_t cast_tensor(
+        uintptr_t device_ptr, 
+        size_t n_elements, DType 
+        src_dtype, 
+        DType dst_dtype
+    ) {
         DISPATCH_DTYPE(src_dtype, SrcT, {
             DISPATCH_DTYPE(dst_dtype, DstT, {
                 DstT* d_ptr;
                 cudaMalloc(&d_ptr, n_elements * sizeof(DstT));
                 launch_cast_kernel<SrcT, DstT>(
                     reinterpret_cast<SrcT*>(device_ptr), d_ptr, n_elements);
-                cudaFree(reinterpret_cast<void*>(device_ptr));
                 return reinterpret_cast<uintptr_t>(d_ptr);
             });
         });
