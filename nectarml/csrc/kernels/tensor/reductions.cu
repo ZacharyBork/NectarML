@@ -4,13 +4,13 @@
 #include "ops/policies/reductions.h"
 
 template<typename T, unsigned int blockSize, template<typename> class Op>
-__device__ void reduce_warp(volatile T* sdata, int tid) {
-    if (blockSize >= 64) Op<T>::combine(sdata[tid], sdata[tid + 32]);
-    if (blockSize >= 32) Op<T>::combine(sdata[tid], sdata[tid + 16]);
-    if (blockSize >= 16) Op<T>::combine(sdata[tid], sdata[tid + 8]);
-    if (blockSize >= 8)  Op<T>::combine(sdata[tid], sdata[tid + 4]);
-    if (blockSize >= 4)  Op<T>::combine(sdata[tid], sdata[tid + 2]);
-    if (blockSize >= 2)  Op<T>::combine(sdata[tid], sdata[tid + 1]);
+__device__ void reduce_warp(T* sdata, int tid) {
+    if (blockSize >= 64) { Op<T>::combine(sdata[tid], sdata[tid + 32]); __syncwarp(); }
+    if (blockSize >= 32) { Op<T>::combine(sdata[tid], sdata[tid + 16]); __syncwarp(); }
+    if (blockSize >= 16) { Op<T>::combine(sdata[tid], sdata[tid +  8]); __syncwarp(); }
+    if (blockSize >= 8)  { Op<T>::combine(sdata[tid], sdata[tid +  4]); __syncwarp(); }
+    if (blockSize >= 4)  { Op<T>::combine(sdata[tid], sdata[tid +  2]); __syncwarp(); }
+    if (blockSize >= 2)  { Op<T>::combine(sdata[tid], sdata[tid +  1]); __syncwarp(); }
 }
 
 template<typename T, unsigned int blockSize, template<typename> class Op>
