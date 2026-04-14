@@ -21,7 +21,7 @@ def _reduce_loss(
 
 # LOSS - REGRESSION
 
-def L1Loss(
+def l1_loss(
     input:     Tensor, 
     target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -43,7 +43,7 @@ def L1Loss(
     out         = _reduce_loss(abs((x - y)), reduction)
     return out.to(dtype=input_dtype)
 
-def MAELoss(
+def mae_loss(
     input:     Tensor, 
     target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -60,9 +60,9 @@ def MAELoss(
     Returns:
         Tensor : The computed loss.
     '''
-    return L1Loss(input, target, reduction)
+    return l1_loss(input, target, reduction)
 
-def L2Loss(
+def l2_loss(
     input:     Tensor, 
     target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -86,7 +86,7 @@ def L2Loss(
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
-def MSELoss(
+def mse_loss(
     input:     Tensor, 
     target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -104,20 +104,20 @@ def MSELoss(
     Returns:
         Tensor : The computed loss.
     ''' 
-    return L2Loss(input, target, reduction)
+    return l2_loss(input, target, reduction)
 
-def RMSELoss(
+def rmse_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = sqrt(MSELoss(x, y, reduction='none'))
+    loss_value  = sqrt(mse_loss(x, y, reduction='none'))
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
-def HuberLoss(
+def huber_loss(
     input:     Tensor, 
     target:    Tensor, 
     delta:     builtins.float = 1.0,
@@ -129,7 +129,7 @@ def HuberLoss(
     loss_value = where((abs(distance)).data < delta, quadratic, linear)
     return _reduce_loss(loss_value, reduction)
 
-def LogCoshLoss(
+def log_cosh_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -142,7 +142,7 @@ def LogCoshLoss(
 
 # LOSS - CLASSIFICATION
 
-def BCELoss(
+def bce_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -153,7 +153,7 @@ def BCELoss(
     out         =  _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
-def CrossEntropyLoss(
+def cross_entropy_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -163,7 +163,7 @@ def CrossEntropyLoss(
     out         = _reduce_loss(-sum(y * log(x)), reduction)
     return out.to(dtype=input_dtype)
 
-def NLLLoss(
+def nll_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -186,7 +186,7 @@ def NLLLoss(
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
-def HingeLoss(
+def hinge_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -194,7 +194,7 @@ def HingeLoss(
     return _reduce_loss(
         maximum(1 - target * input), reduction, 0.0)
 
-def Hinge2Loss(
+def hinge2_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -204,7 +204,7 @@ def Hinge2Loss(
 
 # LOSS - PROBABILISTIC
 
-def KLDivergenceLoss(
+def kl_divergence_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'sum'
@@ -215,7 +215,7 @@ def KLDivergenceLoss(
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
-def BCEWithLogitsLoss(
+def bce_with_logits_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
@@ -228,7 +228,7 @@ def BCEWithLogitsLoss(
 
 # LOSS - RANKING
 
-def TripletMarginLoss(
+def triplet_margin_loss(
     anchor:    Tensor, 
     positive:  Tensor, 
     negative:  Tensor,

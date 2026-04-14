@@ -26,10 +26,11 @@ from .interpolation import (
     upsample, upsample_nearest, upsample_linear, upsample_bilinear, 
     upsample_trilinear, upsample_bicubic)
 
-from .loss import (
-    L1Loss, MAELoss, L2Loss, MSELoss, RMSELoss, HuberLoss, LogCoshLoss, 
-    BCELoss, CrossEntropyLoss, NLLLoss, HingeLoss, Hinge2Loss, 
-    KLDivergenceLoss, BCEWithLogitsLoss, TripletMarginLoss)
+from .loss import(
+    l1_loss, mae_loss, l2_loss, mse_loss, rmse_loss, huber_loss, log_cosh_loss,
+    bce_loss, cross_entropy_loss, nll_loss, hinge_loss, hinge2_loss,
+    kl_divergence_loss, bce_with_logits_loss, triplet_margin_loss
+)
 
 from .math import (
     add, subtract, multiply, pow, matmul, negate, floor, ceil, round, clamp, 
