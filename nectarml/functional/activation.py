@@ -1,6 +1,8 @@
+import builtins
+
 from nectarml.tensor import Tensor
+from nectarml.typing import float32
 from nectarml.functional.indexing import where
-from nectarml.amp.precision import amp_float32
 
 ### RELU ###
 
@@ -40,7 +42,7 @@ def relu_(input: Tensor) -> Tensor:
     
 ### LEAKY RELU ###
     
-def leaky_relu(input: Tensor, negative_slope: float = 0.01) -> Tensor:
+def leaky_relu(input: Tensor, negative_slope: builtins.float = 0.01) -> Tensor:
     '''Leaky rectified linear unit activation function.
     
     Variant of ReLU which allows small non-zero gradients. Helps keep neurons
@@ -58,7 +60,7 @@ def leaky_relu(input: Tensor, negative_slope: float = 0.01) -> Tensor:
     '''
     return where(input > 0.0, input, negative_slope * input)
 
-def leaky_relu_(input: Tensor, negative_slope: float = 0.01) -> Tensor:
+def leaky_relu_(input: Tensor, negative_slope: builtins.float = 0.01) -> Tensor:
     '''In-place leaky rectified linear unit activation function.
     
     NOTE: This operation will corrupt the gradients of any Tensor which relies
@@ -82,7 +84,7 @@ def leaky_relu_(input: Tensor, negative_slope: float = 0.01) -> Tensor:
 
 ### ELU ###
 
-def elu(input: Tensor, alpha: float = 1.0) -> Tensor:
+def elu(input: Tensor, alpha: builtins.float = 1.0) -> Tensor:
     '''Exponential linear unit activation function.
         
     ReLU activation which applies an exponential curve to negative inputs
@@ -98,9 +100,12 @@ def elu(input: Tensor, alpha: float = 1.0) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return where(input > 0, input, alpha * (input.exp() - 1.0))
+    input_dtype  = input.dtype
+    x            = input.to(dtype=float32)
+    out          = where(x > 0, x, alpha * (x.exp() - 1.0))
+    return out.to(dtype=input_dtype)
     
-def elu_(input: Tensor, alpha: float = 1.0) -> Tensor:
+def elu_(input: Tensor, alpha: builtins.float = 1.0) -> Tensor:
     '''In-place exponential linear unit activation function.
     
     NOTE: This operation will corrupt the gradients of any Tensor which relies
@@ -138,9 +143,11 @@ def selu(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    alpha = 1.6732632
-    scale = 1.0507009
-    return scale * where(input > 0, input, alpha * (input.exp() - 1.0))
+    alpha, scale = 1.6732632, 1.0507009
+    input_dtype  = input.dtype
+    x            = input.to(dtype=float32)
+    out          = scale * where(x > 0, x, alpha * (x.exp() - 1.0))
+    return out.to(dtype=input_dtype)
 
 def selu_(input: Tensor) -> Tensor:
     '''In-place scaled exponential linear unit activation function.
@@ -178,7 +185,10 @@ def sigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return 1 / (1 + (-input).exp())
+    input_dtype = input.dtype
+    x           = input.to(dtype=float32)
+    out         = 1 / (1 + (-x).exp())
+    return out.to(dtype=input_dtype)
 
 def sigmoid_(input: Tensor) -> Tensor:
     '''In-place sigmoid activation function.
@@ -215,9 +225,13 @@ def tanh(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp = input.exp()
-    inv_exp = (-input).exp()
-    return (exp - inv_exp) / (exp + inv_exp)
+    input_dtype  = input.dtype
+    x            = input.to(dtype=float32)
+    exp, inv_exp = x.exp(), (-x).exp()
+    out          = (exp - inv_exp) / (exp + inv_exp)
+    return out.to(dtype=input_dtype)
+
+    
     
 def tanh_(input: Tensor) -> Tensor:
     '''In-place tanh activation function.
@@ -240,8 +254,7 @@ def tanh_(input: Tensor) -> Tensor:
     
 ### SOFTMAX ###    
 
-@amp_float32
-def softmax(input: Tensor, dim: int=-1) -> Tensor:
+def softmax(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''Softmax activation function.
         
     Generally used in classification tasks. Converts raw output scores into
@@ -256,11 +269,14 @@ def softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp_x = (input - input.max(dim=dim, keepdim=True)[0]).exp()
-    return exp_x / exp_x.sum(dim=dim, keepdim=True)
+    input_dtype = input.dtype
+    x           = input.to(dtype=float32)
+    x           = x - x.amax(dim=dim, keepdim=True)
+    exp_x       = x.exp()
+    out         = exp_x / exp_x.sum(dim=dim, keepdim=True)
+    return out.to(dtype=input_dtype)
 
-@amp_float32
-def softmax_(input: Tensor, dim: int=-1) -> Tensor:
+def softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''In-place softmax activation function.
     
     NOTE: This operation will corrupt the gradients of any Tensor which relies
@@ -283,8 +299,7 @@ def softmax_(input: Tensor, dim: int=-1) -> Tensor:
 
 ### SOFTMIN ###
 
-@amp_float32
-def softmin(input: Tensor, dim: int = -1) -> Tensor:
+def softmin(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''Softmin activation function.
         
     Equation: f(x) = exp(-x_i) / sum(exp(-x_j))
@@ -295,11 +310,13 @@ def softmin(input: Tensor, dim: int = -1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    _input = -input
-    exp_x = (_input - _input.max(dim=dim, keepdim=True)[0]).exp()
-    return exp_x / exp_x.sum(dim=dim, keepdim=True)
+    input_dtype = input.dtype
+    x           = -input.to(dtype=float32)
+    x           = x - x.amax(dim=dim, keepdim=True)
+    exp_x       = x.exp()
+    out         = exp_x / exp_x.sum(dim=dim, keepdim=True)
+    return out.to(dtype=input_dtype)
 
-@amp_float32
 def softmin_(input: Tensor) -> Tensor:
     '''In-place softmin activation function.
     
@@ -319,8 +336,7 @@ def softmin_(input: Tensor) -> Tensor:
 
 ### LOG SOFTMAX ###
 
-@amp_float32
-def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
+def log_softmax(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''Log softmax activation function.
         
     Computes the logarithm of Softmax(x). Offers improved stability over the
@@ -335,12 +351,14 @@ def log_softmax(input: Tensor, dim: int=-1) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    exp_x = (input - input.max(dim=dim, keepdim=True)[0]).exp()
-    softmax_x = exp_x / exp_x.sum(dim=dim, keepdim=True)
-    return softmax_x.log()
+    input_dtype = input.dtype
+    x           = input.to(dtype=float32)
+    exp_x       = (x - x.max(dim=dim, keepdim=True)[0]).exp()
+    softmax_x   = exp_x / exp_x.sum(dim=dim, keepdim=True)
+    out         = softmax_x.log()
+    return out.to(dtype=input_dtype)
 
-@amp_float32
-def log_softmax_(input: Tensor, dim: int=-1) -> Tensor:
+def log_softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''In-place log softmax activation function.
     
     NOTE: This operation will corrupt the gradients of any Tensor which relies
@@ -381,11 +399,13 @@ def gelu(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    inner = 0.7978845608 * (input + 0.044715 * input**3) 
-    exp = inner.exp()
-    inv_exp = (-inner).exp()
-    tanh_inner = (exp - inv_exp) / (exp + inv_exp)
-    return input * 0.5 * (1 + tanh_inner)
+    input_dtype  = input.dtype
+    x            = input.to(dtype=float32)
+    inner        = 0.7978845608 * (x + 0.044715 * x**3) 
+    exp, inv_exp = inner.exp(), (-inner).exp()
+    tanh_inner   = (exp - inv_exp) / (exp + inv_exp)
+    out          = x * 0.5 * (1 + tanh_inner)
+    return out.to(dtype=input_dtype)
 
 def gelu_(input: Tensor) -> Tensor:
     '''In-place approximate gaussian error linear unit activation function.
@@ -431,8 +451,11 @@ def silu(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    sigmoid = 1 / (1 + (-input).exp())
-    return input * sigmoid
+    input_dtype = input.dtype
+    x           = -input.to(dtype=float32)
+    sigmoid     = 1 / (1 + (-x).exp())
+    out         = x * sigmoid
+    return out.to(dtype=input_dtype)
 
 def silu_(input: Tensor) -> Tensor:
     '''In-place sigmoid-weighted linear unit activation function.
@@ -506,7 +529,6 @@ def swish_(input: Tensor) -> Tensor:
 
 ### SOFTPLUS ###
 
-@amp_float32
 def softplus(input: Tensor) -> Tensor: 
     '''Softplus activation function.
         
@@ -518,9 +540,11 @@ def softplus(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return (1 + input.exp()).log()
+    input_dtype = input.dtype
+    x           = input.to(dtype=float32)
+    out         = (1 + x.exp()).log()
+    return out.to(dtype=input_dtype)
 
-@amp_float32
 def softplus_(input: Tensor) -> Tensor: 
     '''In-place softplus activation function.
     
@@ -551,12 +575,13 @@ def mish(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    softplus = (1 + input.exp()).log()
-    
-    sp_exp = softplus.exp()
-    inv_sp_exp = (-softplus).exp()
-    tanh = (sp_exp - inv_sp_exp) / (sp_exp + inv_sp_exp)
-    return input * tanh
+    input_dtype = input.dtype
+    x           = -input.to(dtype=float32)
+    softplus    = (1 + x.exp()).log()
+    sp_exp      = softplus.exp()
+    inv_sp_exp  = (-softplus).exp()
+    out         = x * (sp_exp - inv_sp_exp) / (sp_exp + inv_sp_exp)
+    return out.to(dtype=input_dtype)
 
 def mish_(input: Tensor) -> Tensor:
     '''In-place mish activation function.
@@ -579,8 +604,8 @@ def mish_(input: Tensor) -> Tensor:
 
 def hardtanh(
     input: Tensor, 
-    min_value: float = -1.0, 
-    max_value: float = 1.0
+    min_value: builtins.float = -1.0, 
+    max_value: builtins.float = 1.0
 ) -> Tensor:
     '''Hardtanh activation function.
         
@@ -600,8 +625,8 @@ def hardtanh(
 
 def hardtanh_(
     input: Tensor, 
-    min_value: float = -1.0, 
-    max_value: float = 1.0
+    min_value: builtins.float = -1.0, 
+    max_value: builtins.float = 1.0
 ) -> Tensor:
     '''In-place hardtanh activation function.
     

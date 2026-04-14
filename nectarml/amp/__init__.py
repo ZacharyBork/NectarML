@@ -1,4 +1,6 @@
 from .grad import GradScaler
-from .autocast import autocast, is_autocast_enabled, autocast_context
-from .precision import amp_promote, amp_float16, amp_float32
+from .autocast import (
+    AutocastState, autocast, autocast_state, is_autocast_enabled, 
+    autocast_context, set_autocast_enabled, set_autocast_context)
+from .precision import run_cast_float16, run_cast_float32, run_cast_promote
 

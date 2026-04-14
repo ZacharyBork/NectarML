@@ -7,12 +7,18 @@ from . import constants, random
 from . import amp, autograd, cpu, cuda, nn, optim, functional, utils
 from .tensor import tensor, Tensor, BoolTensor
 from .autograd import no_grad
+
 from .creation import (
     clone, zeros_like, ones_like, rand_like, full_like, empty_like, tril,
     zeros, ones, rand, randn, full, empty, eye, arange, linspace)
+
 from .typing import (
-    float, float16, float32, half, double, int, int8, int16, int32, int64, 
-    short, long, uint, uint8, uint16, uint32, uint64, ArrayLike, DTypeLike)
+    ArrayLike, DTypeLike,
+    float, float16, float32, half, double, 
+    int, int8, int16, int32, int64, short, long, 
+    uint, uint8, uint16, uint32, uint64, 
+    bool_)
+
 from .utils import (
     save, load, is_inf, is_finite, is_nan, has_inf, has_nan)
 
@@ -25,24 +31,31 @@ from .functional.activation import (
 
 from .functional.combination import (
     concatenate, cat, stack, select, unstack, unbind, split, chunk)
+
 from .functional.dropout import (
     dropout, alpha_dropout, feature_alpha_dropout, 
     dropout1d, dropout2d, dropout3d)
+
 from .functional.indexing import (
     gather, scatter, scatter_add, where, masked_fill, index_select)
+
 from .functional.math import (
     add, subtract, multiply, pow, negate, floor, ceil, round, clamp, minimum,
     maximum, abs, exp, log, log2, log10, sqrt, rsqrt, sin, asin, asinh, cos,
     acos, cosh, acosh, tan, atan, atanh, atan2)
+
 from .functional.normalization import (
     batch_norm1d, batch_norm2d, batch_norm3d,
     instance_norm1d, instance_norm2d, instance_norm3d,
     layer_norm, group_norm)
+
 from .functional.pooling import (
     avg_pool1d, avg_pool2d, avg_pool3d, max_pool1d, max_pool2d, max_pool3d)
+
 from .functional.reductions import(
     min, amin, max, amax, argmin, argmax, mean, 
     sum, prod, quantile, cumsum, norm)
+
 from .functional.shapes import (
     reshape, view, flatten, squeeze, unsqueeze, transpose, swapdims, permute,
     expand, broadcast_to, unfold, flip)

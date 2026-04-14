@@ -11,6 +11,15 @@ namespace nectar {
         DType dtype
     );
     uintptr_t equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
+
+    uintptr_t not_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t not_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype);
     
     uintptr_t less_than(
         uintptr_t a_ptr, uintptr_t b_ptr,
@@ -203,12 +212,20 @@ namespace nectar {
     uintptr_t scalarmax(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 
     uintptr_t eq_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
+    uintptr_t ne_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t lt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t le_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t gt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
     uintptr_t ge_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype);
 
     uintptr_t eq_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    );
+    uintptr_t ne_mask_tensor(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
         std::vector<int> b_shape,
@@ -263,6 +280,19 @@ void register_elementwise(py::module_& m) {
         py::arg("n_elements"),
         py::arg("dtype"),
         "Elementwise tensor-scalar eq (in_tensor==value). Returns boolean tensor data.");
+
+    m_elementwise.def("not_equal", &nectar::not_equal, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
+        py::arg("dtype"),
+        "Elementwise eq (a!=b). Returns boolean tensor data.");
+
+    m_elementwise.def("not_equal_ts", &nectar::not_equal_ts, 
+        py::arg("in_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Elementwise tensor-scalar eq (in_tensor!=value). Returns boolean tensor data.");
 
     m_elementwise.def("less_than", &nectar::less_than, 
         py::arg("a_ptr"), py::arg("b_ptr"),
@@ -664,6 +694,13 @@ void register_elementwise(py::module_& m) {
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data == value, otherwise 0.0.");
 
+    m_elementwise.def("ne_mask_scalar", &nectar::ne_mask_scalar, 
+        py::arg("base_ptr"),
+        py::arg("value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data != value, otherwise 0.0.");
+
     m_elementwise.def("lt_mask_scalar", &nectar::lt_mask_scalar, 
         py::arg("base_ptr"),
         py::arg("value"),
@@ -697,6 +734,12 @@ void register_elementwise(py::module_& m) {
         py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
         py::arg("dtype"),
         "Returns mask with value 1.0 where tensor data x == tensor data y, otherwise 0.0.");
+
+    m_elementwise.def("ne_mask_tensor", &nectar::ne_mask_tensor, 
+        py::arg("a_ptr"), py::arg("b_ptr"),
+        py::arg("a_shape"), py::arg("b_shape"), py::arg("out_shape"),
+        py::arg("dtype"),
+        "Returns mask with value 1.0 where tensor data x != tensor data y, otherwise 0.0.");
 
     m_elementwise.def("lt_mask_tensor", &nectar::lt_mask_tensor, 
         py::arg("a_ptr"), py::arg("b_ptr"),

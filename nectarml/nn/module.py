@@ -1,27 +1,30 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from nectarml.tensor import Tensor
 from nectarml.typing import DTypeLike, float32
 
 class Module():
-    _parameters: dict[str, Tensor]
-    _submodules: dict[str, Module]
-    _buffers:    dict[str, Tensor]
+    _submodules:           dict[str, Module]
+    _parameters:           dict[str, Tensor]
+    _buffers:              dict[str, Tensor]
+    _pinned_buffer_dtypes: dict[str, DTypeLike]
     
     def __init__(
         self: Module,
         dtype: DTypeLike = float32
     ) -> None:
-        super().__setattr__('_parameters', {})
         super().__setattr__('_submodules', {})
+        super().__setattr__('_parameters', {})
         super().__setattr__('_buffers', {})
+        super().__setattr__('_pinned_buffer_dtypes', {})
         
-        self.dtype = dtype
+        self.dtype: DTypeLike = dtype
+        self.training:   bool = True
         
-        self.training:         bool = True
-        self._device_id: int | None = None
+        self._device_id:        int | None = None
+        self._persistent_buffers: set[str] = set()
                 
     # PROPERTIES
     
@@ -41,8 +44,17 @@ class Module():
     def register_submodule(self: Module, name: str, module: Module) -> None:
         self._submodules[name] = module
         
-    def register_buffer(self: Module, name: str, tensor: Tensor) -> None:
+    def register_buffer(
+        self,
+        name: str,
+        tensor: Tensor,
+        persistent: bool = True,
+        pin_dtype: DTypeLike | None = None
+    ) -> None:
         self._buffers[name] = tensor
+        if persistent: self._persistent_buffers.add(name)
+        if pin_dtype is not None:
+            self._pinned_buffer_dtypes[name] = pin_dtype
     
     # GETTERS / SETTERS
     
@@ -79,6 +91,12 @@ class Module():
     
     def zero_grad(self: Module) -> None:
         for _, module in self._walk_module_tree():
+            for name, buffer in module._buffers.items():
+                if not buffer.requires_grad: continue
+                buffer.zero_grad()
+                if buffer.grad is not None:
+                    buffer.grad._prev.clear()
+                
             for parameter in module._parameters.values():
                 if not parameter.requires_grad: continue
                 parameter.zero_grad()
@@ -91,22 +109,26 @@ class Module():
         self: Module,
         device: Literal['cpu', 'cuda'] | None = None,
         dtype: DTypeLike | None = None
-    ) -> Module: 
-        modules = self._walk_module_tree()
-        for _, module in modules:
+    ) -> Self:
+        for _, module in self._walk_module_tree():
             for name, buffer in module._buffers.items():
+                pinned = module._pinned_buffer_dtypes.get(name)
+                target_dtype = pinned if pinned is not None \
+                               and dtype is not None \
+                               else dtype or buffer.dtype
                 module._buffers[name] = buffer.to(
-                    device or buffer.device,
-                    dtype or buffer.dtype)
-            for name, parm in module._parameters.items():
-                module._parameters[name] = parm.to(
-                    device or parm.device,
-                    dtype or parm.dtype)
-        if dtype is not None:
-            self.dtype = dtype
+                    device or buffer.device, target_dtype)
+            
+            for name, param in module._parameters.items():
+                moved = param.to(device or param.device, dtype or param.dtype)
+                moved._prev.clear()
+                moved._backward = lambda: None
+                module._parameters[name] = moved            
+        
+        if dtype is not None: self.dtype = dtype
         return self
-    
-    def cuda(self: Module) -> Module: 
+        
+    def cuda(self: Module) -> Self:
         '''Convenience function to cast given Module to CUDA device.
         
         When called on a Module who's device is already "cuda", this method 
@@ -117,7 +139,7 @@ class Module():
         '''
         return self.to(device='cuda')
 
-    def cpu(self: Module) -> Module: 
+    def cpu(self: Module) -> Self:
         '''Convenience function to cast given Module to CPU device.
         
         When called on a Module who's device is already "cpu", this method 

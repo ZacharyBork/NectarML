@@ -1,11 +1,11 @@
+import builtins
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml.creation import zeros_like, ones_like, zeros
+from nectarml.typing import float32
 from nectarml.functional.reductions import mean, sum
 from nectarml.functional.math import sqrt, log, exp, cosh, maximum
 from nectarml.functional.indexing import where, gather
-from nectarml.amp.precision import amp_float32
 
 # ABSTRACTS
 
@@ -21,10 +21,9 @@ def _reduce_loss(
 
 # LOSS - REGRESSION
 
-@amp_float32
 def L1Loss(
-    input: Tensor, 
-    target: Tensor, 
+    input:     Tensor, 
+    target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     '''L1 (Mean Absolute Error) loss.
@@ -39,11 +38,14 @@ def L1Loss(
     Returns:
         Tensor : The computed loss.
     '''
-    return _reduce_loss(abs((input - target)), reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    out         = _reduce_loss(abs((x - y)), reduction)
+    return out.to(dtype=input_dtype)
 
 def MAELoss(
-    input: Tensor, 
-    target: Tensor, 
+    input:     Tensor, 
+    target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     '''L1 (Mean Absolute Error) loss.
@@ -60,10 +62,9 @@ def MAELoss(
     '''
     return L1Loss(input, target, reduction)
 
-@amp_float32
 def L2Loss(
-    input: Tensor, 
-    target: Tensor, 
+    input:     Tensor, 
+    target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     '''L2 (Mean Squared Error) loss.
@@ -79,11 +80,15 @@ def L2Loss(
     Returns:
         Tensor : The computed loss.
     '''
-    return _reduce_loss((input - target) ** 2, reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = (x - y) ** 2
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
 def MSELoss(
-    input: Tensor, 
-    target: Tensor, 
+    input:     Tensor, 
+    target:    Tensor, 
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     '''L2 (Mean Squared Error) loss.
@@ -102,54 +107,65 @@ def MSELoss(
     return L2Loss(input, target, reduction)
 
 def RMSELoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
-    loss_value = sqrt(MSELoss(input, target, reduction='none'))
-    return _reduce_loss(loss_value, reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = sqrt(MSELoss(x, y, reduction='none'))
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
 def HuberLoss(
-    input: Tensor, 
-    target: Tensor, 
-    delta: float = 1.0,
+    input:     Tensor, 
+    target:    Tensor, 
+    delta:     builtins.float = 1.0,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
-    distance = input - target
-    quadratic = 0.5 * (distance ** 2)
-    linear = delta * (abs(distance) - 0.5 * delta)
+    distance   = input - target
+    quadratic  = 0.5 * (distance ** 2)
+    linear     = delta * (abs(distance) - 0.5 * delta)
     loss_value = where((abs(distance)).data < delta, quadratic, linear)
     return _reduce_loss(loss_value, reduction)
 
 def LogCoshLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
-    return _reduce_loss(log(cosh(input - target)), reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = log(cosh(x - y))
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
 # LOSS - CLASSIFICATION
 
 def BCELoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
-    loss_value = -(target * log(input) + (1 - target) * log(1 - input))
-    return _reduce_loss(loss_value, reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = -(y * log(x) + (1 - y) * log(1 - x))
+    out         =  _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
-@amp_float32
 def CrossEntropyLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
-    return _reduce_loss(-sum(target * log(input)), reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    out         = _reduce_loss(-sum(y * log(x)), reduction)
+    return out.to(dtype=input_dtype)
 
-@amp_float32
 def NLLLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     '''Negative Log Likelihood loss.
@@ -164,61 +180,72 @@ def NLLLoss(
     Returns:
         Tensor : The computed loss.
     '''
-    return _reduce_loss(-log(gather(input, dim=1, index=target)), reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target
+    loss_value  = -log(gather(x, dim=1, index=y))
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
 def HingeLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     return _reduce_loss(
-        maximum(zeros_like(input), 1 - target * input), reduction)
+        maximum(1 - target * input), reduction, 0.0)
 
 def Hinge2Loss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
-    loss_value = maximum(zeros_like(input), 1 - target * input) ** 2
+    loss_value = maximum(1 - target * input, 0.0) ** 2
     return _reduce_loss(loss_value, reduction)
 
 # LOSS - PROBABILISTIC
 
-@amp_float32
 def KLDivergenceLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'sum'
 ) -> Tensor:
-    return _reduce_loss(target * log(target / input), reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = y * log(y / x)
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
-@amp_float32
 def BCEWithLogitsLoss(
-    input: Tensor, 
-    target: Tensor,
+    input:     Tensor, 
+    target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
-    x = input
-    _zeros = zeros_like(x)
-    _ones = ones_like(x)
-    loss_value = maximum(x, _zeros) - x * target + log(_ones + exp(-abs(x)))
-    return _reduce_loss(loss_value, reduction)
+    input_dtype = input.dtype
+    x, y        = input.to(dtype=float32), target.to(dtype=float32)
+    loss_value  = maximum(x, 0.0) - x * y + log(1.0 + exp(-abs(x)))
+    out         = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
 
 # LOSS - RANKING
 
-@amp_float32
 def TripletMarginLoss(
-    anchor: Tensor, 
-    positive: Tensor, 
-    negative: Tensor,
-    margin: float = 1.0,
-    eps: float = 1e-6,
+    anchor:    Tensor, 
+    positive:  Tensor, 
+    negative:  Tensor,
+    margin:    builtins.float = 1.0,
+    eps:       builtins.float = 1e-6,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     assert margin > 0.0
-    a, p, n = anchor, positive, negative
-    zero = zeros((), dtype=anchor.dtype, device=anchor.device)
-    dist = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
-    loss_value = maximum(dist(a, p) - dist(a, n) + margin, zero)
-    return mean(loss_value, reduction)
+    input_dtype = anchor.dtype
+    
+    a = anchor.to(dtype=float32)
+    p = positive.to(dtype=float32)
+    n = negative.to(dtype=float32)
+    
+    dist       = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
+    loss_value = maximum(dist(a, p) - dist(a, n) + margin, 0.0)
+    out        = _reduce_loss(loss_value, reduction)
+    return out.to(dtype=input_dtype)
+
 

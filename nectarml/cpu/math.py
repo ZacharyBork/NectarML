@@ -3,45 +3,78 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nectarml import Tensor
 
+import builtins
+
 import numpy as np
 
 ### COMPARISON ###
 
-def equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def equal(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data == b
 
-def less_than(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def equal(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
+    return a.data != b
+
+def less_than(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data < b
 
-def less_than_or_equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def less_than_or_equal(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data <= b
 
-def greater_than(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def greater_than(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data > b
 
-def greater_than_or_equal(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def greater_than_or_equal(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data >= b
 
 ### BASIC ###
 
-def add(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def add(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data + b
 
-def subtract(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def subtract(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return a.data - b
 
-def multiply(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def multiply(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return  a.data * b
 
-def pow(a: Tensor, exponent: float | int) -> np.ndarray:
+def pow(a: Tensor, exponent: builtins.float | builtins.int) -> np.ndarray:
     return a.data ** exponent
 
 def matmul(a: Tensor, b: Tensor) -> np.ndarray:
@@ -60,20 +93,26 @@ def copysign(a: Tensor, b: Tensor) -> np.ndarray:
 
 def clamp(
     a: Tensor, 
-    min_value: float | None = None, 
-    max_value: float | None = None
+    min_value: builtins.float | None = None, 
+    max_value: builtins.float | None = None
 ) -> np.ndarray:
     out = a.data
     if min_value is not None: out = np.maximum(out, min_value)
     if max_value is not None: out = np.minimum(out, max_value)
     return out
 
-def minimum(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def minimum(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return np.minimum(a.data, b)
 
-def maximum(a: Tensor, b: Tensor | int | float) -> np.ndarray:
-    if not isinstance(b, int | float): b = b.data
+def maximum(
+    a: Tensor, 
+    b: Tensor | builtins.int | builtins.float
+) -> np.ndarray:
+    if not isinstance(b, builtins.int | builtins.float): b = b.data
     return np.maximum(a.data, b)
     
 def abs(input: Tensor) -> np.ndarray:

@@ -201,6 +201,24 @@ namespace nectar {
         );
     }
 
+    uintptr_t not_equal(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_compare<ElemWiseNeOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t not_equal_ts(uintptr_t in_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_compare_ts<ElemWiseNeTSOp>(
+            in_ptr, value, n_elements, dtype
+        );
+    }
+
     uintptr_t less_than(
         uintptr_t a_ptr, uintptr_t b_ptr,
         std::vector<int> a_shape,
@@ -441,7 +459,7 @@ namespace nectar {
     }
 
     uintptr_t tanh(uintptr_t x_ptr, size_t n_elements, DType dtype) {
-        return call_elemwise_1tensor<ElemWiseTahnOp>(x_ptr, n_elements, dtype);
+        return call_elemwise_1tensor<ElemWiseTanhOp>(x_ptr, n_elements, dtype);
     }
 
     uintptr_t atan(uintptr_t x_ptr, size_t n_elements, DType dtype) {
@@ -558,7 +576,7 @@ namespace nectar {
         size_t n_elements, 
         DType dtype
     ) {
-        return call_elemwise_tensorscalar<ElemWiseMaxTSOp>(
+        return call_elemwise_tensorscalar<ElemWiseMaxfTSOp>(
             in_ptr, value, n_elements, dtype
         );
     }
@@ -636,7 +654,11 @@ namespace nectar {
     /* MASKING */
 
     uintptr_t eq_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
-        return call_elemwise_tensorscalar<ElemWiseScalarEqMaskkOp>(base_ptr, value, n_elements, dtype);
+        return call_elemwise_tensorscalar<ElemWiseScalarEqMaskOp>(base_ptr, value, n_elements, dtype);
+    }
+
+    uintptr_t ne_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
+        return call_elemwise_tensorscalar<ElemWiseScalarNeMaskOp>(base_ptr, value, n_elements, dtype);
     }
 
     uintptr_t lt_mask_scalar(uintptr_t base_ptr, float value, size_t n_elements, DType dtype) {
@@ -662,7 +684,19 @@ namespace nectar {
         std::vector<int> out_shape,
         DType dtype
     ) {
-        return call_elemwise_2tensor<ElemWiseTensorEqMaskkOp>(
+        return call_elemwise_2tensor<ElemWiseTensorEqMaskOp>(
+            a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
+        );
+    }
+
+    uintptr_t ne_mask_tensor(
+        uintptr_t a_ptr, uintptr_t b_ptr,
+        std::vector<int> a_shape,
+        std::vector<int> b_shape,
+        std::vector<int> out_shape,
+        DType dtype
+    ) {
+        return call_elemwise_2tensor<ElemWiseTensorNeMaskOp>(
             a_ptr, b_ptr, a_shape, b_shape, out_shape, dtype
         );
     }

@@ -54,7 +54,9 @@ namespace nectar {
                 auto buf = result.request();
                 cudaMemcpy(buf.ptr, d_float, n_elements * sizeof(float), 
                     cudaMemcpyDeviceToHost);
+                cudaFree(d_float);
                 return result;
+
             } else {
                 auto result = py::array_t<T>(shape);
                 auto buf = result.request();

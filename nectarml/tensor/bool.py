@@ -1,27 +1,35 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from nectarml import Tensor
+    from .tensor import Tensor
     
 import builtins
-from typing import Literal
+from typing import Literal, Self
 
 import numpy as np
 
 from nectarml import typing, cpu, cuda
-from nectarml.tensor.tensor import tensor
+from nectarml.tensor._tensor import tensor
 from nectarml.cuda.memory import CudaBuffer
    
 class BoolTensor(tensor):    
     def __init__(
-        self:   BoolTensor,
-        data:   typing.ArrayLike | None = None,
-        shape:  typing.Size | tuple[builtins.int, ...] | None = None,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        self:          Tensor,
+        data:          typing.ArrayLike,
+        shape:         typing.Size | tuple[builtins.int, ...] | None = None,
+        dtype:         typing.DTypeLike = typing.bool_,
+        device:        Literal['cpu', 'cuda'] = 'cpu',
+        requires_grad: bool = False,
+        _children:     tuple[tensor, ...] = ()
     ) -> None:
+        assert dtype == typing.bool_,  'Boolean tensors must have bool_ DType.'
+        assert requires_grad == False, 'Boolean tensors cannot require grad.'
+        assert _children == (),        'Boolean tensors cannot have _children.'
+        
         if not isinstance(data, np.ndarray): data = np.array(data)
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
+        
         super().__init__(
             data=BoolTensor._build_data(data, shape, device), 
             shape=shape, dtype=typing.bool_, 
@@ -31,7 +39,7 @@ class BoolTensor(tensor):
     
     @classmethod
     def _build_data(
-        cls,
+        cls:    type[Self],
         data:   np.ndarray,
         shape:  typing.Size,
         device: Literal['cpu', 'cuda'] 

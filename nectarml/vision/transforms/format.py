@@ -29,8 +29,9 @@ class ToTensor(Transform):
             if data.ndim == 3: data = data[np.newaxis]
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
-        output = Tensor(data, dtype=float32, device='cpu')
-        if self.normalize: output = output / np.maximum(data.max(), 1.0)
+        output = Tensor(data.astype(float32), dtype=float32, device='cpu')
+        if self.normalize:
+            output = output / np.maximum(data.max().astype(float32), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:

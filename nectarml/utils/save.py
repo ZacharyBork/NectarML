@@ -121,6 +121,18 @@ def save_checkpoint(
             'shape': param.shape
         }
 
+    for module_name, module in model._walk_module_tree():
+        for buffer_name, buffer in module._buffers.items():
+            if buffer_name in module._persistent_buffers:
+                full_name = f'{module_name}.{buffer_name}' \
+                            if module_name else buffer_name
+                model_state[full_name] = {
+                    'data':  buffer.cpu().numpy(),
+                    'dtype': buffer.dtype,
+                    'shape': buffer.shape,
+                    'is_buffer': True 
+                }
+
     opt_state = None
     if optimizer is not None:
         opt_state = { 'param_groups': [], 'state': {} }
@@ -150,15 +162,12 @@ def save_checkpoint(
         'metadata':    metadata or {}
     }
 
-    with open(path, 'wb') as f:
-        pickle.dump(checkpoint, f, pickle.HIGHEST_PROTOCOL)
-        
     if len(suffixes) == 1:
         with open(path, 'wb') as file:
             pickle.dump(checkpoint, file, pickle.HIGHEST_PROTOCOL)
     elif '.tar' in suffixes: _save_tarfile(checkpoint, path)
     else: raise ValueError(
-        f'Unable to save Tensor data with file suffixes: {suffixes}')
+        f'Unable to save checkpoint data with file suffixes: {suffixes}')
 
 def load_checkpoint(
     path: PathLike,
@@ -181,6 +190,19 @@ def load_checkpoint(
         saved = model_state[name]
         param.data = saved['data'].astype(saved['dtype'])
         param.shape = saved['shape']
+
+    for module_name, module in model._walk_module_tree():
+        for buffer_name, buffer in module._buffers.items():
+            if buffer_name not in module._persistent_buffers:
+                continue
+            full_name = f'{module_name}.{buffer_name}' \
+                        if module_name else buffer_name
+            if full_name not in model_state: continue
+            saved = model_state[full_name]
+            restored = Tensor(
+                saved['data'].astype(saved['dtype']),
+                saved['shape'], saved['dtype'], 'cpu')
+            module._buffers[buffer_name] = restored.to(buffer.device)
 
     if optimizer is not None and checkpoint['opt_state'] is not None:
         opt_state = checkpoint['opt_state']

@@ -1,7 +1,10 @@
-from .tensor     import tensor
-from .numerical  import Tensor
-from .bool       import BoolTensor
+from ._tensor import tensor
+from .tensor  import Tensor
+from .bool    import BoolTensor
 from .conversion import to_bool_tensor, to_numerical_tensor
+
+_tensor.tensor._subclasses['Tensor']     = Tensor
+_tensor.tensor._subclasses['BoolTensor'] = BoolTensor
 
 # Wiring for cross-class methods. Assigned here to avoid circular imports.
 # Function definitions located at: nectarml/tensor/conversion.py

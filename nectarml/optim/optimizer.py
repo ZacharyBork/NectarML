@@ -100,11 +100,11 @@ class Optimizer():
     def _get_parameter_state_index(self: Optimizer, parameter: Tensor) -> int:
         return self._param_to_idx[id(parameter)]
     
-    def named_parameters(self: Optimizer) -> list[tuple[str, tuple[int, ...]]]:
+    def named_parameters(self: Optimizer) -> list[tuple[str, Tensor]]:
         result = []
         for group in self.param_groups:
             for name, param in zip(group['param_names'], group['params']):
-                result.append((name, param.shape))
+                result.append((name, param))
         return result
 
     def print_param_stats(self: Optimizer) -> None:
@@ -240,9 +240,8 @@ class Optimizer():
     ### GRADIENTS ###
 
     def zero_grad(self: Optimizer) -> None:
-        params = self._get_all_params()
-        for param in params: 
-            if param.grad is not None: param.zero_grad()
+        params = [p for p in self._get_all_params() if p.grad is not None]
+        for param in params: param.zero_grad()
     
     ### STEP ###
     

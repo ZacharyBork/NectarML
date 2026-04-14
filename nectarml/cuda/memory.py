@@ -7,6 +7,11 @@ import _nectarml
 from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import data_to_cuda, map_dtype
 
+### UTILS ###
+
+def cuda_synchronize() -> None:
+    _nectarml.cuda_synchronize()
+
 ### STATISTICS ###
 
 def get_cuda_meminfo() -> tuple[builtins.int, builtins.int, builtins.int]:
@@ -30,27 +35,33 @@ def get_memory_statistics(precision: builtins.int = 2) -> str:
 
 def free_cuda(device_ptr: builtins.int) -> None:
     _nectarml.free_cuda(device_ptr)
+    
+def alloc_cuda_empty_raw(size_bytes: builtins.int) -> builtins.int:
+    return _nectarml.alloc_cuda_empty_raw(size_bytes)
+
+def memcpy_to_cuda(dst_ptr: builtins.int, data: np.ndarray) -> None:
+    _nectarml.memcpy_to_cuda(dst_ptr, data.ctypes.data, data.nbytes)
 
 def alloc_cuda_full(
     n_elements: builtins.int, 
-    dtype: DTypeLike, 
-    fill_value: float
+    dtype:      DTypeLike, 
+    fill_value: builtins.float
 ) -> builtins.int:
     return _nectarml.alloc_cuda_full(n_elements, map_dtype(dtype), fill_value)
 
 def alloc_cuda_random(
     n_elements: builtins.int, 
-    dtype: DTypeLike, 
-    seed: builtins.int = 12345,
-    min_value: float = 0.0,
-    max_value: float = 1.0
+    dtype:      DTypeLike, 
+    seed:       builtins.int = 12345,
+    min_value:  builtins.float = 0.0,
+    max_value:  builtins.float = 1.0
 ) -> builtins.int:
     return _nectarml.alloc_cuda_random(
         n_elements, map_dtype(dtype), seed, min_value, max_value)
 
 def alloc_cuda_empty(
     n_elements: builtins.int, 
-    dtype: DTypeLike
+    dtype:      DTypeLike
 ) -> builtins.int:
     return _nectarml.alloc_cuda_empty(n_elements, map_dtype(dtype))
 

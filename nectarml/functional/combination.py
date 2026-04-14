@@ -1,9 +1,8 @@
 from nectarml.tensor import Tensor
 from nectarml.cuda import combination
 from nectarml.cpu import combination as _combination
-from nectarml.amp.precision import amp_promote
+from nectarml.amp.precision import run_cast_promote
 
-@amp_promote
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])
     assert len(_devices) == 1, (
@@ -16,14 +15,15 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
         f'but found multiple dtypes: {list(_dtypes)}')
     
     device = _devices.pop()
-    dtype = _dtypes.pop()
-    shape = list(tensors[0].shape)
+    dtype  = _dtypes.pop()
+    shape  = list(tensors[0].shape)
     requires_grad = tensors[0].requires_grad
     for i in tensors[1:]: 
         shape[dim] += list(i.shape)[dim]
         if i.requires_grad: requires_grad = True
     
-    if device == 'cuda': data = combination.concatenate(tensors, dim)
+    if device == 'cuda': 
+          data = run_cast_promote(combination.concatenate, tensors, dim)
     else: data = _combination.concatenate([t.data for t in tensors], dim=dim)
     
     out = Tensor._new(
@@ -47,7 +47,6 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
 def cat(tensors: list[Tensor], dim: int = 0) -> Tensor:
     return concatenate(tensors, dim)
 
-@amp_promote
 def stack(tensors: list[Tensor], dim: int = 0) -> Tensor:
     tensors = [x.unsqueeze(dim) for x in tensors]
     return concatenate(tensors, dim)

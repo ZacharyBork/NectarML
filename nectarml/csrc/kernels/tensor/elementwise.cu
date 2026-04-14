@@ -50,6 +50,15 @@ template void launch_elementwise_compare<uint8_t, ElemWiseEqOp>(
 template void launch_elementwise_compare<int32_t, ElemWiseEqOp>(
     int32_t*, int32_t*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
+    template void launch_elementwise_compare<  float, ElemWiseNeOp>(
+    float*, float*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_compare<   half, ElemWiseNeOp>(
+    half*, half*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_compare<uint8_t, ElemWiseNeOp>(
+    uint8_t*, uint8_t*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_compare<int32_t, ElemWiseNeOp>(
+    int32_t*, int32_t*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+
 template void launch_elementwise_compare<  float, ElemWiseLtOp>(
     float*, float*, bool*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 template void launch_elementwise_compare<   half, ElemWiseLtOp>(
@@ -106,6 +115,11 @@ template void launch_elementwise_compare_ts<  float, ElemWiseEqTSOp>(float*, flo
 template void launch_elementwise_compare_ts<   half, ElemWiseEqTSOp>(half*, float, bool*, size_t);
 template void launch_elementwise_compare_ts<uint8_t, ElemWiseEqTSOp>(uint8_t*, float, bool*, size_t);
 template void launch_elementwise_compare_ts<int32_t, ElemWiseEqTSOp>(int32_t*, float, bool*, size_t);
+
+template void launch_elementwise_compare_ts<  float, ElemWiseNeTSOp>(float*, float, bool*, size_t);
+template void launch_elementwise_compare_ts<   half, ElemWiseNeTSOp>(half*, float, bool*, size_t);
+template void launch_elementwise_compare_ts<uint8_t, ElemWiseNeTSOp>(uint8_t*, float, bool*, size_t);
+template void launch_elementwise_compare_ts<int32_t, ElemWiseNeTSOp>(int32_t*, float, bool*, size_t);
 
 template void launch_elementwise_compare_ts<  float, ElemWiseLtTSOp>(float*, float, bool*, size_t);
 template void launch_elementwise_compare_ts<   half, ElemWiseLtTSOp>(half*, float, bool*, size_t);
@@ -248,13 +262,22 @@ template void launch_elementwise_math_2tensor<uint8_t, ElemWiseCopysignOp>(
 template void launch_elementwise_math_2tensor<int32_t, ElemWiseCopysignOp>(
     int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
-template void launch_elementwise_math_2tensor<  float, ElemWiseTensorEqMaskkOp>(
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorEqMaskOp>(
     float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
-template void launch_elementwise_math_2tensor<   half, ElemWiseTensorEqMaskkOp>(
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorEqMaskOp>(
     half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
-template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorEqMaskkOp>(
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorEqMaskOp>(
     uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
-template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorEqMaskkOp>(
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorEqMaskOp>(
+    int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+
+template void launch_elementwise_math_2tensor<  float, ElemWiseTensorNeMaskOp>(
+    float*, float*, float*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<   half, ElemWiseTensorNeMaskOp>(
+    half*, half*, half*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<uint8_t, ElemWiseTensorNeMaskOp>(
+    uint8_t*, uint8_t*, uint8_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
+template void launch_elementwise_math_2tensor<int32_t, ElemWiseTensorNeMaskOp>(
     int32_t*, int32_t*, int32_t*, BroadcastIndex, BroadcastIndex, ShapeArray, int, size_t);
 
 template void launch_elementwise_math_2tensor<  float, ElemWiseTensorLtMaskOp>(
@@ -394,10 +417,10 @@ template void launch_elementwise_math_1tensor<   half, ElemWiseTanOp>(half*, hal
 template void launch_elementwise_math_1tensor<uint8_t, ElemWiseTanOp>(uint8_t*, uint8_t*, size_t);
 template void launch_elementwise_math_1tensor<int32_t, ElemWiseTanOp>(int32_t*, int32_t*, size_t);
 
-template void launch_elementwise_math_1tensor<  float, ElemWiseTahnOp>(float*, float*, size_t);
-template void launch_elementwise_math_1tensor<   half, ElemWiseTahnOp>(half*, half*, size_t);
-template void launch_elementwise_math_1tensor<uint8_t, ElemWiseTahnOp>(uint8_t*, uint8_t*, size_t);
-template void launch_elementwise_math_1tensor<int32_t, ElemWiseTahnOp>(int32_t*, int32_t*, size_t);
+template void launch_elementwise_math_1tensor<  float, ElemWiseTanhOp>(float*, float*, size_t);
+template void launch_elementwise_math_1tensor<   half, ElemWiseTanhOp>(half*, half*, size_t);
+template void launch_elementwise_math_1tensor<uint8_t, ElemWiseTanhOp>(uint8_t*, uint8_t*, size_t);
+template void launch_elementwise_math_1tensor<int32_t, ElemWiseTanhOp>(int32_t*, int32_t*, size_t);
 
 template void launch_elementwise_math_1tensor<  float, ElemWiseAtanOp>(float*, float*, size_t);
 template void launch_elementwise_math_1tensor<   half, ElemWiseAtanOp>(half*, half*, size_t);
@@ -480,10 +503,10 @@ template void launch_elementwise_math_tensorscalar<   half, ElemWiseMinfTSOp>(ha
 template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseMinfTSOp>(uint8_t*, uint8_t*, float, size_t);
 template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseMinfTSOp>(int32_t*, int32_t*, float, size_t);
 
-template void launch_elementwise_math_tensorscalar<  float, ElemWiseMaxTSOp>(float*, float*, float, size_t);
-template void launch_elementwise_math_tensorscalar<   half, ElemWiseMaxTSOp>(half*, half*, float, size_t);
-template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseMaxTSOp>(uint8_t*, uint8_t*, float, size_t);
-template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseMaxTSOp>(int32_t*, int32_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseMaxfTSOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseMaxfTSOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseMaxfTSOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseMaxfTSOp>(int32_t*, int32_t*, float, size_t);
 
 template void launch_elementwise_math_tensorscalar<  float, ElemWisePowOp>(float*, float*, float, size_t);
 template void launch_elementwise_math_tensorscalar<   half, ElemWisePowOp>(half*, half*, float, size_t);
@@ -520,10 +543,15 @@ template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarMaxOp>
 template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarMaxOp>(uint8_t*, uint8_t*, float, size_t);
 template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarMaxOp>(int32_t*, int32_t*, float, size_t);
 
-template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarEqMaskkOp>(float*, float*, float, size_t);
-template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarEqMaskkOp>(half*, half*, float, size_t);
-template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarEqMaskkOp>(uint8_t*, uint8_t*, float, size_t);
-template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarEqMaskkOp>(int32_t*, int32_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarEqMaskOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarEqMaskOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarEqMaskOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarEqMaskOp>(int32_t*, int32_t*, float, size_t);
+
+template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarNeMaskOp>(float*, float*, float, size_t);
+template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarNeMaskOp>(half*, half*, float, size_t);
+template void launch_elementwise_math_tensorscalar<uint8_t, ElemWiseScalarNeMaskOp>(uint8_t*, uint8_t*, float, size_t);
+template void launch_elementwise_math_tensorscalar<int32_t, ElemWiseScalarNeMaskOp>(int32_t*, int32_t*, float, size_t);
 
 template void launch_elementwise_math_tensorscalar<  float, ElemWiseScalarLtMaskOp>(float*, float*, float, size_t);
 template void launch_elementwise_math_tensorscalar<   half, ElemWiseScalarLtMaskOp>(half*, half*, float, size_t);

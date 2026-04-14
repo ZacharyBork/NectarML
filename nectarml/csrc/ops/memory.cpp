@@ -20,15 +20,36 @@ void launch_alloc_cuda_random(
     T max_value
 );
 
-/* FUNCTIONS */
-
-void free_cuda(uintptr_t ptr) { cudaFree(reinterpret_cast<void*>(ptr)); }
+/* INSPECTION */
 
 py::tuple get_cuda_meminfo() {
     size_t free, total;
     cudaMemGetInfo(&free, &total);
     size_t used = total - free;
     return py::make_tuple(total, free, used);
+}
+
+/* UTILITIES */
+
+void cuda_synchronize() { cudaDeviceSynchronize(); }
+
+void free_cuda(uintptr_t ptr) { 
+    if (ptr == 0) return;
+    cudaDeviceSynchronize();
+    cudaFree(reinterpret_cast<void*>(ptr));
+}
+
+void memcpy_to_cuda(uintptr_t dst, uintptr_t host_ptr, size_t size_bytes) {
+    cudaMemcpy(
+        reinterpret_cast<void*>(dst), 
+        reinterpret_cast<void*>(host_ptr), 
+        size_bytes, cudaMemcpyHostToDevice);
+}
+
+uintptr_t alloc_cuda_empty_raw(size_t size_bytes) {
+    void* ptr;
+    cudaMalloc(&ptr, size_bytes);
+    return reinterpret_cast<uintptr_t>(ptr);
 }
 
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value) {

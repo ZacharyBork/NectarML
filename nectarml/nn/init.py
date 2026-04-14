@@ -34,9 +34,9 @@ def calculate_gain(
 def _set_weights(weights: Tensor, data: np.ndarray) -> None:
     data = data.astype(weights.dtype)
     if weights.device == 'cuda':
-        data_ptr = cuda.data_to_cuda(data, weights.size, weights.dtype)
-        weights._buffer.decrement()
-        weights._buffer = cuda.memory.CudaBuffer(data_ptr, weights.dtype)
+        old_buffer = weights._buffer
+        weights._buffer = cuda.memory.CudaBuffer(data, weights.dtype)
+        old_buffer.decrement()
     else: weights.data = data
     weights.zero_grad()
 
@@ -83,7 +83,8 @@ def xavier_uniform_(weights: Tensor, gain: float = 1.0) -> None:
     fan_out = weights.shape[0]
     
     std_dev = gain * np.sqrt(6 / (fan_in + fan_out))
-    weights.data = RNG.uniform(low=-std_dev, high=std_dev, size=weights.shape)
+    data = RNG.uniform(low=-std_dev, high=std_dev, size=weights.shape)
+    _set_weights(weights, data)
 
 def xavier_normal_(weights: Tensor, gain: float = 1.0) -> None: 
     s = weights.shape
@@ -145,7 +146,7 @@ def trunc_normal_(
         invalid = (data < a) | (data > b)
         if not invalid.any(): break
         data[invalid] = RNG.normal(mean, std, size=invalid.sum())
-    weights.data = data.astype(weights.dtype)
+    _set_weights(weights, data)
     
 def orthogonal_(weights: Tensor, gain: float = 1.0) -> None: 
     shape = weights.shape

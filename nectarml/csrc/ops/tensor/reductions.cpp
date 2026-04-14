@@ -96,46 +96,6 @@ namespace nectar {
         });
     }
 
-    /* MEAN */
-
-    uintptr_t reduce_mean(uintptr_t in_ptr, size_t n_elements, DType dtype) {
-        DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
-            launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
-            launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
-                reinterpret_cast<T*>(d_out), d_out,
-                static_cast<float>(n_elements), n_elements);
-            return reinterpret_cast<uintptr_t>(d_out);
-        });
-    }
-
-    uintptr_t reduce_mean_dim(
-        uintptr_t in_ptr, 
-        std::vector<int> shape,
-        int reduce_dim,
-        DType dtype
-    ) {
-        TensorIndex in_idx(shape.data(), shape.size());
-        std::vector<int> out_shape;
-        for(int i = 0; i < shape.size(); i++)
-            if(i != reduce_dim) out_shape.push_back(shape[i]);
-        
-        TensorIndex out_idx(out_shape.data(), out_shape.size());
-
-        DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
-            launch_reduce_dim<T, SumOp>(
-                reinterpret_cast<T*>(in_ptr), d_out,
-                in_idx, out_idx, reduce_dim);
-            launch_elementwise_math_tensorscalar<T, ElemWiseScalarDivOp>(
-                reinterpret_cast<T*>(d_out), d_out,
-                static_cast<float>(shape[reduce_dim]), shape[reduce_dim]);
-            return reinterpret_cast<uintptr_t>(d_out);
-        });
-    }
-
     /* SUM */
 
     uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, float initial, DType dtype) {
@@ -169,6 +129,43 @@ namespace nectar {
                 in_idx, out_idx, reduce_dim, initial);
             return reinterpret_cast<uintptr_t>(d_out);
         });
+    }
+
+    /* MEAN */
+
+    uintptr_t reduce_mean(uintptr_t in_ptr, size_t n_elements, DType dtype) {
+        DISPATCH_DTYPE(dtype, T, {
+            T* d_out;
+            cudaMalloc(&d_out, sizeof(T));
+            launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
+            launch_elementwise_math_tensorscalar<T, ElemWiseDivTSOp>(
+                d_out, d_out, static_cast<float>(n_elements), 1);
+            return reinterpret_cast<uintptr_t>(d_out);
+        });
+    }
+
+    uintptr_t reduce_mean_dim(
+        uintptr_t in_ptr,
+        std::vector<int> shape,
+        int reduce_dim,
+        DType dtype
+    ) {
+        uintptr_t sum_ptr = reduce_sum_dim(
+            in_ptr, shape, reduce_dim, 0.0f, dtype);
+        
+        size_t n = shape[reduce_dim];
+        size_t out_elements = 1;
+        for (int i = 0; i < shape.size(); i++)
+            if (i != reduce_dim) out_elements *= shape[i];
+        
+        DISPATCH_DTYPE(dtype, T, {
+            launch_elementwise_math_tensorscalar<T, ElemWiseDivTSOp>(
+                reinterpret_cast<T*>(sum_ptr), 
+                reinterpret_cast<T*>(sum_ptr), 
+                static_cast<float>(n),
+                out_elements);
+        });
+        return sum_ptr;
     }
 
     /* PROD */

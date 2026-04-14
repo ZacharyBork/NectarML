@@ -1,16 +1,20 @@
 import threading
+from dataclasses import dataclass
 from typing import Any, Self, Literal
 
-threadLocal = threading.local()
-threadLocal.autocast_enabled = False
-threadLocal.autocast_context = None
+@dataclass
+class AutocastState:
+    enabled: bool
+    context: str | None
 
-def set_autocast_enabled(enabled: bool) -> None:
-    threadLocal.autocast_enabled = enabled
-def is_autocast_enabled() -> bool: return threadLocal.autocast_enabled
-def autocast_context() -> str | None: return threadLocal.autocast_context
-def autocast_state() -> tuple[bool, str | None]:
-    return threadLocal.autocast_enabled, threadLocal.autocast_context
+tl = threading.local()
+tl.autocast = AutocastState(enabled=False, context=None)
+
+def autocast_state() -> AutocastState:    return tl.autocast
+def is_autocast_enabled() -> bool:        return tl.autocast.enabled
+def autocast_context() -> str | None:     return tl.autocast.context
+def set_autocast_enabled(enabled: bool) -> None: tl.autocast.enabled = enabled
+def set_autocast_context(context: str)  -> None: tl.autocast.context = context
 
 class autocast:
     def __init__(
@@ -24,10 +28,10 @@ class autocast:
     def __enter__(self) -> Self:
         if self.enabled:
             set_autocast_enabled(True)
-            threadLocal.autocast_context = self.context
+            tl.autocast_state.context = self.context
     
     def __exit__(self, *args: Any) -> None:
         if self.enabled:
             set_autocast_enabled(False)
-            threadLocal.autocast_context = None
+            tl.autocast_state.context = None
 

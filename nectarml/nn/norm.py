@@ -31,21 +31,17 @@ class _BatchNorm(Module):
         self.track_running_stats = track_running_stats
                 
         if affine:
-            self.gamma = ones(
-                parameter_shape, 
-                dtype=dtype, device='cpu', requires_grad=True)
-            self.beta = zeros(
-                parameter_shape,
-                dtype=dtype, device='cpu', requires_grad=True)
+            self.gamma = ones(parameter_shape, dtype=dtype, requires_grad=True)
+            self.beta = zeros(parameter_shape, dtype=dtype, requires_grad=True)
         else: self.gamma = self.beta = None
         
         if track_running_stats:
             self.register_buffer(
-                'running_mean', 
-                zeros(parameter_shape, dtype=dtype, device='cpu'))
+                'running_mean', zeros(parameter_shape, dtype=float32),
+                persistent=True, pin_dtype=float32)
             self.register_buffer(
-                'running_var', 
-                ones(parameter_shape, dtype=dtype, device='cpu'))
+                'running_var', ones(parameter_shape, dtype=float32),
+                persistent=True, pin_dtype=float32)
         
     def forward(self: _BatchNorm, x: Tensor) -> Tensor:
         if self.training:
@@ -69,7 +65,7 @@ class _BatchNorm(Module):
             if self.gamma is not None: x_norm = self.gamma * x_norm
             if self.beta is not None: x_norm = self.beta + x_norm
         
-        return x_norm
+        return x_norm.to(dtype=x.dtype)
 
 class BatchNorm1d(_BatchNorm):
     def __init__(
@@ -184,7 +180,7 @@ class GroupNorm(Module):
     def forward(self: GroupNorm, x: Tensor) -> Tensor:
         x_norm, _ = F.group_norm(
             x, self.num_groups, self.gamma, self.beta, self.eps) 
-        return x_norm
+        return x_norm.to(dtype=x.dtype)
     
 ### LAYER ###
     
@@ -213,6 +209,6 @@ class LayerNorm(Module):
         else: self.gamma = self.beta = None
         
     def forward(self: LayerNorm, x: Tensor) -> Tensor:
-        return F.layer_norm(
+        x_norm = F.layer_norm(
             x, self.normalized_shape, self.gamma, self.beta, self.eps)
-
+        return x_norm.to(dtype=x.dtype)

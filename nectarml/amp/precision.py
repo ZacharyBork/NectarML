@@ -1,83 +1,83 @@
-import functools
-from typing import Any, ParamSpec, TypeVar
+from typing import Any
 from collections.abc import Callable
 
 from nectarml.typing import DTypeLike, float16, float32
 from nectarml.amp.autocast import autocast_state
+from nectarml.cuda import utils, memory
 
-P = ParamSpec('P')
-R = TypeVar('R')
+DTYPE_RANK = {float16: 1, float32: 2}
 
-DTYPE_RANK = {
-    float32: 2, 
-    float16: 1
-}
-
-### UTILS ###
-
-def _collect_dtypes(args, kwargs) -> list[DTypeLike]:
-    dtypes = []
-    for item in list(args) + list(kwargs.values()):
-        if getattr(item, '_class_type_nectar_tensor', False):
-            dtypes.append(item.dtype)
-        elif isinstance(item, (list, tuple)):
-            dtypes += [
-                t.dtype for t in item
-                if getattr(t, '_class_type_nectar_tensor', False)
-            ]
-    return dtypes
-
-def _cast(
-    precision: DTypeLike, 
-    *args, 
-    **kwargs
-) -> tuple[tuple[Any], dict[str, Any]]:
-    # NOTE: CPU autocast is no-op currently
-    enabled, context = autocast_state()
-    if not enabled or context != 'cuda':
-        return args, kwargs
+def _extract_ptr(
+    arg:          Any, 
+    target_dtype: DTypeLike
+) -> tuple[int, bool]:
+    if not getattr(arg, '_class_type_nectar_tensor', False): return arg, False
+    if arg.device != 'cuda': return arg, False
+    if arg.dtype == target_dtype: return arg._data_ptr, False
     
-    def cast_item(item):
-        if getattr(item, '_class_type_nectar_tensor', False) \
-        and item.dtype != precision and item.device != 'cpu':
-            return item.to(dtype=precision)
-        elif isinstance(item, (list, tuple)):
-            casted = (cast_item(t) for t in item)
-            return type(item)(casted)
-        return item
+    ptr = utils.cast_tensor(arg, utils.map_dtype(target_dtype))
+    return ptr, True
 
-    args = tuple(cast_item(arg) for arg in args)
-    kwargs = {k: cast_item(v) for k, v in kwargs.items()}
-    return args, kwargs
+def _free_temporaries(ptrs_and_flags: list[tuple[int, bool]]) -> None:
+    for ptr, is_temp in ptrs_and_flags:
+        if is_temp and ptr != 0: memory.free_cuda(ptr)
 
-### DECORATORS
-
-def amp_float16(func: Callable[P, R]) -> Callable[P, R]:
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        args, kwargs = _cast(float16, *args, **kwargs)
-        return func(*args, **kwargs)
-    return wrapper
+def _run_cast(
+    func:         Callable[[Any], Any], 
+    target_dtype: DTypeLike, 
+    *args:        tuple[Any], 
+    **kwargs:     dict[str, Any]
+) -> Any:
+    from nectarml.tensor import Tensor
     
-def amp_float32(func: Callable[P, R]) -> Callable[P, R]:
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        args, kwargs = _cast(float32, *args, **kwargs)
-        return func(*args, **kwargs)
-    return wrapper
-
-def amp_promote(func: Callable[P, R]) -> Callable[P, R]:
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        enabled, context = autocast_state()
-        if not enabled or context != 'cuda': return func(*args, **kwargs)
-
-        dtypes = _collect_dtypes(args, kwargs)
-        if not dtypes: return func(*args, **kwargs)
-
-        target = max(dtypes, key=lambda d: DTYPE_RANK[d])
-        args, kwargs = _cast(target, *args, **kwargs)
-        return func(*args, **kwargs)
-    return wrapper
-
+    def cast_arg(arg: Any) -> Tensor | Any:
+        if not getattr(arg, '_class_type_nectar_tensor', False): return arg
+        if arg.device != 'cuda' or arg.dtype == target_dtype:    return arg
+        ptr = utils.cast_tensor(arg, utils.map_dtype(target_dtype))
+        return Tensor._temporary(arg, ptr, target_dtype)
     
+    cast_args   = [cast_arg(a) for a in args]
+    cast_kwargs = {k: cast_arg(v) for k, v in kwargs.items()}
+    result      = func(*cast_args, **cast_kwargs)
+    return result
+
+def run_cast_float16(
+    func:     Callable[[Any], Any], 
+    *args:    tuple[Any], 
+    **kwargs: dict[str, Any]
+) -> Any:
+    state = autocast_state()
+    if not state.enabled or state.context != 'cuda': 
+        return func(*args, **kwargs)
+    return _run_cast(func, float16, *args, **kwargs)
+
+def run_cast_float32(
+    func:     Callable[[Any], Any], 
+    *args:    tuple[Any], 
+    **kwargs: dict[str, Any]
+) -> Any:
+    state = autocast_state()
+    if not state.enabled or state.context != 'cuda': 
+        return func(*args, **kwargs)
+    return _run_cast(func, float32, *args, **kwargs)
+
+def run_cast_promote(
+    func:     Callable[[Any], Any], 
+    *args:    tuple[Any], 
+    **kwargs: dict[str, Any]
+) -> Any:
+    state = autocast_state()
+    if not state.enabled or state.context != 'cuda': 
+        return func(*args, **kwargs)
+
+    dtypes = [
+        arg.dtype for arg in list(args) + list(kwargs.values())
+        if getattr(arg, '_class_type_nectar_tensor', False)
+        and arg.device == 'cuda'
+        and arg.dtype in DTYPE_RANK
+    ]
+    if not dtypes: return func(*args, **kwargs)
+    
+    target = max(dtypes, key=lambda d: DTYPE_RANK.get(d, 0))
+    return _run_cast(func, target, *args, **kwargs)
+

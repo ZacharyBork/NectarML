@@ -3,7 +3,7 @@ from typing import Literal
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
 from nectarml.functional.padding import pad
-from nectarml.amp.precision import amp_float16
+from nectarml.amp.precision import run_cast_float16
 
 ### CPU ###
 
@@ -90,7 +90,8 @@ def _conv2d_cuda(
         _children.append(bias)
         _requires_grad = _requires_grad or bias.requires_grad
         
-    out_data = cuda.conv.conv2d(
+    out_data = run_cast_float16(
+        cuda.conv.conv2d,
         input, weight, bias, 
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w, 
@@ -130,15 +131,14 @@ def _conv2d_cuda(
 
 ### WRAPPER ###
 
-@amp_float16
 def conv2d(
-    input: Tensor,
-    weight: Tensor,
-    bias: Tensor | None = None,
-    stride: int | tuple[int, int] = 1,
-    padding: int | tuple[int, int] = 0,
-    dilation: int | tuple[int, int] = 1,
-    groups: int = 1,
+    input:        Tensor,
+    weight:       Tensor,
+    bias:         Tensor | None = None,
+    stride:       int | tuple[int, int] = 1,
+    padding:      int | tuple[int, int] = 0,
+    dilation:     int | tuple[int, int] = 1,
+    groups:       int = 1,
     padding_mode: Literal[
         'zeros', 'reflect', 'replicate', 'circular'
     ] = 'zeros'

@@ -2,7 +2,7 @@ from typing import Literal
 
 from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
-from nectarml.amp.precision import amp_float16
+from nectarml.amp.precision import run_cast_float16
 
 ### CPU ###
 
@@ -94,7 +94,8 @@ def _conv_transpose2d_cuda(
         _children.append(bias)
         _requires_grad = _requires_grad or bias_requires_grad
 
-    out_data = cuda.conv.conv_transpose2d(
+    out_data = run_cast_float16(
+        cuda.conv.conv_transpose2d,
         input, weight, bias,
         B, C_in, H_in, W_in, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w,
@@ -135,17 +136,16 @@ def _conv_transpose2d_cuda(
 
 ### WRAPPER ###
 
-@amp_float16
 def conv_transpose2d(
-    input: Tensor,
-    weight: Tensor,
-    bias: Tensor | None = None,
-    stride: int | tuple[int, int] = 1,
-    padding: int | tuple[int, int] = 0,
+    input:          Tensor,
+    weight:         Tensor,
+    bias:           Tensor | None = None,
+    stride:         int | tuple[int, int] = 1,
+    padding:        int | tuple[int, int] = 0,
     output_padding: int | tuple[int, int] = 0,
-    dilation: int | tuple[int, int] = 1,
-    groups: int = 1,
-    padding_mode: Literal['zeros'] = 'zeros'
+    dilation:       int | tuple[int, int] = 1,
+    groups:         int = 1,
+    padding_mode:   Literal['zeros'] = 'zeros'
 ) -> Tensor:
     B, C_in, H_in, W_in = input.shape
     C_in_w, C_out, KH, KW = weight.shape
