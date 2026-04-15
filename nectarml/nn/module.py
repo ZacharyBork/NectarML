@@ -1,26 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Self
+from typing import Any, Self
 
+from nectarml        import typing
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
 
 class Module():
     _submodules:           dict[str, Module]
     _parameters:           dict[str, Tensor]
     _buffers:              dict[str, Tensor]
-    _pinned_buffer_dtypes: dict[str, DTypeLike]
+    _pinned_buffer_dtypes: dict[str, typing.dtype]
     
     def __init__(
-        self: Module,
-        dtype: DTypeLike = float32
+        self:  Module,
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__setattr__('_submodules', {})
         super().__setattr__('_parameters', {})
         super().__setattr__('_buffers', {})
         super().__setattr__('_pinned_buffer_dtypes', {})
         
-        self.dtype: DTypeLike = dtype
+        self.dtype: typing.dtype = dtype
         self.training:   bool = True
         
         self._device_id:        int | None = None
@@ -29,11 +29,11 @@ class Module():
     # PROPERTIES
     
     @property
-    def dtype(self: Module) -> DTypeLike:
+    def dtype(self: Module) -> typing.dtype:
         return self._dtype
     
     @dtype.setter
-    def dtype(self: Module, value: DTypeLike) -> None:
+    def dtype(self: Module, value: typing.dtype) -> None:
         self._dtype = value
             
     # REGISTRATION
@@ -45,11 +45,11 @@ class Module():
         self._submodules[name] = module
         
     def register_buffer(
-        self:      Module,
-        name:      str,
-        tensor:    Tensor,
+        self:       Module,
+        name:       str,
+        tensor:     Tensor,
         persistent: bool = True,
-        pin_dtype:  DTypeLike | None = None
+        pin_dtype:  typing.dtype | None = None
     ) -> None:
         self._buffers[name] = tensor
         if persistent: self._persistent_buffers.add(name)
@@ -107,8 +107,8 @@ class Module():
     
     def to(
         self:   Module,
-        device: Literal['cpu', 'cuda'] | None = None,
-        dtype:  DTypeLike | None = None
+        device: typing.DeviceLikeType | None = None,
+        dtype:  typing.dtype | None = None
     ) -> Self:
         for _, module in self._walk_module_tree():
             for name, buffer in module._buffers.items():

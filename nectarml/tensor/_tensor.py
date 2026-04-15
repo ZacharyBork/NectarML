@@ -7,19 +7,20 @@ from collections.abc import Callable
 
 import numpy as np
 
-from nectarml import typing, cpu, cuda, autograd
+from nectarml import typing, cpu, cuda
 from nectarml.cuda.memory import CudaBuffer
 
 class tensor:
     _class_type_nectar_tensor  = True
     _subclasses: builtins.dict = {}
     _device:     typing.device = None
+    _dtype:      typing.dtype  = None
     
     def __init__(
         self:          tensor,
         data:          np.ndarray | CudaBuffer,
         shape:         typing.ShapeType,
-        dtype:         typing.DTypeLike,
+        dtype:         typing.dtype,
         device:        typing.DeviceLikeType,
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
@@ -47,9 +48,9 @@ class tensor:
                 generally not set manually.
         '''
         object.__setattr__(self, '_device', typing.device(device))
+        object.__setattr__(self, '_dtype',  dtype)
         self.shape  = shape if isinstance(shape, typing.Size) \
                  else typing.Size(list(shape))
-        self._dtype = dtype
         
         self.data:    np.ndarray | None = None
         self._buffer: CudaBuffer | None = None
@@ -91,21 +92,20 @@ class tensor:
     
     @classmethod
     def _new(
-        cls:    type[Self],
-        data:   builtins.int | np.ndarray,
-        shape:  typing.Size  | tuple[builtins.int, ...],
-        dtype:  typing.DTypeLike,
-        device: Literal['cpu', 'cuda'],
-        requires_grad: bool = False,
-        _children:    tuple = ()
+        cls:           type[Self],
+        data:          builtins.int | np.ndarray,
+        shape:         typing.Size  | tuple[builtins.int, ...],
+        dtype:         typing.dtype,
+        device:        Literal['cpu', 'cuda'],
+        requires_grad: bool  = False,
+        _children:     tuple = ()
     ) -> Self:
         out = cls.__new__(cls)
         out.__setattr__('_device', typing.device(device, device_id=None))
-       
-        out._dtype = dtype
-        out.shape  = shape if isinstance(shape, typing.Size) \
-                        else typing.Size(shape)
+        out.__setattr__('_dtype',  dtype)
         
+        out.shape          = shape if isinstance(shape, typing.Size) \
+                                else typing.Size(shape)
         out._requires_grad = requires_grad
         out.grad           = None
         out._prev          = set(_children)
@@ -122,12 +122,12 @@ class tensor:
     
     @classmethod
     def _from_data(
-        cls:   type[Self],
-        data:  np.ndarray, 
-        shape: typing.Size | tuple[builtins.int, ...], 
-        dtype: typing.DTypeLike, 
-        requires_grad: bool = False,
-        _children:    tuple = ()
+        cls:           type[Self],
+        data:          np.ndarray, 
+        shape:         typing.Size | tuple[builtins.int, ...], 
+        dtype:         typing.dtype, 
+        requires_grad: bool  = False,
+        _children:     tuple = ()
     ) -> Self:
         '''Helper method to duplicate CPU tensors which share underlying data.
         
@@ -144,8 +144,8 @@ class tensor:
         '''
         out = cls.__new__(cls)
         out.__setattr__('_device', typing.device('cpu', device_id=None))
+        out.__setattr__('_dtype',  dtype)
         
-        out._dtype         = dtype
         out.shape          = shape
         
         out.data           = data
@@ -160,12 +160,12 @@ class tensor:
     
     @classmethod
     def _from_buffer(
-        cls:    type[Self],
-        buffer: CudaBuffer,
-        shape:  typing.Size,
-        dtype:  typing.DTypeLike,
-        requires_grad: bool = False,
-        _children:    tuple = ()
+        cls:           type[Self],
+        buffer:        CudaBuffer,
+        shape:         typing.Size,
+        dtype:         typing.dtype,
+        requires_grad: bool  = False,
+        _children:     tuple = ()
     ) -> Self:
         '''Helper method to duplicate CUDA tensors which share underlying data.
         
@@ -182,8 +182,8 @@ class tensor:
         '''
         out = cls.__new__(cls)
         out.__setattr__('_device', typing.device('cuda', device_id=None))
+        out.__setattr__('_dtype',  dtype)
         
-        out._dtype         = dtype
         out.shape          = shape if isinstance(shape, typing.Size) \
                                 else typing.Size(shape)
         out.data           = None
@@ -201,14 +201,15 @@ class tensor:
         cls:          type[Self],
         input:        Self,
         data_ptr:     builtins.int,
-        target_dtype: typing.DTypeLike
+        target_dtype: typing.dtype
     ) -> Self:
         assert input.device == 'cuda', \
             'tensor._reference is only valid for CUDA tensors.'
         
         tmp = cls.__new__(cls)
         tmp.__setattr__('_device', typing.device('cuda', input._device_id))
-        
+        tmp.__setattr__('_dtype',  input.dtype)
+
         tmp._dtype         = target_dtype
         tmp.shape          = input.shape
         tmp._buffer        = CudaBuffer(data_ptr, target_dtype)
@@ -222,19 +223,7 @@ class tensor:
     ### PROPERTIES ###
       
     @property
-    def _data_ptr(self: Self) -> builtins.int | None:
-        '''Property access for CUDA pointer to tensor's data.
-        
-        Returns:
-            int | None : If the given tensor owns a CudaBuffer (i.e. if its
-                device is "cuda"), returns the uintptr to the tensor's data in
-                CUDA memory. Otherwise returns NoneType.
-        '''
-        if self._buffer is not None: return self._buffer.ptr
-        return None
-      
-    @property
-    def dtype(self: Self) -> typing.DTypeLike:
+    def dtype(self: Self) -> typing.dtype:
         '''Property access for tensor's Dtype.
         
         Returns:
@@ -270,9 +259,16 @@ class tensor:
         return self.shape.numel()
            
     @property
-    def is_contiguous(self: Self) -> bool:
-        if self.device == 'cuda': return True
-        else: return self.data.flags['C_CONTIGUOUS']
+    def _data_ptr(self: Self) -> builtins.int | None:
+        '''Property access for CUDA pointer to tensor's data.
+        
+        Returns:
+            int | None : If the given tensor owns a CudaBuffer (i.e. if its
+                device is "cuda"), returns the uintptr to the tensor's data in
+                CUDA memory. Otherwise returns NoneType.
+        '''
+        if self._buffer is not None: return self._buffer.ptr
+        return None
         
     @property
     def requires_grad(self: tensor) -> bool:
@@ -283,23 +279,14 @@ class tensor:
         '''
         return self._requires_grad
         
-    @requires_grad.setter
-    def requires_grad(self: Self, value: bool) -> None:
-        '''Setter for tensor's requires_grad value.
-        
-        This setter will allocate a grad tensor for the given data tensor if
-        value=True and the tensor's grad is None. If value=False, it will set
-        the given tensor's grad to None.
-        
-        Args:
-            value : True to enable grad on the given tensor, False to disable.
-        '''
-        if self.dtype != typing.bool_: 
-              self._requires_grad = value and autograd.is_grad_enabled()
-        else: self._requires_grad = False
+    @property
+    def is_contiguous(self: Self) -> bool:
+        if self.device == 'cuda': return True
+        else: return self.data.flags['C_CONTIGUOUS']
         
     @property
     def _mod(self: Self) -> types.ModuleType:
+        # TODO: Finish implementing this!
         return cuda if self.device == 'cuda' else cpu
         
     ### CLASS METHODS ###
@@ -368,8 +355,8 @@ class tensor:
         
     def to(
         self:   tensor,
-        device: Literal['cpu', 'cuda'] | None = None,
-        dtype:  typing.DTypeLike | None = None
+        device: typing.DeviceLikeType | None = None,
+        dtype:  typing.dtype | None = None
     ) -> Self: 
         '''Casts tensor to new device and/or Dtype.
         
@@ -399,15 +386,13 @@ class tensor:
                     cuda.free_cuda(tmp_ptr)
                 else: data = tmp_ptr
             else: data = cuda.cast_tensor(self, dtype)
-            shape = self.shape
                     
         elif device == 'cpu':
-            if self.device == 'cpu': data = self.data.astype(dtype)
+            if self.device == 'cpu': data = self.data.astype(dtype.cpu)
             else: data = cuda.to_cpu(self, dtype)
-            shape = typing.Size(data.shape)
         else: raise ValueError(f'Invalid device type: {device}')
         
-        new = self._new(data, shape, dtype, device, self.requires_grad)
+        new = self._new(data, self.shape, dtype, device, self.requires_grad)
         new.grad = self.grad.to(device) if self.grad is not None else None
 
         if self.requires_grad:
@@ -427,6 +412,8 @@ class tensor:
     def cuda(self: tensor) -> Self: 
         '''Convenience function to cast given tensor to CUDA device.
         
+        Equivalent to `tensor.to(device='cuda')`
+        
         When called on a tensor who's device is already "cuda", this method 
         will return a reference to the original tensor object. If you would 
         like to make a duplicate of a given tensor, please see tensor.clone().
@@ -439,6 +426,8 @@ class tensor:
     def cpu(self: tensor) -> Self: 
         '''Convenience function to cast given tensor to CPU device.
         
+        Equivalent to `tensor.to(device='cpu')`
+        
         When called on a tensor who's device is already "cpu", this method 
         will return a reference to the original tensor object. If you would 
         like to make a duplicate of a given tensor, please see tensor.clone().
@@ -447,6 +436,68 @@ class tensor:
             tensor : The resulting CPU tensor from the cast operation.
         '''
         return self.to(device='cpu')
+    
+    def float(self: tensor) -> Self: 
+        '''Convenience function to cast given tensor to float.
+        
+        Equivalent to `tensor.to(dtype=typing.float32)`
+        
+        When called on a tensor who's dtype is already "float32", this method 
+        will return a reference to the original tensor object. If you would 
+        like to make a duplicate of a given tensor, please see tensor.clone().
+        
+        Returns:
+            tensor : The resulting float tensor from the cast operation.
+        '''
+        return self.to(dtype=typing.float32)
+    
+    def half(self: tensor) -> Self: 
+        '''Convenience function to cast given tensor to float16.
+        
+        Equivalent to `tensor.to(dtype=typing.float16)`
+        
+        When called on a tensor who's dtype is already "float16", this method 
+        will return a reference to the original tensor object. If you would 
+        like to make a duplicate of a given tensor, please see tensor.clone().
+        
+        Returns:
+            tensor : The resulting float16 tensor from the cast operation.
+        '''
+        return self.to(dtype=typing.float32)
+    
+    def int(self: tensor) -> Self: 
+        '''Convenience function to cast given tensor to int.
+        
+        Equivalent to `tensor.to(dtype=typing.int32)`
+        
+        When called on a tensor who's dtype is already "int32", this method 
+        will return a reference to the original tensor object. If you would 
+        like to make a duplicate of a given tensor, please see tensor.clone().
+        
+        Returns:
+            tensor : The resulting int tensor from the cast operation.
+        '''
+        return self.to(dtype=typing.float32)
+    
+    def __float__(self: tensor) -> Self:
+        '''Convenience method to cast given tensor to float.
+        
+        Equivalent to `tensor.to(dtype=typing.float32)`
+
+        Returns:
+            tensor : The resulting float tensor from the cast operation.
+        '''
+        return self.float()
+    
+    def __int__(self: tensor) -> Self:
+        '''Convenience method to cast given tensor to int.
+        
+        Equivalent to `tensor.to(dtype=typing.int32)`
+
+        Returns:
+            tensor : The resulting int tensor from the cast operation.
+        '''
+        return self.int()
             
     ### DATA UTILS ###
     
@@ -686,7 +737,7 @@ class tensor:
             def _backward() -> None:
                 if self_requires_grad:
                     grad = self._new(
-                        np.zeros(self.shape, typing.float32), 
+                        np.zeros(self.shape, np.float32), 
                         self.shape, typing.float32, self.device, 
                         requires_grad=False)
                     grad[tuple(normalized)] = out.grad
@@ -775,12 +826,12 @@ class tensor:
         if self.device == 'cuda':
             if not isinstance(value, tensor):
                 value = self._new(
-                    np.full(counts, value, dtype=self.dtype),
+                    np.full(counts, value, dtype=self.dtype.cpu),
                     counts, self.dtype, self.device)
             new_ptr = cuda.indexing.index_put(
                 self, starts, counts, steps, value)
             old_buffer = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            self._buffer = CudaBuffer(new_ptr, self.dtype.cpu)
             old_buffer.decrement()
         else:
             if isinstance(value, tensor): value = value.data
@@ -816,9 +867,9 @@ class tensor:
         return (
             f'{self.__class__.__name__}: [\n'
             f'    shape:         {self.shape},\n'
-            f'    dtype:         {self.dtype}\n'
+            f'    dtype:         {self._dtype}\n'
             f'    device:        {self._device.__repr__()}'
-            f'    requires_grad: {self.requires_grad},\n'
+            f'    requires_grad: {self._requires_grad},\n'
             f'    data:          {data_str},\n'
             f'    _prev:         {self._prev}\n'
             f']'
@@ -934,7 +985,7 @@ class tensor:
         end_dim = end_dim if end_dim >= 0 else self.ndim + end_dim
         new_shape = (
             self.shape[:start_dim]
-          + (int(np.prod(self.shape[start_dim:end_dim+1])),)
+          + (builtins.int(np.prod(self.shape[start_dim:end_dim+1])),)
           + self.shape[end_dim+1:])
         return self.reshape(new_shape)
         
@@ -1177,7 +1228,7 @@ class tensor:
         def _backward() -> None:
             if self_requires_grad:
                 grad = self._new(
-                    np.zeros(self.shape, typing.float32), 
+                    np.zeros(self.shape, np.float32), 
                     self.shape, typing.float32, self.device, 
                     requires_grad=False)
                 self.grad += grad.scatter_add(dim, index, out.grad)
@@ -1193,7 +1244,7 @@ class tensor:
     ) -> Self:
         if not isinstance(source, tensor):
             source = self._new(
-                np.full(index.shape, fill_value=source), 
+                np.full(index.shape, fill_value=source, dtype=self.dtype.cpu), 
                 index.shape, self.dtype, self.device)
         
         if not self.device == index.device or not self.device == source.device:
@@ -1222,7 +1273,7 @@ class tensor:
                 source.grad += out.grad.gather(dim, index)
             if self_requires_grad:
                 mask = self._new(
-                    np.ones(self.shape, typing.float32),
+                    np.ones(self.shape, np.float32),
                     self.shape, typing.float32, self.device,
                     requires_grad=False)
                 mask = mask.scatter(dim, index, 0.0)

@@ -6,15 +6,29 @@ if TYPE_CHECKING:
 import math
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
+
+### TENSOR RESHAPING ###
 
 def permute(input: Tensor, dims: tuple[int, ...] | None) -> int:
     return _nectarml.tensor.shapes.permute(
-        input._data_ptr, input.shape, list(dims), map_dtype(input.dtype))
+        input._data_ptr, input.shape, list(dims), input.dtype.cuda)
 
 def expand(input: Tensor, shape: tuple[int, ...]) -> int:
     return _nectarml.tensor.shapes.expand(
-        input._data_ptr, input.shape, list(shape), map_dtype(input.dtype))
+        input._data_ptr, input.shape, list(shape), input.dtype.cuda)
+
+def flip(input: Tensor, dim: int) -> int:
+    dim      = dim if dim >= 0 else input.ndim + dim
+    outer    = int(math.prod(input.shape[:dim]))
+    dim_size = input.shape[dim]
+    inner    = int(math.prod(input.shape[dim+1:]))
+    total    = input.numel()
+    return _nectarml.tensor.shapes.flip(
+        input._data_ptr, total, dim_size,
+        outer, inner,
+        input.dtype.cuda)
+    
+### IM2COL / COL2IM WRAPPERS ###
     
 def im2col_1d(
     input: Tensor,
@@ -22,11 +36,10 @@ def im2col_1d(
     step: int = 1
 ) -> int:
     B, C, L = input.shape
-    L_out = (L - size) // step + 1
     return _nectarml.tensor.conv.im2col_1d(
         input._data_ptr,
         B, C, L, 1, size, step, 0, 1, 1,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def col2im_1d(
     grad: Tensor,
@@ -38,7 +51,7 @@ def col2im_1d(
     return _nectarml.tensor.conv.col2im_1d(
         grad._data_ptr,
         B, C, L, size, L_out, step, 0, 1, 1,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def im2col_2d(
     input: Tensor,
@@ -55,7 +68,7 @@ def im2col_2d(
         input._data_ptr,
         B, C, H, W, 1,
         KH, KW, SH, SW, 0, 0, 1, 1,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def col2im_2d(
     input: Tensor,
@@ -73,15 +86,6 @@ def col2im_2d(
         input._data_ptr,
         B, C, H, W, KH, KW,
         H_out, W_out, SH, SW, 
-        0, 0, 1, 1, map_dtype(input.dtype))
+        0, 0, 1, 1, input.dtype.cuda)
 
-def flip(input: Tensor, dim: int) -> int:
-    dim      = dim if dim >= 0 else input.ndim + dim
-    outer    = int(math.prod(input.shape[:dim]))
-    dim_size = input.shape[dim]
-    inner    = int(math.prod(input.shape[dim+1:]))
-    total    = input.numel()
-    return _nectarml.tensor.shapes.flip(
-        input._data_ptr, total, dim_size,
-        outer, inner,
-        map_dtype(input.dtype))
+

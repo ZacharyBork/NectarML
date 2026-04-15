@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from nectarml           import typing
 from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
 from nectarml.nn.init   import kaiming_normal_
-from nectarml.typing    import DTypeLike, float32
 from nectarml.creation  import empty, zeros
 
 class Linear(Module):
@@ -11,8 +11,8 @@ class Linear(Module):
         self:         Linear,
         in_features:  int,
         out_features: int,
-        bias:         bool = True,
-        dtype:   DTypeLike = float32
+        bias:         bool  = True,
+        dtype:        typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.in_features = in_features

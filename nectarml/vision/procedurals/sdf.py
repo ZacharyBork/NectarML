@@ -3,10 +3,10 @@ from typing import Literal
 import numpy as np
 
 import nectarml.functional as F
+from nectarml import typing
 from nectarml.tensor import Tensor
 from nectarml.creation import ones_like
 from nectarml.vision.procedurals import Generator
-from nectarml.typing import DTypeLike, float32, uint8
 from nectarml.vision.transforms.common import lerp
 
 class SdfCreate(Generator):
@@ -20,8 +20,8 @@ class SdfCreate(Generator):
         radius: float = 0.5,
         center: tuple[float, float] = (0.5, 0.5),
         angle: float = 0.0,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype: typing.dtype = typing.float32,
+        device: typing.DeviceLikeType = 'cpu'
     ) -> None:
         '''
         Massive thank you to Inigo Quilez for the SDF algorithms:
@@ -183,7 +183,7 @@ class SdfCreate(Generator):
         
     def forward(self) -> Tensor:
         arr = self._generate()
-        return Tensor(arr.astype(self.dtype)).unsqueeze(0)
+        return Tensor(arr.astype(self.dtype.numpy)).unsqueeze(0)
 
 class SdfCombine(Generator):
     def __init__(
@@ -258,10 +258,10 @@ class SdfToColor(Generator):
         
         iso = F.where((sdf / max_value)<self.iso_value, ones_like(sdf), 0.0)
         
-        inner_color = Tensor(self.inner_color, dtype=uint8)
+        inner_color = Tensor(self.inner_color, dtype=typing.uint8)
         inner_color = inner_color.view((1, 3, 1, 1)).expand((1, 3)+spatial)
         
-        outer_color = Tensor(self.outer_color, dtype=uint8)
+        outer_color = Tensor(self.outer_color, dtype=typing.uint8)
         outer_color = outer_color.view((1, 3, 1, 1)).expand((1, 3)+spatial)
         
         return lerp(outer_color, inner_color, iso).to(sdf.device, sdf.dtype)
@@ -287,10 +287,10 @@ class SdfColorRamp(Generator):
             ramp = sdf / _min
         else: ramp = (sdf - _min) / (_max - _min)
         
-        color1 = Tensor(self.color1, dtype=uint8)
+        color1 = Tensor(self.color1, dtype=typing.uint8)
         color1 = color1.view((1, 3, 1, 1)).expand((1, 3)+spatial)
         
-        color2 = Tensor(self.color2, dtype=uint8)
+        color2 = Tensor(self.color2, dtype=typing.uint8)
         color2 = color2.view((1, 3, 1, 1)).expand((1, 3)+spatial)
         
         out = lerp(color1, color2, ramp).to(sdf.device, sdf.dtype)

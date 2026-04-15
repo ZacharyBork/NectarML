@@ -4,9 +4,9 @@ from collections.abc import Callable
 
 import numpy as np
 
+from nectarml import typing
 from nectarml.tensor import Tensor
 from nectarml.vision.procedurals import Generator
-from nectarml.typing import DTypeLike, float32, int32
 
 @dataclass(frozen=True)
 class TrapColors:
@@ -68,9 +68,9 @@ class ColorFractal(Generator):
     def apply_colormap(self, input: Tensor) -> Tensor:
         colors = Tensor(np.array(self.colors, dtype=np.float32)) / 255.0
         colors = colors.to(input.device)
-        n = len(colors) - 1
+        n      = len(colors) - 1
         
-        idx = (input * n).to(dtype=int32).clamp(0, n-1)
+        idx  = (input * n).to(dtype=typing.int32).clamp(0, n-1)
         frac = (input * n) - idx
         
         c0 = colors[idx]
@@ -81,28 +81,28 @@ class ColorFractal(Generator):
         
     def generate(self, input: Tensor) -> Tensor:
         norm = input / input.max().item()
-        out = self.apply_colormap(norm)
+        out  = self.apply_colormap(norm)
         return (out * 255).clamp(0.0, 255.0).to(input.device, input.dtype)
 
 class _Fractal(Generator):
     def __init__(
         self, 
-        size: tuple[int, int] = (256, 256),
-        center: tuple[float, float] = (0.5, 0.5),
-        zoom: float = 1.0,
-        angle: float = 0.0,
-        bound: int = 2,
-        power: float = 2.0,
+        size:           tuple[int, int] = (256, 256),
+        center:         tuple[float, float] = (0.5, 0.5),
+        zoom:           float = 1.0,
+        angle:          float = 0.0,
+        bound:          int = 2,
+        power:          float = 2.0,
         max_iterations: int = 50,
-        trap: bool = False,
-        trap_type: Literal[
+        trap:           bool = False,
+        trap_type:      Literal[
             'point', 'cross', 'circle', 'box', 'cross+circle'
         ] = 'cross+circle',
-        trap_radius: float = 1.5,
-        trap_center: complex = 0.0 + 0.0j,
+        trap_radius:    float = 1.5,
+        trap_center:    complex = 0.0 + 0.0j,
         custom_trap_fn: Callable[[complex], float] | None = None,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype:          typing.dtype = typing.float32,
+        device:         typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(size, dtype, device)
         self.center = center
@@ -147,10 +147,10 @@ class _Fractal(Generator):
         return dist
 
     def _generate(self) -> np.ndarray:
-        y_domain = np.linspace(-2, 2, self.size[0], dtype=float32)
+        y_domain = np.linspace(-2, 2, self.size[0], dtype=np.float32)
         y_domain = (y_domain + (self.center[0] - 0.5)) * self.zoom
         
-        x_domain = np.linspace(-2, 2, self.size[1], dtype=float32)
+        x_domain = np.linspace(-2, 2, self.size[1], dtype=np.float32)
         x_domain = (x_domain + (self.center[1] - 0.5)) * self.zoom
 
         xx, yy = np.meshgrid(x_domain, y_domain)
@@ -173,27 +173,27 @@ class _Fractal(Generator):
         
     def forward(self) -> Tensor:
         arr = self._generate()
-        return Tensor(arr.astype(self.dtype)).unsqueeze(0)
+        return Tensor(arr.astype(self.dtype.numpy)).unsqueeze(0)
 
 class Mandelbrot(_Fractal):
     def __init__(
         self, 
-        size: tuple[int, int] = (256, 256),
-        center: tuple[float, float] = (0.5, 0.5),
-        zoom: float = 1.0,
-        angle: float = 0.0,
-        bound: int = 2,
-        power: float = 2.0,
+        size:           tuple[int, int] = (256, 256),
+        center:         tuple[float, float] = (0.5, 0.5),
+        zoom:           float = 1.0,
+        angle:          float = 0.0,
+        bound:          int = 2,
+        power:          float = 2.0,
         max_iterations: int = 50,
-        trap: bool = False,
-        trap_type: Literal[
+        trap:           bool = False,
+        trap_type:      Literal[
             'point', 'cross', 'circle', 'box', 'cross+circle'
         ] = 'cross+circle',
-        trap_radius: float = 1.5,
-        trap_center: complex = 0.0 + 0.0j,
+        trap_radius:    float = 1.5,
+        trap_center:    complex = 0.0 + 0.0j,
         custom_trap_fn: Callable[[complex], float] | None = None,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype:          typing.dtype = typing.float32,
+        device:         typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(
             size, center, zoom, angle, bound, power, max_iterations, trap, 
@@ -235,23 +235,23 @@ class Mandelbrot(_Fractal):
 class Julia(_Fractal):
     def __init__(
         self, 
-        size: tuple[int, int] = (256, 256),
-        center: tuple[float, float] = (0.5, 0.5),
-        zoom: float = 1.0,
-        angle: float = 0.0,
-        bound: int = 2,
-        power: float = 2.0,
+        size:           tuple[int, int] = (256, 256),
+        center:         tuple[float, float] = (0.5, 0.5),
+        zoom:           float = 1.0,
+        angle:          float = 0.0,
+        bound:          int = 2,
+        power:          float = 2.0,
         max_iterations: int = 50,
-        seed: complex = -0.7 + 0.27j,
-        trap: bool = False,
-        trap_type: Literal[
+        seed:           complex = -0.7 + 0.27j,
+        trap:           bool = False,
+        trap_type:      Literal[
             'point', 'cross', 'circle', 'box', 'cross+circle'
         ] = 'cross+circle',
-        trap_radius: float = 1.5,
-        trap_center: complex = 0.0 + 0.0j,
+        trap_radius:    float = 1.5,
+        trap_center:    complex = 0.0 + 0.0j,
         custom_trap_fn: Callable[[complex], float] | None = None,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype:          typing.dtype = typing.float32,
+        device:         typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(
             size, center, zoom, angle, bound, power, max_iterations, trap, 
@@ -296,22 +296,22 @@ class Julia(_Fractal):
 class BurningShip(Mandelbrot):
     def __init__(
         self, 
-        size: tuple[int, int] = (256, 256),
-        center: tuple[float, float] = (0.5, 0.5),
-        zoom: float = 1.0,
-        angle: float = 0.0,
-        bound: int = 2,
-        power: float = 2.0,
+        size:           tuple[int, int] = (256, 256),
+        center:         tuple[float, float] = (0.5, 0.5),
+        zoom:           float = 1.0,
+        angle:          float = 0.0,
+        bound:          int = 2,
+        power:          float = 2.0,
         max_iterations: int = 50,
-        trap: bool = False,
-        trap_type: Literal[
+        trap:           bool = False,
+        trap_type:      Literal[
             'point', 'cross', 'circle', 'box', 'cross+circle'
         ] = 'cross+circle',
-        trap_radius: float = 1.5,
-        trap_center: complex = 0.0 + 0.0j,
+        trap_radius:    float = 1.5,
+        trap_center:    complex = 0.0 + 0.0j,
         custom_trap_fn: Callable[[complex], float] | None = None,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype:          typing.dtype = typing.float32,
+        device:         typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(
             size, center, zoom, angle, bound, power, max_iterations, trap,

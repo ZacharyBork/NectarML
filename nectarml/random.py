@@ -5,8 +5,7 @@ from collections.abc import Iterable, Callable
 import numpy as np
 from numpy.typing import NDArray
 
-from nectarml.typing import (
-    DTypeLike, ArrayLike, float32, float64, int32, int64, Size)
+from nectarml import typing
 
 ### RANDOM WRAPPER ###
 
@@ -30,49 +29,49 @@ class Random:
 
     def random(
         self, 
-        size:  tuple[int, ...] | Size | None = None, 
-        dtype: DTypeLike = float32
-    ) -> float | NDArray[float64]:
-        return self._rng.random(size=size, dtype=float32).astype(dtype)
+        size:  tuple[int, ...] | typing.Size | None = None, 
+        dtype: typing.dtype = typing.float32,
+    ) -> float | NDArray[np.float64]:
+        return self._rng.random(size=size, dtype=np.float32).astype(dtype.cpu)
     
     def uniform(
         self,
-        low:  float | ArrayLike,
-        high: float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        low:  float | np.typing.ArrayLike,
+        high: float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.uniform(low, high, size)
     
     def normal(
         self,
-        loc:   float | ArrayLike,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None,
-    ) -> float | NDArray[float64]:
+        loc:   float | np.typing.ArrayLike,
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None,
+    ) -> float | NDArray[np.float64]:
         return self._rng.normal(loc, scale, size)
     
     def beta(
         self,
-        a:    float | ArrayLike,
-        b:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        a:    float | np.typing.ArrayLike,
+        b:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.beta(a, b, size)
     
     def binomial(
         self,
-        n:    int | ArrayLike,
-        p:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        n:    int | np.typing.ArrayLike,
+        p:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.binomial(n, p, size)
     
     def negative_binomial(
         self,
-        n:    float | ArrayLike,
-        p:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        n:    float | np.typing.ArrayLike,
+        p:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.negative_binomial(n, p, size)
     
     def bytes(self, length: int) -> builtins.bytes:
@@ -80,71 +79,71 @@ class Random:
     
     def chisquare(
         self,
-        df:   float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        df:   float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.chisquare(df, size)
     
     def noncentral_chisquare(
         self,
-        df:   float | ArrayLike,
-        nonc: float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        df:   float | np.typing.ArrayLike,
+        nonc: float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.noncentral_chisquare(df, nonc, size)
     
     def dirichlet(
         self,
-        alpha: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> NDArray[float64]:
+        alpha: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> NDArray[np.float64]:
         return self._rng.dirichlet(alpha, size)
     
     def exponential(
         self,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.exponential(scale, size)
     
     def f(
         self,
-        dfnum: float | ArrayLike,
-        dfden: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        dfnum: float | np.typing.ArrayLike,
+        dfden: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.f(dfnum, dfden, size)
     
     def noncentral_f(
         self,
-        dfnum: float | ArrayLike,
-        dfden: float | ArrayLike,
-        nonc:  float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        dfnum: float | np.typing.ArrayLike,
+        dfden: float | np.typing.ArrayLike,
+        nonc:  float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.noncentral_f(dfnum, dfden, nonc, size)
     
     def gamma(
         self,
-        shape: float | ArrayLike,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        shape: float | np.typing.ArrayLike,
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.gamma(shape, scale, size)
     
     def geometric(
         self,
-        p:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        p:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.geometric(p, size)
     
     def gumbel(
         self,
-        loc:   float | ArrayLike,
-        scale: float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        loc:   float | np.typing.ArrayLike,
+        scale: float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.gumbel(loc, scale, size)
     
     def hypergeometric(
@@ -152,173 +151,173 @@ class Random:
         ngood:   int,
         nbad:    int,
         nsample: int,
-        size:    tuple[int, ...] | Size | None = None
-    ) -> NDArray[int64]:
+        size:    tuple[int, ...] | typing.Size | None = None
+    ) -> NDArray[np.int64]:
         return self._rng.hypergeometric(ngood, nbad, nsample, size)
     
     def integers(
         self,
         low:   int,
         high:  int,
-        size:  tuple[int, ...] | Size | None = None,
-        dtype: DTypeLike = int32
+        size:  tuple[int, ...] | typing.Size | None = None,
+        dtype: typing.dtype = typing.float32,
     ) -> NDArray[Any]:
-        return self._rng.integers(low, high, size, dtype)
+        return self._rng.integers(low, high, size, dtype.cpu)
     
     def laplace(
         self,
-        loc:   float | ArrayLike,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        loc:   float | np.typing.ArrayLike,
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.laplace(loc, scale, size)
     
     def logistic(
         self,
-        loc:   float | ArrayLike,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        loc:   float | np.typing.ArrayLike,
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.logistic(loc, scale, size)
     
     def lognormal(
         self,
-        mean:  float | ArrayLike,
-        sigma: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        mean:  float | np.typing.ArrayLike,
+        sigma: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.lognormal(mean, sigma, size)
     
     def logseries(
         self,
-        p:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        p:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.logseries(p, size)
     
     def multinomial(
         self,
-        n:     int | ArrayLike,
-        pvals: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        n:     int | np.typing.ArrayLike,
+        pvals: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.multinomial(n, pvals, size)
 
     def multivariate_hypergeometric(
         self,
-        colors:  int | ArrayLike,
+        colors:  int | np.typing.ArrayLike,
         nsample: int,
-        size:    tuple[int, ...] | Size | None = None,
+        size:    tuple[int, ...] | typing.Size | None = None,
         method:  Literal['marginals', 'count'] = 'marginals'
-    ) -> NDArray[int64]:
+    ) -> NDArray[np.int64]:
         return self._rng.multivariate_hypergeometric(
             colors, nsample, size, method)
         
     def multivariate_normal(
         self,
-        mean:        float | ArrayLike,
-        cov:         float | ArrayLike,
-        size:        tuple[int, ...] | Size | None = None,
+        mean:        float | np.typing.ArrayLike,
+        cov:         float | np.typing.ArrayLike,
+        size:        tuple[int, ...] | typing.Size | None = None,
         check_valid: Literal['warn', 'raise', 'ignore'] = ...,
         tol: float = ...,
         method: Literal['svd', 'eigh', 'cholesky'] = 'svd'
-    ) -> NDArray[float64]:
+    ) -> NDArray[np.float64]:
         return self._rng.multivariate_normal(
             mean, cov, size, check_valid, tol, method=method)
         
     def negative_binomial(
         self,
-        n:    float | ArrayLike,
-        p:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        n:    float | np.typing.ArrayLike,
+        p:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.negative_binomial(n, p, size)
     
     def pareto(
         self,
-        a:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        a:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.pareto(a, size)
     
     def permutation(
         self,
-        x:    float | ArrayLike,
+        x:    float | np.typing.ArrayLike,
         axis: int = ...,
-        size: tuple[int, ...] | Size | None = None
-    ) -> NDArray[int64]:
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> NDArray[np.int64]:
         return self._rng.permutation(x, axis, size)
     
     def permuted(
         self,
-        x:    float | ArrayLike,
+        x:    float | np.typing.ArrayLike,
         axis: int = ...,
     ) -> NDArray[Any]:
         return self._rng.permuted(x, axis=axis)
     
     def poisson(
         self,
-        lam:  float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> int | NDArray[int64]:
+        lam:  float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> int | NDArray[np.int64]:
         return self._rng.poisson(lam, size)
     
     def power(
         self,
-        a:    float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        a:    float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.power(a, size)
     
     def rayleigh(
         self,
-        scale: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None
-    ) -> float | NDArray[float64]:
+        scale: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None
+    ) -> float | NDArray[np.float64]:
         return self._rng.rayleigh(scale, size)
     
     def standard_t(
         self,
-        df:   float | ArrayLike,
-        size: tuple[int, ...] | Size | None = None,
-    ) -> float | NDArray[float64]:
+        df:   float | np.typing.ArrayLike,
+        size: tuple[int, ...] | typing.Size | None = None,
+    ) -> float | NDArray[np.float64]:
         return self._rng.standard_t(df, size)
     
     def standard_cauchy(
         self,
-        size: tuple[int, ...] | Size | None = None,
-    ) -> float | NDArray[float64]:
+        size: tuple[int, ...] | typing.Size | None = None,
+    ) -> float | NDArray[np.float64]:
         return self._rng.standard_cauchy(size)
     
     def standard_exponential(
         self,
-        size:   tuple[int, ...] | Size | None = None, 
-        dtype:  DTypeLike = float32,
+        size:   tuple[int, ...] | typing.Size | None = None, 
+        dtype:  typing.dtype = typing.float32,
         method: Literal['zig', 'inv'] = 'zig'
-    ) -> float | NDArray[float64]:
-        return self._rng.standard_exponential(size, dtype, method)
+    ) -> float | NDArray[np.float64]:
+        return self._rng.standard_exponential(size, dtype.cpu, method)
     
     def standard_gamma(
         self,
-        shape: float | ArrayLike,
-        size:  tuple[int, ...] | Size | None = None, 
-        dtype: DTypeLike = float32
-    ) -> float | NDArray[float64]:
-        return self._rng.standard_gamma(shape, size, dtype)
+        shape: float | np.typing.ArrayLike,
+        size:  tuple[int, ...] | typing.Size | None = None, 
+        dtype: typing.dtype = typing.float32,
+    ) -> float | NDArray[np.float64]:
+        return self._rng.standard_gamma(shape, size, dtype.cpu)
     
     def standard_normal(
         self,
-        size:  tuple[int, ...] | Size | None = None, 
-        dtype: DTypeLike = float32
-    ) -> float | NDArray[float64]:
-        return self._rng.standard_normal(size=size, dtype=dtype)
+        size:  tuple[int, ...] | typing.Size | None = None, 
+        dtype: typing.dtype = typing.float32,
+    ) -> float | NDArray[np.float64]:
+        return self._rng.standard_normal(size=size, dtype=dtype.cpu)
     
     def choice(
         self,
-        a:       int | ArrayLike,
-        size:    tuple[int, ...] | Size | None = None, 
+        a:       int | np.typing.ArrayLike,
+        size:    tuple[int, ...] | typing.Size | None = None, 
         replace: bool = True,
-        p:       ArrayLike | None = None,
+        p:       np.typing.ArrayLike | None = None,
         axis:    int = 0,
         shuffle: bool = True
     ) -> Any | NDArray[Any]:

@@ -10,10 +10,9 @@ from scipy.ndimage import grey_erosion, grey_dilation
 
 import _nectarml
 import nectarml.functional as F
+from nectarml import typing
 from nectarml.tensor import Tensor
 from nectarml.creation import full, zeros_like, ones_like, linspace
-from nectarml.typing import DTypeLike, float32
-from nectarml.cuda.utils import map_dtype
 from nectarml.functional.interpolation import upsample
 
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
@@ -141,8 +140,8 @@ class LoadImageFile(UtilityTransform[None, Tensor]):
     def __init__(
         self, 
         image_path: PathLike,
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu',
+        dtype: typing.dtype = typing.float32,
+        device: typing.DeviceLikeType = 'cpu',
     ) -> None:
         super().__init__(device)
         self.image_path = Path(image_path)
@@ -369,7 +368,7 @@ class ApplyLUT(Transform):
         S = self.lut_size
         arr = np.array(lut_data, dtype=np.float32).reshape(S, S, S, 3)
         arr = arr.transpose(2, 1, 0, 3)
-        self.lut = Tensor(arr, dtype=float32)
+        self.lut = Tensor(arr, dtype=typing.float32)
             
     def _apply_lut_cpu(self, image: np.ndarray) -> np.ndarray:
         S = self.lut_size
@@ -378,9 +377,9 @@ class ApplyLUT(Transform):
         g_idx = image[:, 1] * (S - 1)
         b_idx = image[:, 2] * (S - 1)
 
-        r0 = np.clip(r_idx.astype(int), 0, S - 1)
-        g0 = np.clip(g_idx.astype(int), 0, S - 1)
-        b0 = np.clip(b_idx.astype(int), 0, S - 1)
+        r0 = np.clip(r_idx.astype(np.int32), 0, S - 1)
+        g0 = np.clip(g_idx.astype(np.int32), 0, S - 1)
+        b0 = np.clip(b_idx.astype(np.int32), 0, S - 1)
         r1 = np.clip(r0 + 1, 0, S - 1)
         g1 = np.clip(g0 + 1, 0, S - 1)
         b1 = np.clip(b0 + 1, 0, S - 1)
@@ -423,7 +422,7 @@ class ApplyLUT(Transform):
             out_data = _nectarml.apply_lut(
                 norm._data_ptr, self.lut._data_ptr,
                 B, H, W, self.lut_size,
-                map_dtype(norm.dtype))
+                norm.dtype.cuda)
         else: out_data = self._apply_lut_cpu(input.numpy())
             
         out = Tensor(out_data, input.shape, input.dtype, input.device)
@@ -658,7 +657,7 @@ class OverlayText(Transform):
             image = image.crop(bbox)
 
             arr = np.array(image).transpose(2, 0, 1)[np.newaxis]
-            arr = arr.astype(input.dtype) / 255
+            arr = arr.astype(input.dtype.numpy) / 255
             text = Tensor(arr, dtype=input.dtype, device=input.device)
 
             start_y = int(self.location[0] * H)

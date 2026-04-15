@@ -6,7 +6,6 @@ if TYPE_CHECKING:
 import builtins
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 from nectarml.constants import FLOAT_MIN, FLOAT_MAX
 
 ### COMPARISON ###
@@ -18,11 +17,11 @@ def equal(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.equal_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.equal(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 def not_equal(
     a: Tensor, 
@@ -31,11 +30,11 @@ def not_equal(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.not_equal_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.not_equal(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 def less_than(
     a: Tensor, 
@@ -44,11 +43,11 @@ def less_than(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.less_than_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.less_than(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 def less_than_or_equal(
     a: Tensor, 
@@ -57,11 +56,11 @@ def less_than_or_equal(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.less_than_or_equal_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.less_than_or_equal(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 def greater_than(
     a: Tensor, 
@@ -70,11 +69,11 @@ def greater_than(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.greater_than_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.greater_than(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 def greater_than_or_equal(
     a: Tensor,
@@ -83,11 +82,11 @@ def greater_than_or_equal(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.greater_than_or_equal_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.greater_than_or_equal(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
 
 ### BASE ###
 
@@ -98,11 +97,11 @@ def add(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.add_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.add(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
     
 
 def subtract(
@@ -112,11 +111,11 @@ def subtract(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.subtract_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.subtract(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
     
 
 def multiply(
@@ -126,11 +125,11 @@ def multiply(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.multiply_ts(
-         a._data_ptr, b, a.size, map_dtype(a.dtype))
+         a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.multiply(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
     
 def divide(
     a: Tensor, 
@@ -139,98 +138,98 @@ def divide(
 ) -> builtins.int:
     if isinstance(b, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.divide_ts(
-            a._data_ptr, b, a.size, map_dtype(a.dtype))
+            a._data_ptr, b, a.size, a.dtype.cuda)
     return _nectarml.tensor.elementwise.divide(
         a._data_ptr, b._data_ptr, 
         a.shape, b.shape, out_shape,
-        map_dtype(a.dtype))
+        a.dtype.cuda)
     
 
 def negate(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.negate(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### SQRT ###
 
 def sqrt(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.sqrt(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def rsqrt(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.rsqrt(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### EXPONENT ###
 
 def exp(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.exp(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### LOG ###
 
 def log(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.log(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def log2(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.log2(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def log10(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.log10(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### SIN / COS ###
 
 def sin(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.sin(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def asin(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.asin(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def sinh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.sinh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def asinh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.asinh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def cos(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.cos(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def acos(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.acos(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def cosh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.cosh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def acosh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.acosh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### TAN / ATAN ###
 
 def tan(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.tan(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def tanh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.tanh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def atan(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.atan(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def atanh(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.atanh(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def atan2(
     y: Tensor, 
@@ -240,33 +239,33 @@ def atan2(
     return _nectarml.tensor.elementwise.atan2(
         y._data_ptr, x._data_ptr, 
         y.shape, x.shape, out_shape,
-        map_dtype(x.dtype))
+        x.dtype.cuda)
 
 ### POW ###
 
 def pow(x: Tensor, exponent: builtins.float) -> builtins.int:
     return _nectarml.tensor.elementwise.pow(
-        x._data_ptr, exponent, x.size, map_dtype(x.dtype))
+        x._data_ptr, exponent, x.size, x.dtype.cuda)
 
 ### ABS ###
 
 def abs(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.abs(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### ROUNDING ###
 
 def floor(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.floor(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def ceil(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.ceil(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 def round(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.round(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### MODULO ###
 
@@ -277,11 +276,11 @@ def fmod(
 ) -> builtins.int:
     if isinstance(y, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.fmod_ts(
-            x._data_ptr, y, x.size, map_dtype(x.dtype))
+            x._data_ptr, y, x.size, x.dtype.cuda)
     return _nectarml.tensor.elementwise.fmod(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
-        map_dtype(x.dtype))
+        x.dtype.cuda)
 
 ### MIN / MAX ###
 
@@ -292,11 +291,11 @@ def minimum(
 ) -> builtins.int:
     if isinstance(y, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.min_ts(
-            x._data_ptr, y, x.size, map_dtype(x.dtype))
+            x._data_ptr, y, x.size, x.dtype.cuda)
     return _nectarml.tensor.elementwise.min(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
-        map_dtype(x.dtype))
+        x.dtype.cuda)
     
 
 def maximum(
@@ -306,11 +305,11 @@ def maximum(
 ) -> builtins.int:
     if isinstance(y, builtins.int | builtins.float):
         return _nectarml.tensor.elementwise.max_ts(
-            x._data_ptr, y, x.size, map_dtype(x.dtype))
+            x._data_ptr, y, x.size, x.dtype.cuda)
     return _nectarml.tensor.elementwise.max(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
-        map_dtype(x.dtype))
+        x.dtype.cuda)
 
 
 def clamp(
@@ -321,13 +320,13 @@ def clamp(
     min_value = min_value or FLOAT_MIN
     max_value = max_value or FLOAT_MAX
     return _nectarml.tensor.elementwise.clamp(
-        x._data_ptr, min_value, max_value, x.size, map_dtype(x.dtype))
+        x._data_ptr, min_value, max_value, x.size, x.dtype.cuda)
 
 ### SIGN ###
 
 def sign(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.sign(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 ### COPYSIGN ###
 
@@ -339,12 +338,12 @@ def copysign(
     return _nectarml.tensor.elementwise.copysign(
         x._data_ptr, y._data_ptr, 
         x.shape, y.shape, out_shape,
-        map_dtype(x.dtype))
+        x.dtype.cuda)
 
 ### TRUNCATE ###
 
 def trunc(x: Tensor) -> builtins.int:
     return _nectarml.tensor.elementwise.trunc(
-        x._data_ptr, x.size, map_dtype(x.dtype))
+        x._data_ptr, x.size, x.dtype.cuda)
 
 

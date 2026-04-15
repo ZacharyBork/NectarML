@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Sequence, Callable
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml           import typing
+from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
-from nectarml.creation import ones, zeros
-from nectarml.typing import DTypeLike, float32
+from nectarml.creation  import ones, zeros
 
 ### BATCH ###
 
@@ -18,9 +18,9 @@ class _BatchNorm(Module):
         norm_func:           Callable,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.norm_dims = norm_dims
@@ -37,11 +37,11 @@ class _BatchNorm(Module):
         
         if track_running_stats:
             self.register_buffer(
-                'running_mean', zeros(parameter_shape, dtype=float32),
-                persistent=True, pin_dtype=float32)
+                'running_mean', zeros(parameter_shape, dtype=typing.float32),
+                persistent=True, pin_dtype=typing.float32)
             self.register_buffer(
-                'running_var', ones(parameter_shape, dtype=float32),
-                persistent=True, pin_dtype=float32)
+                'running_var', ones(parameter_shape, dtype=typing.float32),
+                persistent=True, pin_dtype=typing.float32)
         
     def forward(self: _BatchNorm, x: Tensor) -> Tensor:
         if self.training:
@@ -73,9 +73,9 @@ class BatchNorm1d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1), (0,), F.batch_norm1d, eps, momentum, affine, 
@@ -87,9 +87,9 @@ class BatchNorm2d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (0, 2, 3), F.batch_norm2d, eps, momentum, 
@@ -101,9 +101,9 @@ class BatchNorm3d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.batch_norm3d, eps, 
@@ -117,9 +117,9 @@ class InstanceNorm1d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1), (2,), F.instance_norm1d, eps, 
@@ -131,9 +131,9 @@ class InstanceNorm2d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (2, 3), F.instance_norm2d, eps, 
@@ -145,9 +145,9 @@ class InstanceNorm3d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool = True,
-        track_running_stats: bool = True,
-        dtype:               DTypeLike = float32
+        affine:              bool  = True,
+        track_running_stats: bool  = True,
+        dtype:       typing.dtype  = typing.float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (2, 3, 4), F.instance_norm3d, eps, 
@@ -162,7 +162,7 @@ class GroupNorm(Module):
         num_channels: int,
         eps:          float = 0.00001,
         affine:       bool  = True,
-        dtype:    DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.num_groups = num_groups
@@ -189,9 +189,9 @@ class LayerNorm(Module):
         self:               LayerNorm, 
         normalized_shape:   Sequence[int],
         eps:                float = 0.00001,
-        elementwise_affine: bool = True,
-        bias:               bool = True,
-        dtype:         DTypeLike = float32
+        elementwise_affine: bool  = True,
+        bias:               bool  = True,
+        dtype:      typing.dtype  = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.normalized_shape = normalized_shape

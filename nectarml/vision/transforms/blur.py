@@ -360,7 +360,7 @@ class Emboss(Transform):
                     f'Kernel type expected values between 0-3 but found '
                     f'value: {kernel_mode}')
         
-        k = np.array(k).astype(float32)
+        k = np.array(k).astype(np.float32)
         if rotate_kernel: k = np.rot90(k)
         self.kernel = Tensor(k)
     

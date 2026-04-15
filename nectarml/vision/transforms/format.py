@@ -1,10 +1,10 @@
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 from PIL import Image
 
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32, uint8
+from nectarml.typing import DeviceLikeType, dtype, float32
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.common import TransformInput
 from nectarml.vision.transforms.normalization import MinMaxNormalize
@@ -21,7 +21,7 @@ class ToTensor(Transform):
         if input is None or isinstance(input, Tensor): return input
         
         if isinstance(input, Image.Image):
-            data = np.array(input).astype(float32)
+            data = np.array(input)
             data = data.transpose((2, 0, 1))[np.newaxis]
         elif isinstance(input, np.ndarray): 
             data = input
@@ -29,9 +29,9 @@ class ToTensor(Transform):
             if data.ndim == 3: data = data[np.newaxis]
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
-        output = Tensor(data.astype(float32), dtype=float32, device='cpu')
+        output = Tensor(data.astype(np.float32), dtype=float32, device='cpu')
         if self.normalize:
-            output = output / np.maximum(data.max().astype(float32), 1.0)
+            output = output / np.maximum(data.max(), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:
@@ -46,7 +46,7 @@ class ToTensor(Transform):
 class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
     def __init__(
         self,
-        normalize: bool = True,
+        normalize:   bool = True,
         value_range: tuple[int, int] = (0, 255)
     ) -> None:
         super().__init__()
@@ -75,7 +75,7 @@ class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
         arr = output.numpy()
         if np.any(~np.isfinite(arr)):
             arr = np.nan_to_num(arr, nan=0.0, posinf=255.0, neginf=0.0)
-        return Image.fromarray(arr.astype(uint8), 'RGB')
+        return Image.fromarray(arr.astype(np.uint8), 'RGB')
 
 class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
@@ -127,7 +127,7 @@ class ToTorch(Transform):
 class ConvertDtype(Transform):
     def __init__(
         self,
-        new_dtype: DTypeLike = float32,
+        new_dtype:     dtype = float32,
         transform_mask: bool = False
     ) -> None:
         super().__init__()
@@ -151,7 +151,7 @@ class ConvertDtype(Transform):
 class ChangeDevice(Transform):
     def __init__(
         self,
-        new_device: Literal['cpu', 'cuda'] = 'cpu',
+        new_device:     DeviceLikeType = 'cpu',
         transform_mask: bool = False
     ) -> None:
         super().__init__()
@@ -213,8 +213,8 @@ class ToCUDA(Transform):
 class Cast(Transform):
     def __init__(
         self,
-        new_device: Literal['cpu', 'cuda'] | None = None,
-        new_dtype: DTypeLike | None = None, 
+        new_device:     DeviceLikeType | None = None,
+        new_dtype:      dtype | None = None, 
         transform_mask: bool = False
     ) -> None:
         super().__init__()

@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
-from nectarml.typing import Size, float32
+from nectarml.typing import float32
 from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.spatial import OpticalDistortion
@@ -299,14 +299,14 @@ class Equalize(Transform):
                 img_yuv = cv2.cvtColor(data, cv2.COLOR_BGR2YUV)
                 img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
                 img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
-                out_data = np.array(img_output).astype(input.dtype)
+                out_data = np.array(img_output).astype(input.dtype.numpy)
                 out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
             else:
                 channels = batch.unbind(dim=0)
                 arrs = []
                 for ch in channels:
                     equalized = cv2.equalizeHist(ch.numpy().astype(np.uint8))
-                    arrs.append(np.array(equalized).astype(input.dtype))
+                    arrs.append(np.array(equalized).astype(input.dtype.numpy))
                 out_data = np.ascontiguousarray(np.stack(arrs, axis=0))
             
             outputs.append(out_data)
@@ -325,7 +325,7 @@ class Equalize(Transform):
                 img = Image.fromarray(
                     out.numpy().astype(dtype=np.uint8), 'RGB')
                 img = ImageOps.equalize(img)
-                out_data = np.array(img).astype(input.dtype)
+                out_data = np.array(img).astype(input.dtype.numpy)
                 out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
             else:
                 channels = batch.unbind(dim=0)
@@ -334,7 +334,7 @@ class Equalize(Transform):
                     img = Image.fromarray(
                         ch.numpy().astype(dtype=np.uint8), 'L')
                     img = ImageOps.equalize(img)
-                    arrs.append(np.array(img).astype(input.dtype))
+                    arrs.append(np.array(img).astype(input.dtype.numpy))
                 out_data = np.ascontiguousarray(np.stack(arrs, axis=0))
                 
             outputs.append(out_data)
@@ -526,8 +526,8 @@ class CLAHE(Transform):
         ty_f = ys / th - 0.5
         tx_f = xs / tw - 0.5
         
-        t_row0 = np.clip(np.floor(ty_f).astype(int), 0, ty - 1)
-        t_col0 = np.clip(np.floor(tx_f).astype(int), 0, tx - 1)
+        t_row0 = np.clip(np.floor(ty_f).astype(np.int32), 0, ty - 1)
+        t_col0 = np.clip(np.floor(tx_f).astype(np.int32), 0, tx - 1)
         t_row1 = np.clip(t_row0 + 1, 0, ty - 1)
         t_col1 = np.clip(t_col0 + 1, 0, tx - 1)
         
@@ -536,7 +536,7 @@ class CLAHE(Transform):
         wy0 = 1.0 - wy1
         wx0 = 1.0 - wx1
         
-        v = input.astype(int)
+        v = input.astype(np.int32)
         q00 = mappings[t_row0, t_col0, v]
         q10 = mappings[t_row1, t_col0, v]
         q01 = mappings[t_row0, t_col1, v]
@@ -574,7 +574,7 @@ class CLAHE(Transform):
                 
                 out[b, c] = self._interp(channel, mappings, th, tw, ty, tx)
         
-        out = (out / 255.0 * max_val).astype(input.dtype)
+        out = (out / 255.0 * max_val).astype(input.dtype.numpy)
         return Tensor(out, dtype=input.dtype, device=input.device)
         
     def forward(self, input: Tensor) -> Tensor:

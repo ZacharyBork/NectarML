@@ -4,16 +4,16 @@ import builtins
 from typing import Literal
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml           import typing
+from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
-from nectarml.typing import DTypeLike, float32
 
 ### REGRESSION ###
 
 class L1Loss(Module):
     def __init__(
         self:      L1Loss, 
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -27,7 +27,7 @@ MAELoss = L1Loss
 class L2Loss(Module):
     def __init__(
         self:      L2Loss, 
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -41,7 +41,7 @@ MSELoss = L2Loss
 class RMSELoss(Module):
     def __init__(
         self:      RMSELoss, 
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -54,7 +54,7 @@ class HuberLoss(Module):
     def __init__(
         self:      HuberLoss, 
         delta:     builtins.float = 1.0, 
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -67,7 +67,7 @@ class HuberLoss(Module):
 class LogCoshLoss(Module):
     def __init__(
         self:      LogCoshLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -81,7 +81,7 @@ class LogCoshLoss(Module):
 class BCELoss(Module):
     def __init__(
         self:      BCELoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -93,7 +93,7 @@ class BCELoss(Module):
 class CrossEntropyLoss(Module):
     def __init__(
         self:      CrossEntropyLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -105,7 +105,7 @@ class CrossEntropyLoss(Module):
 class NLLLoss(Module):
     def __init__(
         self:      NLLLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -117,7 +117,7 @@ class NLLLoss(Module):
 class HingeLoss(Module):
     def __init__(
         self:      HingeLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -129,7 +129,7 @@ class HingeLoss(Module):
 class Hinge2Loss(Module):
     def __init__(
         self:      Hinge2Loss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -143,7 +143,7 @@ class Hinge2Loss(Module):
 class KLDivergenceLoss(Module):
     def __init__(
         self:      KLDivergenceLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'sum'
     ) -> None:
         super().__init__(dtype)
@@ -155,7 +155,7 @@ class KLDivergenceLoss(Module):
 class BCEWithLogitsLoss(Module):
     def __init__(
         self:      BCEWithLogitsLoss,  
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)
@@ -171,7 +171,7 @@ class TripletMarginLoss(Module):
         self:      TripletMarginLoss, 
         margin:    builtins.float = 1.0,
         eps:       builtins.float = 1e-6, 
-        dtype:     DTypeLike = float32,
+        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
         super().__init__(dtype)

@@ -12,7 +12,7 @@ def upsample_nearest(
     output = np.zeros(input.shape[:2] + out_sizes, dtype=input.dtype)
 
     indices = tuple(
-        np.minimum((np.arange(o) * i // o).astype(int), i - 1)
+        np.minimum((np.arange(o) * i // o).astype(np.int32), i - 1)
         for o, i in zip(out_sizes, in_sizes))
 
     if len(in_sizes) == 1:
@@ -45,7 +45,7 @@ def upsample_nearest_backward(
         grad_output.shape[:2] + spatial_in, dtype=grad_output.dtype)
     
     indices = tuple(
-        np.minimum((np.arange(o) * i // o).astype(int), i - 1)
+        np.minimum((np.arange(o) * i // o).astype(np.int32), i - 1)
         for o, i in zip(spatial_out, spatial_in))
 
     if len(spatial_in) == 1:
@@ -89,7 +89,7 @@ def upsample_linear_nd(
         else:
             in_float = np.arange(
                 out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
-        low  = np.floor(in_float).astype(int)
+        low  = np.floor(in_float).astype(np.int32)
         lows.append(low)
         highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
         wt_highs.append(in_float - low)
@@ -103,7 +103,7 @@ def upsample_linear_nd(
             shape = [1] * n_spatial
             shape[dim] = -1
             weight = weight * wt.reshape(shape)
-            idx.append(coord.reshape(shape) * np.ones(out_sizes, dtype=int))
+            idx.append(coord.reshape(shape)*np.ones(out_sizes, dtype=np.int32))
         idx = tuple(idx)
 
         for b in range(input.shape[0]):
@@ -160,7 +160,7 @@ def upsample_linear_backward_nd(
         else:
             in_float = np.arange(
                 out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
-        low  = np.floor(in_float).astype(int)
+        low  = np.floor(in_float).astype(np.int32)
         lows.append(low)
         highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
         wt_highs.append(in_float - low)
@@ -175,7 +175,7 @@ def upsample_linear_backward_nd(
             shape = [1] * n_spatial
             shape[dim] = -1
             weight = weight * wt.reshape(shape)
-            idx.append(coord.reshape(shape) * np.ones(out_sizes, dtype=int))
+            idx.append(coord.reshape(shape)*np.ones(out_sizes, dtype=np.int32))
         
         idx = tuple(idx)
         
@@ -240,8 +240,8 @@ def upsample_bicubic(
         h_in_float = np.arange(H_out) * (H_in / H_out)
         w_in_float = np.arange(W_out) * (W_in / W_out)
         
-    h_base = np.floor(h_in_float).astype(int)
-    w_base = np.floor(w_in_float).astype(int)
+    h_base = np.floor(h_in_float).astype(np.int32)
+    w_base = np.floor(w_in_float).astype(np.int32)
 
     for i in range(4):
         h_idx = np.clip(h_base + i - 1, 0, H_in - 1)
@@ -278,8 +278,8 @@ def upsample_bicubic_backward(
         h_in_float = np.arange(H_out) * (H_in / H_out)
         w_in_float = np.arange(W_out) * (W_in / W_out)
 
-    h_base = np.floor(h_in_float).astype(int)
-    w_base = np.floor(w_in_float).astype(int)
+    h_base = np.floor(h_in_float).astype(np.int32)
+    w_base = np.floor(w_in_float).astype(np.int32)
 
     for b in range(grad_output.shape[0]):
         for c in range(grad_output.shape[1]):
@@ -294,8 +294,9 @@ def upsample_bicubic_backward(
                     ww = cubic_weight(
                         w_in_float - (w_base + j - 1), a)[None, :]
 
-                    h_grid = h_idx[:, None] * np.ones(W_out, dtype=int)
-                    w_grid = np.ones(H_out, dtype=int)[:, None]*w_idx[None, :]
+                    h_grid = h_idx[:, None] * np.ones(W_out, dtype=np.int32)
+                    w_grid = np.ones(
+                        H_out, dtype=np.int32)[:, None]*w_idx[None, :]
 
                     np.add.at(grad_input[b, c], (h_grid, w_grid), wh * ww * g)
 

@@ -12,7 +12,6 @@ import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.typing import Size
 from nectarml.creation import linspace
-from nectarml.cuda.utils import map_dtype
 
 ### DATA ###
 
@@ -90,7 +89,7 @@ def hsv_adjust(
     if input.device == 'cuda':
         out_data = _nectarml.hsv_adjust(
             input._data_ptr, list(input.shape),
-            hue_shift, saturation, value, map_dtype(input.dtype))
+            hue_shift, saturation, value, input.dtype.cuda)
     else:
         img_array = (input.data).transpose((0, 2, 3, 1))
         
@@ -103,7 +102,7 @@ def hsv_adjust(
 
         rgb = np.vectorize(colorsys.hsv_to_rgb)(h, s, v)
         out_data = np.clip(np.stack(rgb, axis=-1), 0, 255)
-        out_data = out_data.transpose((0, 3, 1, 2)).astype(input.dtype)
+        out_data = out_data.transpose((0, 3, 1, 2)).astype(input.dtype.numpy)
         
     return Tensor(
         out_data, input.shape, input.dtype, input.device, input.requires_grad

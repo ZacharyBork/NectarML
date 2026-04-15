@@ -4,7 +4,6 @@ if TYPE_CHECKING:
     from nectarml import Tensor
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 
 ### NEAREST NEIGHBOR ###
 
@@ -16,7 +15,7 @@ def upsample_nearest_1d(
         'nectarml.cuda.upsample_nearest_1d input must have ndim==3.')
     return _nectarml.tensor.interpolation.upsample_nearest_1d(
         input._data_ptr, input.shape[0], input.shape[1],
-        input.shape[2], L_out, map_dtype(input.dtype))
+        input.shape[2], L_out, input.dtype.cuda)
 
 def upsample_nearest_1d_backward(
     grad: Tensor,
@@ -26,7 +25,7 @@ def upsample_nearest_1d_backward(
         'nectarml.cuda.upsample_nearest_1d_backward grad must have ndim==3.')
     return _nectarml.tensor.interpolation.upsample_nearest_1d_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        L_in, L_out, map_dtype(grad.dtype))
+        L_in, L_out, input.dtype.cuda)
 
 def upsample_nearest_2d(
     input: Tensor,
@@ -37,7 +36,7 @@ def upsample_nearest_2d(
         'nectarml.cuda.upsample_nearest_2d input must have ndim==4.')
     return _nectarml.tensor.interpolation.upsample_nearest_2d(
         input._data_ptr, input.shape[0], input.shape[1],
-        input.shape[2], input.shape[3], H_out, W_out, map_dtype(input.dtype))
+        input.shape[2], input.shape[3], H_out, W_out, input.dtype.cuda)
 
 def upsample_nearest_2d_backward(
     grad: Tensor,
@@ -48,7 +47,7 @@ def upsample_nearest_2d_backward(
         'nectarml.cuda.upsample_nearest_2d_backward grad must have ndim==4.')
     return _nectarml.tensor.interpolation.upsample_nearest_2d_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        H_in, W_in, H_out, W_out, map_dtype(grad.dtype))
+        H_in, W_in, H_out, W_out, input.dtype.cuda)
 
 def upsample_nearest_3d(
     input: Tensor, 
@@ -59,7 +58,7 @@ def upsample_nearest_3d(
     return _nectarml.tensor.interpolation.upsample_nearest_3d(
         input._data_ptr, input.shape[0], input.shape[1],
         input.shape[2], input.shape[3], input.shape[4],
-        D_out, H_out, W_out, map_dtype(input.dtype))
+        D_out, H_out, W_out, input.dtype.cuda)
 
 def upsample_nearest_3d_backward(
     grad: Tensor, 
@@ -70,7 +69,7 @@ def upsample_nearest_3d_backward(
         'upsample_nearest_3d_backward grad must have ndim==5.'
     return _nectarml.tensor.interpolation.upsample_nearest_3d_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        D_in, H_in, W_in, D_out, H_out, W_out, map_dtype(grad.dtype))
+        D_in, H_in, W_in, D_out, H_out, W_out, grad.dtype.cuda)
 
 ### LINEAR ###
 
@@ -83,7 +82,7 @@ def upsample_linear(
         'nectarml.cuda.upsample_linear input must have ndim==3.')
     return _nectarml.tensor.interpolation.upsample_linear(
         input._data_ptr, input.shape[0], input.shape[1],
-        input.shape[2], L_out, align_corners, map_dtype(input.dtype))
+        input.shape[2], L_out, align_corners, input.dtype.cuda)
 
 def upsample_linear_backward(
     grad: Tensor,
@@ -94,7 +93,7 @@ def upsample_linear_backward(
         'nectarml.cuda.upsample_linear_backward grad must have ndim==3.')
     return _nectarml.tensor.interpolation.upsample_linear_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        L_in, L_out, align_corners, map_dtype(grad.dtype))
+        L_in, L_out, align_corners, grad.dtype.cuda)
 
 def upsample_bilinear(
     input: Tensor,
@@ -106,7 +105,7 @@ def upsample_bilinear(
     return _nectarml.tensor.interpolation.upsample_bilinear(
         input._data_ptr, input.shape[0], input.shape[1],
         input.shape[2], input.shape[3], H_out, W_out, 
-        align_corners, map_dtype(input.dtype))
+        align_corners, input.dtype.cuda)
 
 def upsample_bilinear_backward(
     grad: Tensor,
@@ -118,7 +117,7 @@ def upsample_bilinear_backward(
         'nectarml.cuda.upsample_bilinear_backward grad must have ndim==4.')
     return _nectarml.tensor.interpolation.upsample_bilinear_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        H_in, W_in, H_out, W_out, align_corners, map_dtype(grad.dtype))
+        H_in, W_in, H_out, W_out, align_corners, grad.dtype.cuda)
 
 def upsample_trilinear(
     input: Tensor, 
@@ -130,7 +129,7 @@ def upsample_trilinear(
     return _nectarml.tensor.interpolation.upsample_trilinear(
         input._data_ptr, input.shape[0], input.shape[1],
         input.shape[2], input.shape[3], input.shape[4],
-        D_out, H_out, W_out, align_corners, map_dtype(input.dtype))
+        D_out, H_out, W_out, align_corners, input.dtype.cuda)
 
 def upsample_trilinear_backward(
     grad: Tensor, 
@@ -143,7 +142,7 @@ def upsample_trilinear_backward(
     return _nectarml.tensor.interpolation.upsample_trilinear_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
         D_in, H_in, W_in, D_out, H_out, W_out, 
-        align_corners, map_dtype(grad.dtype))
+        align_corners, grad.dtype.cuda)
 
 ### CUBIC ###
 
@@ -158,7 +157,7 @@ def upsample_bicubic(
     return _nectarml.tensor.interpolation.upsample_bicubic(
         input._data_ptr, input.shape[0], input.shape[1],
         input.shape[2], input.shape[3], H_out, W_out, 
-        a, align_corners, map_dtype(input.dtype))
+        a, align_corners, input.dtype.cuda)
 
 def upsample_bicubic_backward(
     grad: Tensor,
@@ -171,5 +170,5 @@ def upsample_bicubic_backward(
         'nectarml.cuda.upsample_bicubic_backward grad must have ndim==4.')
     return _nectarml.tensor.interpolation.upsample_bicubic_backward(
         grad._data_ptr, grad.shape[0], grad.shape[1],
-        H_in, W_in, H_out, W_out, a, align_corners, map_dtype(grad.dtype))
+        H_in, W_in, H_out, W_out, a, align_corners, grad.dtype.cuda)
 

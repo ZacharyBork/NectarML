@@ -1,23 +1,23 @@
 import numpy as np
 
 def gather(input: np.ndarray, dim: int, index: np.ndarray) -> np.ndarray:
-    return np.take_along_axis(input, index.astype(int), axis=dim)
+    return np.take_along_axis(input, index.astype(np.int32), axis=dim)
 
 def scatter(
     input: np.ndarray, 
-    dim: int, 
+    dim:   int, 
     index: np.ndarray, 
-    src: np.ndarray
+    src:   np.ndarray
 ) -> np.ndarray:
     out = input.copy()
-    np.put_along_axis(out, index.astype(int), src, axis=dim)
+    np.put_along_axis(out, index.astype(np.int32), src, axis=dim)
     return out
 
 def scatter_add(
     input: np.ndarray, 
-    dim: int, 
+    dim:   int, 
     index: np.ndarray, 
-    src: np.ndarray
+    src:   np.ndarray
 ) -> np.ndarray:
     out = input.copy()
     idx = [slice(None)] * input.ndim
@@ -28,11 +28,11 @@ def scatter_add(
 
 def masked_fill(
     input: np.ndarray, 
-    mask: np.ndarray, 
+    mask:  np.ndarray, 
     value: float
 ) -> np.ndarray:
     return np.where(mask, value, input)
 
 def index_select(input: np.ndarray, dim: int, index: np.ndarray) -> np.ndarray:
-    return np.take(input, index.astype(int), axis=dim)
+    return np.take(input, index.astype(np.int32), axis=dim)
 

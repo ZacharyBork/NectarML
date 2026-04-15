@@ -3,20 +3,25 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nectarml import Tensor
 
-import numpy as np
-
+import math
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 
-def sort(input: Tensor, dim: int, descending: bool) -> tuple[int, int]:
+import builtins
+
+def sort(
+    input:      Tensor,
+    dim:        builtins.int, 
+    descending: builtins.bool
+) -> tuple[builtins.int, builtins.int]:
     dim      = dim if dim >= 0 else input.ndim + dim
-    outer    = int(np.prod(input.shape[:dim]))
+    outer    = builtins.int(math.prod(input.shape[:dim]))
     dim_size = input.shape[dim]
-    inner    = int(np.prod(input.shape[dim+1:]))
+    inner    = builtins.int(math.prod(input.shape[dim+1:]))
     total    = input.numel()
+    
     return _nectarml.tensor.sorting.sort(
         input._data_ptr, total, dim_size,
         outer, inner, descending,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 

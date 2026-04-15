@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import nectarml.functional as F
+from nectarml           import typing
 from nectarml.tensor    import Tensor
 from nectarml.creation  import zeros
-from nectarml.typing    import DTypeLike, float32
 from nectarml.nn.module import Module
 from nectarml.nn.linear import Linear
 
@@ -19,7 +19,7 @@ class MultiheadAttention(Module):
         kdim:          int | None = None,
         vdim:          int | None = None,
         batch_first:   bool = False,
-        dtype:         DTypeLike = float32
+        dtype:         typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.embed_dim = embed_dim

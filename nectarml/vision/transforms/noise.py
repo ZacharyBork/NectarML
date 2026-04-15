@@ -30,7 +30,8 @@ class GaussianNoise(Transform):
         max_value = input.max().item()
         norm = input / max_value
         
-        self._rand = self._rand.astype(input.dtype) * self.noise_scale_factor
+        self._rand = self._rand.astype(input.dtype.numpy) \
+                   * self.noise_scale_factor
         noise = Tensor(self._rand, self._rand.shape, input.dtype, input.device)
 
         if not self.per_channel: noise = noise.expand(input.shape)
@@ -81,9 +82,9 @@ class SaltAndPepperNoise(Transform):
 
         shape = (input_shape[0], 1) + input_shape[2:]
         salt_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[0]*amt)
-        salt_arr = salt_arr.astype(float32)
+        salt_arr = salt_arr.astype(np.float32)
         pepper_arr = (self.rng.random(size=shape) < self.salt_vs_pepper[1]*amt)
-        pepper_arr = (1 - pepper_arr).astype(float32)
+        pepper_arr = (1 - pepper_arr).astype(np.float32)
         
         self._salt = Tensor(salt_arr**10, shape, dtype=float32)
         self._pepper = Tensor(pepper_arr**10, shape, dtype=float32)
@@ -115,7 +116,7 @@ class SpeckleNoise(Transform):
     
     def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         std = self._random_in_range(self.std_range)
-        arr = self.rng.normal(0, std, input_shape).astype(float32)
+        arr = self.rng.normal(0, std, input_shape).astype(np.float32)
         self._noise = Tensor(arr, dtype=float32)
     
     def forward(self, input: TransformInput) -> TransformInput:
@@ -155,11 +156,11 @@ class ISONoise(Transform):
         
     def _build_parameters(self, input_shape: tuple[int, ...] | Size) -> None:
         luma_std = self._random_in_range(self.intensity)
-        _luma = self.rng.normal(0, luma_std, input_shape).astype(float32)
+        _luma = self.rng.normal(0, luma_std, input_shape).astype(np.float32)
         self._luma_noise = Tensor(_luma, dtype=float32)
         
         color_std = self._random_in_range(self.color_shift)
-        _color = self.rng.normal(0, color_std, input_shape).astype(float32)
+        _color = self.rng.normal(0, color_std, input_shape).astype(np.float32)
         self._color_noise = Tensor(_color, dtype=float32)
         
     def forward(self, input: TransformInput) -> TransformInput:
@@ -194,7 +195,7 @@ class MultiplicativeNoise(Transform):
         else: noise_shape = input_shape
         
         r = self.multiplier_range
-        arr = self.rng.uniform(r[0], [1], noise_shape).astype(float32)
+        arr = self.rng.uniform(r[0], [1], noise_shape).astype(np.float32)
         self._noise = Tensor(arr, dtype=float32)
         
     def forward(self, input: TransformInput) -> TransformInput:

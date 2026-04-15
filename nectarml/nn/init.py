@@ -33,7 +33,7 @@ def calculate_gain(
         case _: raise ValueError(f'Invalid nonlinearity: {nonlinearity}')
         
 def _set_weights(weights: Tensor, data: np.ndarray) -> None:
-    data = data.astype(weights.dtype)
+    data = data.astype(weights.dtype.cpu)
     if weights.device == 'cuda':
         old_buffer = weights._buffer
         weights._buffer = cuda.memory.CudaBuffer(data, weights.dtype)
@@ -44,19 +44,20 @@ def _set_weights(weights: Tensor, data: np.ndarray) -> None:
 ### CONSTANT ###
 
 def zeros_(weights: Tensor) -> None: 
-    _set_weights(weights, np.zeros(weights.shape, dtype=weights.dtype))
+    _set_weights(weights, np.zeros(weights.shape, dtype=weights.dtype.cpu))
 
 def ones_(weights: Tensor) -> None: 
-    _set_weights(weights, np.ones(weights.shape, dtype=weights.dtype))
+    _set_weights(weights, np.ones(weights.shape, dtype=weights.dtype.cpu))
 
 def constant_(weights: Tensor, value: builtins.float) -> None: 
-    _set_weights(weights, np.full(weights.shape, value, dtype=weights.dtype))
+    _set_weights(
+        weights, np.full(weights.shape, value, dtype=weights.dtype.cpu))
 
 def eye_(weights: Tensor) -> None: 
     assert weights.ndim == 2, \
         'eye_ init only valid for 2 dimensional tensor.'
     s = weights.shape
-    _set_weights(weights, np.eye(N=s[0], M=s[1], k=0, dtype=weights.dtype))
+    _set_weights(weights, np.eye(N=s[0], M=s[1], k=0, dtype=weights.dtype.cpu))
     
 def dirac_(weights: Tensor, groups: builtins.int = 1) -> None: 
     assert weights.ndim >= 3, \
@@ -64,7 +65,7 @@ def dirac_(weights: Tensor, groups: builtins.int = 1) -> None:
     out_channels, in_channels = weights.shape[0], weights.shape[1]
     spatial_dims = weights.shape[2:]
     center = tuple(s // 2 for s in spatial_dims)
-    data = np.zeros(weights.shape, dtype=weights.dtype)
+    data = np.zeros(weights.shape, dtype=weights.dtype.cpu)
     for i in range(min(out_channels, in_channels // groups)):
         data[(i, i) + center] = 1
     _set_weights(weights, data)
@@ -170,7 +171,7 @@ def sparse_(
     sparsity: builtins.float, 
     std:      builtins.float = 0.01) -> None: 
     assert 0 <= sparsity <= 1, 'Sparsity must be between 0 and 1.'
-    data = np.zeros(weights.shape, dtype=weights.dtype)
+    data = np.zeros(weights.shape, dtype=weights.dtype.cpu)
     rows, cols = weights.shape[0], weights.shape[1]
     num_zeros = builtins.int(np.ceil(sparsity * rows))
     for col in range(cols):

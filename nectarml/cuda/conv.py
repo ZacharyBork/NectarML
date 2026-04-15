@@ -4,7 +4,6 @@ if TYPE_CHECKING:
     from nectarml import Tensor
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 
 ### 1-Dimensional ###
 
@@ -27,7 +26,7 @@ def conv1d(
         bias._data_ptr if bias is not None else 0,
         B, C_in, L, C_out, K,
         stride, padding, dilation, groups,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
     
 def conv_transpose1d(
     input: Tensor,
@@ -49,7 +48,7 @@ def conv_transpose1d(
         bias._data_ptr if bias is not None else 0,
         B, C_in, L, C_out, K,
         stride, padding, dilation, output_padding, groups,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def conv1d_backward_input(
     out_grad: Tensor,
@@ -62,7 +61,7 @@ def conv1d_backward_input(
         out_grad._data_ptr, weight._data_ptr,
         B, C_in, L, C_out, K, L_out,
         stride, padding, dilation, groups,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
     
 def conv_transpose1d_backward_input(
     out_grad: Tensor,
@@ -75,7 +74,7 @@ def conv_transpose1d_backward_input(
         out_grad._data_ptr, weight._data_ptr,
         B, C_in, L, C_out, K, L_out,
         stride, padding, dilation, groups,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
     
 def conv1d_backward_weight(
     out_grad: Tensor,
@@ -88,7 +87,7 @@ def conv1d_backward_weight(
         out_grad._data_ptr, input._data_ptr,
         B, C_in, L, C_out, K, L_out,
         stride, padding, dilation,
-        map_dtype(out_grad.dtype))
+        input.dtype.cuda)
     
 def conv_transpose1d_backward_weight(
     out_grad: Tensor,
@@ -101,7 +100,7 @@ def conv_transpose1d_backward_weight(
         out_grad._data_ptr, input._data_ptr,
         B, C_in, L, C_out, K, L_out,
         stride, padding, dilation,
-        map_dtype(out_grad.dtype))
+        input.dtype.cuda)
     
 ### 2-Dimensional ###
 
@@ -124,7 +123,7 @@ def conv2d(
         bias._data_ptr if bias is not None else 0,
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, groups, map_dtype(input.dtype))
+        dilation_h, dilation_w, groups, input.dtype.cuda)
    
 def conv_transpose2d(
     input: Tensor,
@@ -148,7 +147,7 @@ def conv_transpose2d(
         stride_h, stride_w, padding_h, padding_w,
         dilation_h, dilation_w, 
         output_padding_h, output_padding_w,
-        groups, map_dtype(input.dtype))
+        groups, input.dtype.cuda)
     
 def conv2d_backward_input(
     out_grad: Tensor,
@@ -165,7 +164,7 @@ def conv2d_backward_input(
         out_grad._data_ptr, weight._data_ptr,
         B, C_in, H, W, C_out, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, groups, map_dtype(out_grad.dtype))
+        dilation_h, dilation_w, groups, out_grad.dtype.cuda)
 
 def conv_transpose2d_backward_input(
     out_grad: Tensor,
@@ -182,7 +181,7 @@ def conv_transpose2d_backward_input(
         out_grad._data_ptr, weight._data_ptr,
         B, C_in, H, W, C_out, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, groups, map_dtype(out_grad.dtype))
+        dilation_h, dilation_w, groups, out_grad.dtype.cuda)
     
 def conv2d_backward_weight(
     out_grad: Tensor,
@@ -198,7 +197,7 @@ def conv2d_backward_weight(
         out_grad._data_ptr, input._data_ptr,
         B, C_in, H, W, C_out, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, map_dtype(out_grad.dtype))
+        dilation_h, dilation_w, input.dtype.cuda)
     
 def conv_transpose2d_backward_weight(
     out_grad: Tensor,
@@ -214,7 +213,7 @@ def conv_transpose2d_backward_weight(
         out_grad._data_ptr, input._data_ptr,
         B, C_in, H, W, C_out, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, map_dtype(out_grad.dtype))
+        dilation_h, dilation_w, input.dtype.cuda)
 
 ### 3-Dimensional ###
 

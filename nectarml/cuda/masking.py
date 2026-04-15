@@ -4,14 +4,13 @@ if TYPE_CHECKING:
     from nectarml import Tensor
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 
 def eq_mask(
-    a: Tensor, 
-    b: Tensor | float, 
+    a:         Tensor, 
+    b:         Tensor | float, 
     out_shape: tuple[int, ...] | None = None
 ) -> int:
-    _dtype = map_dtype(a.dtype)
+    _dtype = a.dtype.cuda
     if isinstance(b, Tensor):
         assert out_shape is not None, \
             'out_shape is required when input b is type Tensor.'
@@ -20,11 +19,11 @@ def eq_mask(
     return _nectarml.eq_mask_scalar(a._data_ptr, b, a.size, _dtype)
     
 def lt_mask(
-    a: Tensor, 
-    b: Tensor | float, 
+    a:         Tensor, 
+    b:         Tensor | float, 
     out_shape: tuple[int, ...] | None = None
 ) -> int:
-    _dtype = map_dtype(a.dtype)
+    _dtype = a.dtype.cuda
     if isinstance(b, Tensor):
         assert out_shape is not None, \
             'out_shape is required when input b is type Tensor.'
@@ -33,11 +32,11 @@ def lt_mask(
     return _nectarml.lt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
 def le_mask(
-    a: Tensor, 
-    b: Tensor | float, 
+    a:         Tensor, 
+    b:         Tensor | float, 
     out_shape: tuple[int, ...] | None = None
 ) -> int:
-    _dtype = map_dtype(a.dtype)
+    _dtype = a.dtype.cuda
     if isinstance(b, Tensor):
         assert out_shape is not None, \
             'out_shape is required when input b is type Tensor.'
@@ -46,11 +45,11 @@ def le_mask(
     return _nectarml.le_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
 def gt_mask(
-    a: Tensor, 
-    b: Tensor | float, 
+    a:         Tensor, 
+    b:         Tensor | float, 
     out_shape: tuple[int, ...] | None = None
 ) -> int:
-    _dtype = map_dtype(a.dtype)
+    _dtype = a.dtype.cuda
     if isinstance(b, Tensor):
         assert out_shape is not None, \
             'out_shape is required when input b is type Tensor.'
@@ -59,11 +58,11 @@ def gt_mask(
     return _nectarml.gt_mask_scalar(a._data_ptr, b, a.size, _dtype)
 
 def ge_mask(
-    a: Tensor, 
-    b: Tensor | float, 
+    a:         Tensor, 
+    b:         Tensor | float, 
     out_shape: tuple[int, ...] | None = None
 ) -> int:
-    _dtype = map_dtype(a.dtype)
+    _dtype = a.dtype.cuda
     if isinstance(b, Tensor):
         assert out_shape is not None, \
             'out_shape is required when input b is type Tensor.'

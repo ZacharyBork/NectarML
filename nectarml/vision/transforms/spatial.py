@@ -10,7 +10,6 @@ from nectarml.tensor import Tensor
 from nectarml.typing import Size
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput
-from nectarml.cuda.utils import map_dtype
 
 ### PADDING ###
 
@@ -379,7 +378,7 @@ class Rotate(Transform):
         if input.device == 'cuda':
             out_data = _nectarml.rotate(
                 input._data_ptr, list(input.shape),
-                self.angle, self.fill_value, map_dtype(input.dtype))
+                self.angle, self.fill_value, input.dtype.cuda)
         else:            
             in_data = input.data
             B, C, H, W = in_data.shape
@@ -660,7 +659,7 @@ class RandomPerspective(_GridSampleTransform):
         src_x, src_y = self._compute_flow(H, W, self._src_pts, self._dst_pts)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
@@ -740,7 +739,7 @@ class OpticalDistortion(_GridSampleTransform):
         src_x, src_y = self._compute_flow(H, W, self._k, self._dx, self._dy)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
@@ -853,7 +852,7 @@ class GridDistortion(_GridSampleTransform):
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
@@ -927,7 +926,7 @@ class Swirl(_GridSampleTransform):
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:

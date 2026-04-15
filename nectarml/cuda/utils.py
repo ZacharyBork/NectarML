@@ -6,14 +6,13 @@ if TYPE_CHECKING:
 import builtins
 import ctypes
 import ctypes.util
-from typing import Any
 from dataclasses import dataclass, field
 
 import numpy as np
 
 import _nectarml
-from nectarml.cuda.mapping import DTYPE_MAP
-from nectarml.typing import DTypeLike
+from nectarml import typing
+
 
 ### CUDA SYSTEM UTILS ###
 
@@ -81,83 +80,78 @@ def is_cuda_available() -> builtins.bool:
 def cuda_synchronize() -> None:
     _nectarml.cuda_synchronize()
 
-def map_dtype(dtype: DTypeLike) -> Any:
-    return DTYPE_MAP[dtype]
-
 ### CUDA-SIDE UTILS ###
 
-def cast_tensor(input: Tensor, new_dtype: DTypeLike) -> builtins.int:
-    original_dtype = map_dtype(input.dtype)
-    new_dtype      = map_dtype(new_dtype)
+def cast_tensor(input: Tensor, new_dtype: typing.dtype) -> builtins.int:
     return _nectarml.cast_tensor(
-        input._data_ptr, input.size, original_dtype, new_dtype)
+        input._data_ptr, input.size, input.dtype.cuda, new_dtype.cuda)
 
 def cast_tensor_by_reference(
     device_ptr:     builtins.int, 
     size:           builtins.int,
-    original_dtype: DTypeLike,
-    new_dtype:      DTypeLike
+    original_dtype: typing.dtype,
+    new_dtype:      typing.dtype
 ) -> builtins.int:
-    original_dtype = map_dtype(original_dtype)
-    new_dtype      = map_dtype(new_dtype)
+    original_dtype = original_dtype.cuda
+    new_dtype      = new_dtype.cuda
     return _nectarml.cast_tensor(device_ptr, size, original_dtype, new_dtype)
 
 def to_cuda(input: Tensor) -> builtins.int:
-    cast_dtype = map_dtype(input.dtype)
     data = np.atleast_1d(input.data) if input.data.ndim == 0 else input.data
     if not data.flags['C_CONTIGUOUS']: data = np.ascontiguousarray(data)
-    return _nectarml.to_cuda(data.ctypes.data, input.size, cast_dtype)
+    return _nectarml.to_cuda(data.ctypes.data, input.size, input.dtype.cuda)
 
 def data_to_cuda(
     data:  np.ndarray, 
     size:  builtins.int, 
-    dtype: DTypeLike
+    dtype: typing.dtype
 ) -> builtins.int:
-    cast_dtype = map_dtype(dtype)
-    ptr = _nectarml.to_cuda(data.ctypes.data, size, cast_dtype)
-    return ptr
+    return _nectarml.to_cuda(data.ctypes.data, size, dtype.cuda)
 
-def to_cpu(input: Tensor, host_dtype: DTypeLike | None = None) -> np.ndarray:
+def to_cpu(
+    input: Tensor, 
+    host_dtype: typing.dtype | None = None
+) -> np.ndarray:
     cast_dtype = host_dtype or input.dtype
     data = _nectarml.to_cpu(
-        input._data_ptr, [int(i) for i in input.shape], map_dtype(input.dtype))
-    return data.astype(cast_dtype)
+        input._data_ptr, [int(i) for i in input.shape], input.dtype.cuda)
+    return data.astype(cast_dtype.cpu)
 
 def clone(input: Tensor) -> builtins.int:
-    return _nectarml.clone(input._data_ptr, input.size, map_dtype(input.dtype))
+    return _nectarml.clone(input._data_ptr, input.size, input.dtype.cuda)
     
 def compute_tensor_min(input: Tensor) -> builtins.float:
     return _nectarml.compute_tensor_min(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
 
 def compute_tensor_max(input: Tensor) -> builtins.float:
     return _nectarml.compute_tensor_max(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
 
 def compute_tensor_range(input: Tensor) -> list[builtins.float]:
     return _nectarml.compute_tensor_range(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
     
 ### INSPECTION UTILS ###
     
 def is_inf(input: Tensor) -> builtins.bool:
     return _nectarml.is_inf(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
     
 def is_finite(input: Tensor) -> builtins.bool:
     return _nectarml.is_finite(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
     
 def is_nan(input: Tensor) -> builtins.bool:
     return _nectarml.is_nan(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
     
 def has_inf(input: Tensor) -> builtins.bool:
     return _nectarml.has_inf(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
     
 def has_nan(input: Tensor) -> builtins.bool:
     return _nectarml.has_nan(
-        input._data_ptr, input.size, map_dtype(input.dtype))
+        input._data_ptr, input.size, input.dtype.cuda)
 
 

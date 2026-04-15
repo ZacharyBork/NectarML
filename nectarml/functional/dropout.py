@@ -2,10 +2,10 @@ from nectarml.tensor import Tensor
 from nectarml.creation import rand
 
 def dropout(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:    Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     if not training or p == 0.0: return input
@@ -19,10 +19,10 @@ def dropout(
     return out
 
 def alpha_dropout(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:  Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     if not training or p == 0.0: return input
@@ -43,10 +43,10 @@ def alpha_dropout(
     return out
 
 def feature_alpha_dropout(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:    Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     assert input.ndim >= 3, 'feature_alpha_dropout expects at least 3D input'
@@ -69,10 +69,10 @@ def feature_alpha_dropout(
     return out
 
 def dropout1d(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:    Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     assert input.ndim == 3, 'dropout1d expects 3D input [B, C, L]'
@@ -88,10 +88,10 @@ def dropout1d(
     return out
 
 def dropout2d(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:    Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     assert input.ndim == 4, 'dropout2d expects 4D input [B, C, H, W]'
@@ -107,10 +107,10 @@ def dropout2d(
     return out
 
 def dropout3d(
-    input: Tensor,
-    p: float = 0.5,
-    training: bool = True,
-    inplace: bool = False
+    input:    Tensor,
+    p:        float = 0.5,
+    training: bool  = True,
+    inplace:  bool  = False
 ) -> Tensor:
     assert 0.0 <= p <= 1.0, 'Probability must be between 0.0 and 1.0.'
     assert input.ndim == 5, 'dropout3d expects 4D input [B, C, D, H, W]'

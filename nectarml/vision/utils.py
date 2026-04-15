@@ -1,20 +1,19 @@
 from os import PathLike
 from pathlib import Path
-from typing import Literal
 from collections.abc import Sequence
 
 from PIL import Image
 import numpy as np
 
-from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32, uint8
+from nectarml.tensor   import Tensor
+from nectarml          import typing
 from nectarml.creation import full
 import nectarml.functional as F
 
 ### TENSOR UTILS ###
 
 def _normalize(
-    input: Tensor, 
+    input:       Tensor, 
     value_range: tuple[int | float, int | float] = (0.0, 255.0)
 ) -> Tensor:
     _min, _max = input.min().item(), input.max().item() 
@@ -25,13 +24,13 @@ def _normalize(
     else: return ((input - _min) * ((_rmax - _rmin) / (_max - _min)))
         
 def make_grid(
-    input: Tensor | Sequence[Tensor], 
-    nrow: int = 8,
-    padding: int = 2,
-    normalize: bool = False,
+    input:       Tensor | Sequence[Tensor], 
+    nrow:        int = 8,
+    padding:     int = 2,
+    normalize:   bool = False,
     value_range: tuple[int, int] = (0, 255),
-    scale_each: bool = False,
-    pad_value: float = 0.0
+    scale_each:  bool = False,
+    pad_value:   float = 0.0
 ) -> Tensor:
     if isinstance(input, Sequence): input = F.cat(input, dim=0)
     
@@ -63,41 +62,38 @@ def make_grid(
 ### CONVERSION ###
 
 def PIL_to_tensor(
-    input: Image.Image,
-    dtype: DTypeLike = float32,
-    device: Literal['cpu', 'cuda'] = 'cpu',
+    input:     Image.Image,
+    dtype:     typing.dtype = typing.float32,
+    device:    typing.DeviceLikeType = 'cpu',
     batch_dim: bool = True
 ) -> Tensor:
-    data = np.array(input).astype(dtype)
+    data = np.array(input).astype(dtype.numpy)
     output = Tensor(data, dtype=dtype, device=device)
     output = output.permute((2, 0, 1)).contiguous()
     if batch_dim: output = output.unsqueeze(0)
     return output
 
 def tensor_to_PIL(
-    input: Tensor,
-    normalize: bool = False,
+    input:       Tensor,
+    normalize:   bool = False,
     value_range: tuple[int, int] = (0, 255)
 ) -> Image.Image:
     if input.ndim > 3: input = input.squeeze(dim=0)
     if input.shape[0] == 1: 
-        mode = 'L'
-        input = input.squeeze(dim=0)
-    else: 
-        mode = 'RGB'
-        input = input.permute((1, 2, 0))
+          mode, input = 'L',   input.squeeze(dim=0)
+    else: mode, input = 'RGB', input.permute((1, 2, 0))
     if normalize: input = _normalize(input, value_range)
-    return Image.fromarray(input.numpy().astype(dtype=uint8), mode)
+    return Image.fromarray(input.numpy().astype(dtype=np.uint8), mode)
 
 ### IMAGE I/O ###
 
 def load_image(
-    image_path: PathLike,
-    dtype: DTypeLike = float32,
-    device: Literal['cpu', 'cuda'] = 'cpu',
-    normalize: bool = False,
+    image_path:  PathLike,
+    dtype:       typing.dtype = typing.float32,
+    device:      typing.DeviceLikeType = 'cpu',
+    normalize:   bool = False,
     value_range: tuple[int | float, int | float] = (0.0, 1.0),
-    batch_dim: bool = True
+    batch_dim:   bool = True
 ) -> Tensor: 
     image_path = Path(image_path)
     if not image_path.exists():
@@ -110,9 +106,9 @@ def load_image(
     return output
     
 def save_image(
-    input: Tensor | Sequence[Tensor], 
+    input:       Tensor | Sequence[Tensor], 
     output_path: PathLike,
-    normalize: bool = False,
+    normalize:   bool = False,
     value_range: tuple[int, int] = (0, 255),
     **kwargs
 ) -> None: 

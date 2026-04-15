@@ -8,8 +8,8 @@ from pyfastnoiselite.pyfastnoiselite import \
     FastNoiseLite, NoiseType, FractalType
 
 import nectarml.functional as F
+from nectarml import typing
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32, int32
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.common import TransformInput, lerp
@@ -424,8 +424,8 @@ class RandomFog(Transform):
         self, 
         H: int, 
         W: int,
-        device: Literal['cpu', 'cuda'],
-        dtype: DTypeLike
+        device: typing.DeviceLikeType,
+        dtype: typing.dtype
     ) -> Tensor:
         noise = zeros((1, 1, H, W), dtype, device)
         amplitude = frequency = 1.0
@@ -556,7 +556,7 @@ class RandomRain(Transform):
         self._drop_length = int(round(self._random_in_range(self.drop_length)))
         self._drop_width = int(round(self._random_in_range(self.drop_width)))
         
-        self._color = Tensor(self.drop_color, dtype=float32)
+        self._color = Tensor(self.drop_color, dtype=typing.float32)
         self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))
         
         self._xs = []
@@ -660,20 +660,20 @@ class RandomShadow(Transform):
         fn.fractal_gain       = 0.5
         fn.fractal_lacunarity = 2.0
 
-        ramp = np.linspace(0.0, 1.0, H, dtype=float32)
+        ramp = np.linspace(0.0, 1.0, H, dtype=np.float32)
         ramp = np.broadcast_to(ramp[:, np.newaxis], (H, W))
         ramp = ramp * self._falloff_intensity
 
         yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
-        noise = np.vectorize(fn.get_noise)(xx, yy).astype(float32)
+        noise = np.vectorize(fn.get_noise)(xx, yy).astype(np.float32)
         noise = (noise - noise.min()) / (noise.max() - noise.min() + 1e-8)
         
-        mask = (noise > self._threshold).astype(float32)
+        mask = (noise > self._threshold).astype(np.float32)
         mask = gaussian_filter(mask, sigma=self._sigma)
         if mask.max() > 0: mask = mask / (mask.max() + 1e-8)
         mask = mask * ramp**self._falloff_contrast
         
-        self._mask = Tensor(mask, mask.shape, dtype=float32)
+        self._mask = Tensor(mask, mask.shape, dtype=typing.float32)
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -760,12 +760,15 @@ class Spatter(Transform):
         disp_y    = zeros((H, W), dtype=input.dtype).to(input.device)
         
         for r in range(self._droplet_scales, 0, -1):
-            d = Tensor(self._ds[r-1], dtype=float32, device=input.device)
+            ds_cur = self._ds[r-1]
+            d = Tensor(ds_cur, dtype=typing.float32, device=input.device)
             ds = F.unbind(d, dim=0)
             
             ux, uy = u * self._gx, v * self._gy
-            cell_x = (ux-0.25).round().to(dtype=int32).clamp(0, self._n_cx-1)
-            cell_y = (uy-0.25).round().to(dtype=int32).clamp(0, self._n_cy-1)
+            cell_x = (ux-0.25).round().to(dtype=typing.int32)
+            cell_x = cell_x.clamp(0, self._n_cx-1)
+            cell_y = (uy-0.25).round().to(dtype=typing.int32)
+            cell_y = cell_y.clamp(0, self._n_cy-1)
             d_r, d_g = ds[0][cell_y, cell_x], ds[1][cell_y, cell_x]
                         
             phase = d_g
@@ -775,8 +778,9 @@ class Spatter(Transform):
             
             t = (s_x + s_y) * F.maximum(1.0 - d_g * 2.0, 0.0)
             
-            active = (d_r < (5 - r) * self._droplet_density).to(dtype=float32)
-            active = F.minimum(active, (t > 0.5).to(dtype=float32))
+            active = (d_r < (5 - r) * self._droplet_density)
+            active = active.to(dtype=typing.float32)
+            active = F.minimum(active, (t > 0.5).to(dtype=typing.float32))
             
             cos_px = (p_x + phase * 6.28).cos()
             cos_py = (p_y + phase * 6.28).cos()
@@ -794,8 +798,8 @@ class Spatter(Transform):
         src_x = (u - disp_x * self.droplet_refraction).clamp(0, 1)
         src_y = (v - disp_y * self.droplet_refraction).clamp(0, 1)
         
-        px = (src_x * (W - 1)).clamp(0, W-1).to(dtype=int32)
-        py = (src_y * (H - 1)).clamp(0, H-1).to(dtype=int32)
+        px = (src_x * (W - 1)).clamp(0, W-1).to(dtype=typing.int32)
+        py = (src_y * (H - 1)).clamp(0, H-1).to(dtype=typing.int32)
         
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -814,10 +818,10 @@ class Spatter(Transform):
         
         noise_scale = max(1, int(min(H, W) * 0.1))
         self._base_noise = [
-            rand((1, 1, noise_scale, noise_scale)).to(dtype=float32),
-            rand((1, 1, noise_scale, noise_scale)).to(dtype=float32)]
+            rand((1, 1, noise_scale, noise_scale)).to(dtype=typing.float32),
+            rand((1, 1, noise_scale, noise_scale)).to(dtype=typing.float32)]
         
-        self._color = Tensor(self.droplet_color, dtype=float32)
+        self._color = Tensor(self.droplet_color, dtype=typing.float32)
         self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))    
     
         self._ds = []
@@ -826,7 +830,7 @@ class Spatter(Transform):
             self._n_cy = max(1, int(self._gy))
             self._n_cx = max(1, int(self._gx))
             self._ds.append(self.rng.random(
-                (2, self._n_cy, self._n_cx)).astype(float32))
+                (2, self._n_cy, self._n_cx)).astype(np.float32))
 
     def forward(self, input: TransformInput) -> TransformInput:
         _, _, H, W = input.image.shape

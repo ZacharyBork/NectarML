@@ -1,12 +1,10 @@
-from typing import Literal
-
 import numpy as np
 from scipy.ndimage import distance_transform_edt
 
+from nectarml import typing
 from nectarml.tensor import Tensor
 from nectarml.constants import PI
 from nectarml.vision.procedurals import Generator
-from nectarml.typing import DTypeLike, float32
 from nectarml.vision.transforms.common import lerp
 
 class Checkerboard(Generator):
@@ -14,8 +12,8 @@ class Checkerboard(Generator):
         self, 
         size: tuple[int, int] = (256, 256),
         tiling: int | tuple[int, int] = (10, 10),
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype: typing.dtype = typing.float32,
+        device: typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(size, dtype, device)
         self.tiling = (tiling, tiling) if isinstance(tiling, int) else tiling
@@ -24,12 +22,15 @@ class Checkerboard(Generator):
         y = np.linspace(0, self.tiling[0], self.size[0], endpoint=False)
         x = np.linspace(0, self.tiling[1], self.size[1], endpoint=False)        
         xx, yy = np.meshgrid(x, y)
-        pattern = (np.floor(xx).astype(int) + np.floor(yy).astype(int)) % 2
+        pattern = (
+            np.floor(xx).astype(np.int32)
+          + np.floor(yy).astype(np.int32)
+        ) % 2
         return (pattern * 255).astype(np.uint8)
 
     def forward(self) -> Tensor:
         arr = self._generate()
-        return Tensor(arr.astype(self.dtype)).unsqueeze(0).unsqueeze(0)
+        return Tensor(arr.astype(self.dtype.numpy)).unsqueeze(0).unsqueeze(0)
 
 class ChladniCymaticPatterns(Generator):
     def __init__(
@@ -42,8 +43,8 @@ class ChladniCymaticPatterns(Generator):
         smoothing_width: float = 0.0,
         color1: tuple[int, int, int] = (255, 255, 255),
         color2: tuple[int, int, int] = (0, 0, 0),
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype: typing.dtype = typing.float32,
+        device: typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(size, dtype, device)
         self.m = m
@@ -66,8 +67,8 @@ class ChladniCymaticPatterns(Generator):
     def _generate(self) -> np.ndarray:
         l = np.minimum(self.size[0], self.size[1])
         
-        y = np.linspace(0, self.scale[0], self.size[0], dtype=float32)
-        x = np.linspace(0, self.scale[1], self.size[1], dtype=float32)  
+        y = np.linspace(0, self.scale[0], self.size[0], dtype=np.float32)
+        x = np.linspace(0, self.scale[1], self.size[1], dtype=np.float32)  
         xx, yy = np.meshgrid(x, y)
         
         pattern = np.cos((self.n*PI*xx)/l) * np.cos((self.m*PI*yy)/l) 
@@ -82,7 +83,7 @@ class ChladniCymaticPatterns(Generator):
         return out
     
     def forward(self) -> Tensor:
-        arr = self._generate().astype(self.dtype)
+        arr = self._generate().astype(self.dtype.numpy)
         ramp = Tensor(arr, dtype=self.dtype).unsqueeze(0).unsqueeze(0)
         
         color1 = Tensor(self.color1, dtype=self.dtype)

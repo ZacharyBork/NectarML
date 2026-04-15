@@ -14,10 +14,8 @@ from . import (
     utils
 )
 
-from .mapping import DTYPE_MAP
-
 from .utils import (
-    is_cuda_available, get_cuda_info, cuda_synchronize, map_dtype, 
+    is_cuda_available, get_cuda_info, cuda_synchronize, 
     cast_tensor, cast_tensor_by_reference, to_cuda, data_to_cuda, 
     to_cpu, clone, is_inf, is_finite, is_nan, has_inf, has_nan)
 

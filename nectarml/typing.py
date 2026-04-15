@@ -6,15 +6,28 @@ from typing import Literal, Any, TypeAlias, overload
 
 import numpy as np
 
+import _nectarml
 
-'''
-DTYPE REWRITE (NOT READY FOR DEPLOYMENT YET!)
+### DTYPE CLASSES ###
 
-from dataclasses import dataclass
-from _nectarml import DType
-
-ArrayLike = np.typing.ArrayLike
-DTypeLike = np.typing.DTypeLike
+@dataclass(frozen=True)
+class DTypeMap:
+    mappings = {
+        np.float32: _nectarml.DType.Float32,
+        np.float16: _nectarml.DType.Float16,
+        np.half:    _nectarml.DType.Float16,
+        np.int32:   _nectarml.DType.Int32,
+        np.uint8:   _nectarml.DType.UInt8,
+        np.bool_:   _nectarml.DType.Bool,
+    }
+    
+    def map_dtype(
+        self:  DTypeMap,
+        dtype: np.typing.DTypeLike
+    ) -> _nectarml.DType:
+        return self.mappings[dtype]
+        
+DTYPE_MAP = DTypeMap()
 
 @dataclass
 class iinfo:
@@ -22,6 +35,13 @@ class iinfo:
     min:   builtins.int
     max:   builtins.int
     dtype: dtype
+    
+    def __repr__(self: finfo) -> str:
+        return (
+            f'Bits:  {self.bits}\n'
+            f'Min:   {self.min}\n'
+            f'DType: {self.dtype.__str__()}'
+        )
     
 @dataclass
 class finfo:
@@ -33,42 +53,84 @@ class finfo:
     smallest_normal: builtins.float
     resolution:      builtins.float
     dtype:           dtype
+    
+    def __repr__(self: finfo) -> str:
+        return (
+            f'Bits:            {self.bits}\n'
+            f'Min:             {self.min}\n'
+            f'Max:             {self.max}\n'
+            f'Eps:             {self.eps}\n'
+            f'Tiny:            {self.tiny}\n'
+            f'Smallest Normal: {self.smallest_normal}\n'
+            f'Resolution:      {self.resolution}\n'
+            f'DType:           {self.dtype.__str__()}'
+        )
 
 class dtype:  
-    _map = {
-        typing.float:   DType.Float32,
-        typing.float32: DType.Float32,
-        typing.float16: DType.Float16,
-        typing.half:    DType.Float16,
-        typing.int32:   DType.Int32,
-        typing.uint8:   DType.UInt8,
-        typing.bool_:   DType.Bool,
-    }
-      
+    _map = DTYPE_MAP
+    
     def __init__(self: dtype, type_cpu: DTypeLike) -> None:
-        self.type_cpu          = type_cpu
-        self.name              = type_cpu.__name__
+        self._type_cpu         = type_cpu
         self.is_floating_point = np.issubdtype(type_cpu, np.floating)
         self.is_complex        = np.issubdtype(type_cpu, np.complexfloating)
         self.is_signed         = np.issubdtype(type_cpu, np.signedinteger)
         self.itemsize          = np.dtype(type_cpu).itemsize
         
-        self._build_info()
-        
+        self.info = self._build_info()
+    
+    ### INIT ###
+    
     def _build_info(self: dtype) -> None:
+        if self._type_cpu in [np.bool_]: return None
+        
         if self.is_floating_point:
-            _i = np.finfo(self.type_cpu)
-            self.info = finfo(
+            _i = np.finfo(self._type_cpu)
+            return finfo(
                 _i.bits, _i.min, _i.max, _i.eps, _i.tiny, 
                 _i.smallest_normal, _i.resolution, self)
         else:
-            _i = np.iinfo(self.type_cpu)
-            self.info = iinfo(_i.bits, _i.min, _i.max, self)
-                
-    def cpu(self: dtype) -> DTypeLike: return self.type_cpu
-    def cuda(self: dtype) -> DType: return self._map[self.type_cpu]
+            _i = np.iinfo(self._type_cpu)
+            return iinfo(_i.bits, _i.min, _i.max, self)
+              
+    ### PROPERTIES ###
+    
+    @property
+    def numpy(self: dtype) -> np.typing.DTypeLike: 
+        return self._type_cpu
+    
+    @property
+    def cpu (self: dtype) -> np.typing.DTypeLike: 
+        return self._type_cpu
+    
+    @property
+    def cuda(self: dtype) -> _nectarml.DType:
+        return self._map.map_dtype(self.cpu)
+    
+    @property
+    def name(self: dtype) -> str:
+        return self._type_cpu.__name__
 
-    def __repr__(self): return f'nectarml.{self.name}'
+    ### COMPARISON ###
+    
+    def __hash__(self: dtype) -> builtins.int: 
+        return id(self)
+    
+    def __eq__(self: dtype, other: dtype) -> builtins.bool:
+        return self._type_cpu == other._type_cpu
+    
+    ### INSPECTION ###
+    
+    def __str__ (self: dtype) -> str:  return f'nectarml.{self.name}'
+    def __repr__(self: dtype) -> str: 
+        return (
+            f'{self.__str__()} [\n'
+            f'    DType (CPU):  {self.cpu}\n'
+            f'    DType (CUDA): {self.cuda}\n\n'
+            f'    Info[\n'
+            f'        {self.info.__repr__()}\n'
+            f'    ]\n'
+            f']'
+        )
 
 float   = dtype(np.float32)
 float16 = dtype(np.float16)
@@ -93,8 +155,6 @@ uint32  = dtype(np.uint32)
 uint64  = dtype(np.uint64)
 
 bool_   = dtype(np.bool_)
-
-'''
 
 ### DEVICE CLASS ###
 
@@ -146,35 +206,6 @@ class device:
         if self.device_id is not None:
             return f'{self.type}:{self.device_id}'
         return self.type
-
-### NUMPY DTYPE ALIASING ###
-
-ArrayLike = np.typing.ArrayLike
-DTypeLike = np.typing.DTypeLike
-
-float   = np.float32
-float16 = np.float16
-float32 = np.float32
-float64 = np.float64
-
-half    = np.half
-double  = np.double
-
-int     = np.int64
-int8    = np.int8
-int16   = np.int16
-int32   = np.int32
-int64   = np.int64
-short   = np.short
-long    = np.long
-
-uint    = np.uint
-uint8   = np.uint8
-uint16  = np.uint16
-uint32  = np.uint32
-uint64  = np.uint64
-
-bool_   = np.bool_
 
 ### SIZE CLASS ###
 
@@ -239,6 +270,8 @@ class Size(tuple[builtins.int, ...]):
 ### COMMON TYPE ALIASING ###
 
 DeviceLikeType: TypeAlias = builtins.str | device
+DTypeLike:      TypeAlias = dtype | np.typing.DTypeLike
+ArrayLike:      TypeAlias = np.typing.ArrayLike | list[Any] | tuple[Any, ...]
 
 ShapeType: TypeAlias = (
     builtins.int

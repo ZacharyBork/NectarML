@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 import nectarml.functional as F
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros, ones_like
-from nectarml.typing import float32, int32
+from nectarml.typing import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
 from nectarml.vision.transforms.blur import GaussianBlur
@@ -343,7 +343,7 @@ class Halftone(Transform):
                     cell[mask] = fg[c]
                     out[c, y0:y1, x0:x1] = cell
         
-        result = Tensor(out[np.newaxis].astype(input.dtype), 
+        result = Tensor(out[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
         return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
 
@@ -496,7 +496,7 @@ class AsciiRender(Transform):
         pixels = np.clip((pixels - lo) / (hi - lo + self._epsilon), 0.0, 1.0)
         
         indices = np.clip(
-            (pixels * (len(self.charset) - 1)).astype(int32),
+            (pixels * (len(self.charset) - 1)).astype(np.int32),
             0, len(self.charset) - 1)
         char_array = np.array(list(self.charset))[indices]
 
@@ -510,10 +510,11 @@ class AsciiRender(Transform):
         rows, cols = len(lines), max(len(line) for line in lines)
 
         if self.sample_color:
-            small = F.upsample(original, size=(rows, cols), mode='nearest')
-            small = small.cpu().numpy()[0]
+            small  = F.upsample(original, size=(rows, cols), mode='nearest')
+            small  = small.cpu().numpy()[0]
             lo, hi = small.min(), small.max()
-            small = ((small - lo) / (hi-lo + self._epsilon) * 255).astype(int)
+            small  = ((small - lo) / (hi-lo + self._epsilon) * 255)
+            small  = small.astype(np.int32)
 
         img = Image.new('RGB', (char_w * cols, char_h * rows), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
@@ -536,7 +537,7 @@ class AsciiRender(Transform):
         lines = self._to_ascii(input)
         arr = self._to_image(lines, input)
         arr = arr.transpose(2, 0, 1).astype(np.float32) / arr.max().item()
-        out = Tensor(arr[np.newaxis].astype(input.dtype), 
+        out = Tensor(arr[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
         out = F.upsample(out, size=(H, W), mode='nearest')
 

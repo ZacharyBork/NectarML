@@ -8,9 +8,9 @@ from pyfastnoiselite.pyfastnoiselite import (
     CellularDistanceFunction
 )
 
+from nectarml import typing
 from nectarml.tensor import Tensor
 from nectarml.vision.procedurals import Generator
-from nectarml.typing import DTypeLike, float32
 
 class Noise(Generator):
     def __init__(
@@ -30,8 +30,8 @@ class Noise(Generator):
         persistence: float = 0.5,
         lacunarity: float = 2.0,
         seed: int | None = None,
-        dtype: DTypeLike = float32, 
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        dtype: typing.dtype = typing.float32, 
+        device: typing.DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__(size, dtype, device)
         match noise_type:
@@ -95,5 +95,5 @@ class Noise(Generator):
 
     def forward(self) -> Tensor:
         arr = self._generate()
-        out = Tensor(arr.astype(self.dtype)).unsqueeze(0).unsqueeze(0)
+        out = Tensor(arr.astype(self.dtype.numpy)).unsqueeze(0).unsqueeze(0)
         return self._map_output_range(out)

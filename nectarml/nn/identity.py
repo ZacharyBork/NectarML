@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from nectarml.nn.module import Module
+from nectarml        import typing
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
 
 class Identity(Module):
     def __init__(
         self:  Identity,
-        dtype: DTypeLike = float32,
+        dtype: typing.dtype = typing.float32,
         *args,
         **kwargs
     ) -> None:

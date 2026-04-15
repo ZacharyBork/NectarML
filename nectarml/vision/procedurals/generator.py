@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from typing import Literal
-
+from nectarml        import typing
 from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
 from nectarml.random import RNG
             
 class Generator():
     def __init__(
         self, 
-        size: tuple[int, int] = (256, 256),
-        dtype: DTypeLike = float32,
-        device: Literal['cpu', 'cuda'] = 'cpu'
+        size:   tuple[int, int] = (256, 256),
+        dtype:  typing.dtype = typing.float32,
+        device: typing.DeviceLikeType = 'cpu'
     ) -> None:
         self.size   = size
         self.dtype  = dtype

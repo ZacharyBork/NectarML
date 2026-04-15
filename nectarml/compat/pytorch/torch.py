@@ -5,8 +5,8 @@ from nectarml.compat.pytorch.mappings import \
     DTYPES_TORCH2NECTAR, DTYPES_NECTAR2TORCH
 
 def convert_dtype(
-    original: torch.dtype | nectarml.DTypeLike
-) -> torch.dtype | nectarml.DTypeLike:
+    original: torch.dtype | nectarml.dtype
+) -> torch.dtype | nectarml.dtype:
     DTYPES = DTYPES_TORCH2NECTAR if isinstance(original, torch.dtype) \
         else DTYPES_NECTAR2TORCH
     try: new_dtype = DTYPES[original]
@@ -14,8 +14,8 @@ def convert_dtype(
     return new_dtype
 
 def tensor_torch2nectar(input: torch.Tensor) -> nectarml.Tensor:
-    data = input.cpu().numpy()
-    dtype = convert_dtype(input.dtype)
+    data   = input.cpu().numpy()
+    dtype  = convert_dtype(input.dtype)
     device = 'cuda' if input.device.type == 'cuda' else 'cpu'
     return nectarml.Tensor(
         data, dtype=dtype, device=device, requires_grad=input.requires_grad)

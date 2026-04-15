@@ -4,7 +4,6 @@ if TYPE_CHECKING:
     from nectarml import Tensor
 
 import _nectarml
-from nectarml.cuda.utils import map_dtype
 
 ### AVERAGE POOL ###
 
@@ -18,7 +17,7 @@ def avg_pool1d_forward(
         input._data_ptr,
         B, C, L, L_out, K, S, P,
         count_include_pad,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def avg_pool1d_backward(
     out_grad: Tensor,
@@ -30,7 +29,7 @@ def avg_pool1d_backward(
         out_grad._data_ptr,
         B, C, L, L_out, K, S, P,
         count_include_pad,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 def avg_pool2d_forward(
     input: Tensor,
@@ -46,7 +45,7 @@ def avg_pool2d_forward(
         B, C, H, W, H_out, W_out,
         KH, KW, SH, SW, PH, PW,
         count_include_pad,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def avg_pool2d_backward(
     out_grad: Tensor,
@@ -62,7 +61,7 @@ def avg_pool2d_backward(
         B, C, H, W, H_out, W_out,
         KH, KW, SH, SW, PH, PW,
         count_include_pad,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 def avg_pool3d_forward(
     input: Tensor,
@@ -78,7 +77,7 @@ def avg_pool3d_forward(
         B, C, D, H, W, D_out, H_out, W_out,
         KD, KH, KW, SD, SH, SW, PD, PH, PW,
         count_include_pad,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def avg_pool3d_backward(
     out_grad: Tensor,
@@ -94,7 +93,7 @@ def avg_pool3d_backward(
         B, C, D, H, W, D_out, H_out, W_out,
         KD, KH, KW, SD, SH, SW, PD, PH, PW,
         count_include_pad,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 ### MAX POOL ###
 
@@ -106,7 +105,7 @@ def max_pool1d_forward(
     return _nectarml.tensor.pooling.max_pool1d_forward(
         input._data_ptr,
         B, C, L, L_out, K, S, P, D,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def max_pool1d_backward(
     out_grad: Tensor,
@@ -116,7 +115,7 @@ def max_pool1d_backward(
     return _nectarml.tensor.pooling.max_pool1d_backward(
         out_grad._data_ptr, indices_ptr,
         B, C, L, L_out,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 def max_pool2d_forward(
     input: Tensor,
@@ -130,7 +129,7 @@ def max_pool2d_forward(
         input._data_ptr,
         B, C, H, W, H_out, W_out,
         KH, KW, SH, SW, PH, PW, D,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def max_pool2d_backward(
     out_grad: Tensor,
@@ -141,7 +140,7 @@ def max_pool2d_backward(
     return _nectarml.tensor.pooling.max_pool2d_backward(
         out_grad._data_ptr, indices_ptr,
         B, C, H, W, H_out, W_out,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 def max_pool3d_forward(
     input: Tensor,
@@ -155,7 +154,7 @@ def max_pool3d_forward(
         input._data_ptr,
         B, C, D, H, W, D_out, H_out, W_out,
         KD, KH, KW, SD, SH, SW, PD, PH, PW, Dil,
-        map_dtype(input.dtype))
+        input.dtype.cuda)
 
 def max_pool3d_backward(
     out_grad: Tensor,
@@ -166,6 +165,6 @@ def max_pool3d_backward(
     return _nectarml.tensor.pooling.max_pool3d_backward(
         out_grad._data_ptr, indices_ptr,
         B, C, D, H, W, D_out, H_out, W_out,
-        map_dtype(out_grad.dtype))
+        out_grad.dtype.cuda)
 
 

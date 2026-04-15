@@ -4,8 +4,8 @@ import builtins
 import numpy as np
 
 import _nectarml
-from nectarml.typing import DTypeLike
-from nectarml.cuda.utils import data_to_cuda, map_dtype
+from nectarml import typing
+from nectarml.cuda.utils import data_to_cuda
 
 ### STATISTICS ###
 
@@ -39,26 +39,26 @@ def memcpy_to_cuda(dst_ptr: builtins.int, data: np.ndarray) -> None:
 
 def alloc_cuda_full(
     n_elements: builtins.int, 
-    dtype:      DTypeLike, 
+    dtype:      typing.dtype, 
     fill_value: builtins.float
 ) -> builtins.int:
-    return _nectarml.alloc_cuda_full(n_elements, map_dtype(dtype), fill_value)
+    return _nectarml.alloc_cuda_full(n_elements, dtype.cuda, fill_value)
 
 def alloc_cuda_random(
     n_elements: builtins.int, 
-    dtype:      DTypeLike, 
+    dtype:      typing.dtype, 
     seed:       builtins.int = 12345,
     min_value:  builtins.float = 0.0,
     max_value:  builtins.float = 1.0
 ) -> builtins.int:
     return _nectarml.alloc_cuda_random(
-        n_elements, map_dtype(dtype), seed, min_value, max_value)
+        n_elements, dtype.cuda, seed, min_value, max_value)
 
 def alloc_cuda_empty(
     n_elements: builtins.int, 
-    dtype:      DTypeLike
+    dtype:      typing.dtype
 ) -> builtins.int:
-    return _nectarml.alloc_cuda_empty(n_elements, map_dtype(dtype))
+    return _nectarml.alloc_cuda_empty(n_elements, dtype.cuda)
 
 ### BUFFER ###
 
@@ -66,9 +66,9 @@ class CudaBuffer:
     def __init__(
         self:        CudaBuffer, 
         ptr_or_data: builtins.int | np.ndarray, 
-        dtype:       DTypeLike
+        dtype:       typing.dtype
     ) -> None:
-        self.dtype = dtype
+        self.dtype      = dtype
         self._ref_count = 1
         
         if not isinstance(ptr_or_data, builtins.int):
@@ -76,7 +76,7 @@ class CudaBuffer:
         self.ptr = ptr_or_data
         
     @staticmethod
-    def _from_data(data: np.ndarray, dtype: DTypeLike) -> builtins.int:
+    def _from_data(data: np.ndarray, dtype: typing.dtype) -> builtins.int:
         return data_to_cuda(data, data.size, dtype)
         
     def increment(self: CudaBuffer) -> CudaBuffer:

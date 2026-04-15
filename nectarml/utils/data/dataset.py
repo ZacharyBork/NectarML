@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import csv
-from os import PathLike
-from pathlib import Path
-from typing import Any, Literal
+from os              import PathLike
+from pathlib         import Path
+from typing          import Any
 from collections.abc import Iterable
 
-from nectarml.tensor import Tensor
-from nectarml.typing import DTypeLike, float32
+from nectarml                   import typing
+from nectarml.tensor            import Tensor
 from nectarml.vision.transforms import Transform
-from nectarml.vision.utils import load_image
+from nectarml.vision.utils      import load_image
 
 ### ABSTRACTS ###
 
@@ -31,14 +31,14 @@ class IterableDataset:
 
 class ImageFolderDataset(Dataset):
     def __init__(
-        self: ImageFolderDataset,
+        self:            ImageFolderDataset,
         image_directory: str | PathLike,
-        extensions = ['.jpg', '.jpeg', '.png', '.bmp'],
-        device: Literal['cpu', 'cuda'] = 'cpu',
-        dtype: DTypeLike = float32,
-        normalize: bool = False,
-        value_range: tuple[int | float, int | float] = [0.0, 1.0],
-        transform: Transform = None
+        extensions:      list[str] = ['.jpg', '.jpeg', '.png', '.bmp'],
+        device:          typing.DeviceLikeType = 'cpu',
+        dtype:           typing.dtype = typing.float32,
+        normalize:       bool = False,
+        value_range:     tuple[int | float, int | float] = [0.0, 1.0],
+        transform:       Transform = None
     ) -> None:
         super().__init__()
         self.image_directory = Path(image_directory).resolve()
@@ -68,8 +68,8 @@ class ImageFolderDataset(Dataset):
 
 class TensorDataset(Dataset):
     def __init__(
-        self: TensorDataset, 
-        *tensors: Tensor | Iterable[Tensor],
+        self:      TensorDataset, 
+        *tensors:  Tensor | Iterable[Tensor],
         transform: Transform = None
     ) -> None:
         super().__init__()
@@ -90,7 +90,7 @@ class TensorDataset(Dataset):
     
 class Subset(Dataset):
     def __init__(
-        self: Subset,
+        self:    Subset,
         dataset: Dataset,
         indices: Iterable[int]
     ) -> None:
@@ -109,8 +109,8 @@ class Subset(Dataset):
     
 class CSVDataset(Dataset):
     def __init__(
-        self:CSVDataset, 
-        csv_file: str | PathLike, 
+        self:       CSVDataset, 
+        csv_file:   str | PathLike, 
         has_header: bool = True, 
         **csv_kwargs
     ) -> None:
@@ -139,7 +139,7 @@ class CSVDataset(Dataset):
 
 class ConcatDataset(Dataset):
     def __init__(
-        self: ConcatDataset,
+        self:     ConcatDataset,
         datasets: Iterable[Dataset]
     ) -> None:
         super().__init__()
@@ -162,7 +162,7 @@ class ConcatDataset(Dataset):
     
 class ChainDataset(IterableDataset):
     def __init__(
-        self: ConcatDataset, 
+        self:     ConcatDataset, 
         datasets: Iterable[IterableDataset]
     ) -> None:
         super().__init__()
@@ -177,7 +177,7 @@ class ChainDataset(IterableDataset):
 
 class StackDataset(Dataset):
     def __init__(
-        self: StackDataset, 
+        self:     StackDataset, 
         datasets: Iterable[Dataset]
     ) -> None:
         super().__init__()

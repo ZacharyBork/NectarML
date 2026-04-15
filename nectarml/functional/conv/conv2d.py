@@ -97,8 +97,8 @@ def _conv2d_cuda(
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w, 
         dilation_h, dilation_w, groups)
-    out = Tensor._new(out_data, (B, C_out, H_out, W_out), input.dtype, input.device,
-        requires_grad=_requires_grad, _children=tuple(_children))
+    out = Tensor._new(out_data, (B, C_out, H_out, W_out), input.dtype, 
+        input.device, requires_grad=_requires_grad, _children=tuple(_children))
     
     def _backward() -> None:
         out_grad = out.grad.contiguous()

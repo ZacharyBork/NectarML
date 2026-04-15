@@ -4,11 +4,11 @@ import math
 from typing import Literal
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml           import typing
+from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
-from nectarml.creation import empty
-from nectarml.typing import DTypeLike, float32
-from nectarml.nn.init import kaiming_uniform_, uniform_
+from nectarml.creation  import empty
+from nectarml.nn.init   import kaiming_uniform_, uniform_
 
 ### 1-Dimensional ###
     
@@ -26,7 +26,7 @@ class Conv1d(Module):
         padding_mode: Literal[
             'zeros', 'reflect', 'replicate', 'circular'
         ] = 'zeros',
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.in_channels  = in_channels
@@ -76,7 +76,7 @@ class ConvTranspose1d(Module):
         dilation:       int = 1,
         groups:         int = 1,
         bias:          bool = True,
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.in_channels    = in_channels
@@ -131,7 +131,7 @@ class Conv2d(Module):
         padding_mode: Literal[
             'zeros', 'reflect', 'replicate', 'circular'
         ] = 'zeros',
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.in_channels  = in_channels
@@ -184,7 +184,7 @@ class ConvTranspose2d(Module):
         dilation:       int | tuple[int, int] = 1,
         groups:         int = 1,
         bias:          bool = True,
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         super().__init__(dtype)
         self.in_channels    = in_channels
@@ -242,7 +242,7 @@ class Conv3d(Module):
         padding_mode: Literal[
             'zeros', 'reflect', 'replicate', 'circular'
         ] = 'zeros',
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         raise NotImplementedError('3D convolution is not currently supported.')
         super().__init__(dtype)
@@ -265,7 +265,7 @@ class ConvTranspose3d(Module):
         padding_mode: Literal[
             'zeros', 'reflect', 'replicate', 'circular'
         ] = 'zeros',
-        dtype: DTypeLike = float32
+        dtype: typing.dtype = typing.float32
     ) -> None:
         raise NotImplementedError('3D convolution is not currently supported.')
         super().__init__(dtype)

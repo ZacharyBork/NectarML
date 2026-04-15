@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import math
 import warnings
 from typing import Literal
 
-import numpy as np
-
-from nectarml.tensor import Tensor
-from nectarml.nn.module import Module
-from nectarml.functional.interpolation import upsample
+from nectarml.tensor     import Tensor
+from nectarml.nn.module  import Module
+from nectarml.functional import upsample
 
 class Upsample(Module):
     def __init__(
@@ -74,7 +73,7 @@ class Upsample(Module):
         if self.recompute_scale_factor and self._is_scale_factor:
             if self.recompute_scale_factor:
                 self._scale = tuple(
-                    int(np.floor(dim * scale)) / dim 
+                    int(math.floor(dim * scale)) / dim 
                     for dim, scale in zip(x.shape[2:], self._scale))
                         
         self._validated = True
@@ -83,7 +82,8 @@ class Upsample(Module):
         if self.input_dims is not None and self.output_dims is not None: return
         self.input_dims = x.shape[2:]
         self.output_dims = tuple(
-            int(np.floor(s * f)) for s, f in zip(self.input_dims, self._scale))
+            int(math.floor(s * f)) 
+            for s, f in zip(self.input_dims, self._scale))
         
     ### FORWARD ###
         

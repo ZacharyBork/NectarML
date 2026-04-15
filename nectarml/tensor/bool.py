@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .tensor import Tensor
     
-from typing import Literal, Self
+from typing import Self
 
 import numpy as np
 
@@ -16,7 +16,7 @@ class BoolTensor(tensor):
         self:          Tensor,
         data:          typing.ArrayLike,
         shape:         typing.ShapeType | None = None,
-        dtype:         typing.DTypeLike = typing.bool_,
+        dtype:         typing.dtype = typing.float32,
         device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
@@ -41,7 +41,7 @@ class BoolTensor(tensor):
         cls:    type[Self],
         data:   np.ndarray,
         shape:  typing.Size,
-        device: Literal['cpu', 'cuda'] 
+        device: typing.DeviceLikeType
     ) -> np.ndarray | CudaBuffer:
         assert data.dtype == np.bool_, (
             f'BoolTensor.__init__() expecting bool_ type data, but recieved '
@@ -59,8 +59,8 @@ class BoolTensor(tensor):
     
     def to(
         self:   BoolTensor,
-        device: Literal['cpu', 'cuda'] | None = None,
-        dtype:  typing.DTypeLike | None = None
+        device: typing.DeviceLikeType | None = None,
+        dtype:  typing.dtype | None = None
     ) -> BoolTensor | Tensor: 
         '''Casts BoolTensor to new device and/or Dtype.
         
@@ -108,10 +108,10 @@ class BoolTensor(tensor):
                     mask = (x == y).to(x.device, x.dtype)
         '''        
         if isinstance(other, BoolTensor):
-            out_shape = self._broadcast_shape(self.shape, other.shape)
+              out_shape = self._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda': 
-            data = cuda.math.equal(self, other, out_shape)
-        else: data = cpu.math.equal(self, other)
+              data = cuda.math.equal(self, other, out_shape)
+        else: data =  cpu.math.equal(self, other)
         return BoolTensor._new(data, out_shape, typing.bool_, self.device)

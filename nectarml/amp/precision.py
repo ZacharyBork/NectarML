@@ -1,21 +1,21 @@
 from typing import Any
 from collections.abc import Callable
 
-from nectarml.typing import DTypeLike, float16, float32
+from nectarml import typing
 from nectarml.amp.autocast import autocast_state
 from nectarml.cuda import utils, memory
 
-DTYPE_RANK = {float16: 1, float32: 2}
+DTYPE_RANK = {typing.float16: 1, typing.float32: 2}
 
 def _extract_ptr(
     arg:          Any, 
-    target_dtype: DTypeLike
+    target_dtype: typing.dtype
 ) -> tuple[int, bool]:
     if not getattr(arg, '_class_type_nectar_tensor', False): return arg, False
     if arg.device != 'cuda': return arg, False
     if arg.dtype == target_dtype: return arg._data_ptr, False
     
-    ptr = utils.cast_tensor(arg, utils.map_dtype(target_dtype))
+    ptr = utils.cast_tensor(arg, target_dtype.cuda)
     return ptr, True
 
 def _free_temporaries(ptrs_and_flags: list[tuple[int, bool]]) -> None:
@@ -24,7 +24,7 @@ def _free_temporaries(ptrs_and_flags: list[tuple[int, bool]]) -> None:
 
 def _run_cast(
     func:         Callable[[Any], Any], 
-    target_dtype: DTypeLike, 
+    target_dtype: typing.dtype, 
     *args:        tuple[Any], 
     **kwargs:     dict[str, Any]
 ) -> Any:
@@ -33,7 +33,7 @@ def _run_cast(
     def cast_arg(arg: Any) -> Tensor | Any:
         if not getattr(arg, '_class_type_nectar_tensor', False): return arg
         if arg.device != 'cuda' or arg.dtype == target_dtype:    return arg
-        ptr = utils.cast_tensor(arg, utils.map_dtype(target_dtype))
+        ptr = utils.cast_tensor(arg, target_dtype.cuda)
         return Tensor._temporary(arg, ptr, target_dtype)
     
     cast_args   = [cast_arg(a) for a in args]
@@ -49,7 +49,7 @@ def run_cast_float16(
     state = autocast_state()
     if not state.enabled or state.context != 'cuda': 
         return func(*args, **kwargs)
-    return _run_cast(func, float16, *args, **kwargs)
+    return _run_cast(func, typing.float16, *args, **kwargs)
 
 def run_cast_float32(
     func:     Callable[[Any], Any], 
@@ -59,7 +59,7 @@ def run_cast_float32(
     state = autocast_state()
     if not state.enabled or state.context != 'cuda': 
         return func(*args, **kwargs)
-    return _run_cast(func, float32, *args, **kwargs)
+    return _run_cast(func, typing.float32, *args, **kwargs)
 
 def run_cast_promote(
     func:     Callable[[Any], Any], 

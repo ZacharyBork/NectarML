@@ -20,7 +20,7 @@ class Tensor(tensor):
         self:          Tensor,
         data:          typing.ArrayLike,
         shape:         typing.ShapeType | None = None,
-        dtype:         typing.DTypeLike = typing.float32,
+        dtype:         typing.dtype = typing.float32,
         device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
@@ -66,7 +66,7 @@ class Tensor(tensor):
                 generally not set manually.
         '''
         if not isinstance(data, np.ndarray): data = np.array(data)
-        data  = data.astype(dtype)
+        data  = data.astype(dtype.numpy)
         shape = shape if isinstance(shape, typing.Size) else \
                 typing.Size(shape or data.shape)
         data  = Tensor._build_data(data, shape, dtype, device)
@@ -82,8 +82,8 @@ class Tensor(tensor):
         cls:    type[Self],
         data:   np.ndarray,
         shape:  typing.Size,
-        dtype:  typing.DTypeLike,
-        device: Literal['cpu', 'cuda'] 
+        dtype:  typing.dtype,
+        device: typing.DeviceLikeType
     ) -> np.ndarray | CudaBuffer:
         '''Initializes a Tensor from given data and optional shape.
         
@@ -131,8 +131,8 @@ class Tensor(tensor):
     
     def to(
         self:   tensor,
-        device: Literal['cpu', 'cuda'] | None = None,
-        dtype:  typing.DTypeLike | None = None
+        device: typing.DeviceLikeType | None = None,
+        dtype:  typing.dtype | None = None
     ) -> Self: 
         '''Casts tensor to new device and/or Dtype.
         
@@ -152,7 +152,7 @@ class Tensor(tensor):
         device = device or self.device
         if dtype == typing.bool_:
             data = self.data if self.device == 'cpu' else self._data_ptr
-            out =  self._to_bool(data, self.shape, device)
+            out  = self._to_bool(data, self.shape, device)
             return out
         return super().to(device, dtype)
 
@@ -170,7 +170,7 @@ class Tensor(tensor):
         '''
         self._deallocate_grad()
         self.grad = Tensor._new(
-            np.full(self.shape, fill_value, typing.float32), 
+            np.full(self.shape, fill_value, np.float32), 
             self.shape, typing.float32, self.device, requires_grad=False) 
         
     def backward(self: Tensor) -> None:
@@ -325,7 +325,7 @@ class Tensor(tensor):
                     mask = (x == y).to(x.device, x.dtype)
         '''        
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda': 
@@ -356,7 +356,7 @@ class Tensor(tensor):
                     mask = (x != y).to(x.device, x.dtype)
         '''  
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda': 
@@ -386,7 +386,7 @@ class Tensor(tensor):
                     mask = (x < y).to(x.device, x.dtype)
         '''        
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda':
@@ -417,7 +417,7 @@ class Tensor(tensor):
                     mask = (x <= y).to(x.device, x.dtype)
         '''
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
 
         if self.device == 'cuda':
@@ -447,7 +447,7 @@ class Tensor(tensor):
                     mask = (x > y).to(x.device, x.dtype)
         '''        
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda':
@@ -478,7 +478,7 @@ class Tensor(tensor):
                     mask = (x >= y).to(x.device, x.dtype)
         '''        
         if isinstance(other, Tensor):
-            out_shape = tensor._broadcast_shape(self.shape, other.shape)
+              out_shape = tensor._broadcast_shape(self.shape, other.shape)
         else: out_shape = self.shape
         
         if self.device == 'cuda':
@@ -505,7 +505,7 @@ class Tensor(tensor):
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.floor(self)
-        else: out_data = np.floor(self.data).astype(self.dtype)
+        else: out_data = np.floor(self.data).astype(self.dtype.numpy)
         out = Tensor._new(out_data, self.shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
         
@@ -525,7 +525,7 @@ class Tensor(tensor):
         self_requires_grad = self.requires_grad
         
         if self.device == 'cuda': out_data = cuda.math.ceil(self)
-        else: out_data = np.ceil(self.data).astype(self.dtype)
+        else: out_data = np.ceil(self.data).astype(self.dtype.numpy)
         out = Tensor._new(out_data, self.shape, self.dtype, self.device,
             self.requires_grad, _children=(self,))
         
@@ -2152,8 +2152,8 @@ class Tensor(tensor):
         def _backward() -> None:
             if self_requires_grad:
                 grad_input = Tensor._new(
-                    np.zeros(self.grad.shape, self.grad.dtype),
-                    self.grad.shape, self.grad.dtype, self.grad.device)
+                    np.zeros(self.grad.shape, np.float32),
+                    self.grad.shape, typing.float32, self.grad.device)
                 grad_input = grad_input.scatter(dim, indices, values.grad)
                 self.grad += grad_input
         
@@ -2178,7 +2178,7 @@ class Tensor(tensor):
     ) -> Tensor:
         if not isinstance(source, tensor):
             source = Tensor._new(
-                np.full(index.shape, fill_value=source, dtype=self.dtype), 
+                np.full(index.shape, fill_value=source, dtype=self.dtype.cpu), 
                 index.shape, dtype=self.dtype, device=self.device)
             
         assert self.dtype == source.dtype, \
