@@ -13,13 +13,14 @@ from nectarml.cuda.memory import CudaBuffer
 class tensor:
     _class_type_nectar_tensor  = True
     _subclasses: builtins.dict = {}
+    _device:     typing.device = None
     
     def __init__(
         self:          tensor,
         data:          np.ndarray | CudaBuffer,
-        shape:         typing.Size | tuple[builtins.int, ...],
+        shape:         typing.ShapeType,
         dtype:         typing.DTypeLike,
-        device:        Literal['cpu', 'cuda'],
+        device:        typing.DeviceLikeType,
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
     ) -> None:
@@ -45,16 +46,16 @@ class tensor:
                 tensors during backpropagation. Used for autograd operations,
                 generally not set manually.
         '''
-        self.shape          = shape
-        self._dtype         = dtype
-        self.device         = device
-        self._requires_grad = requires_grad
+        object.__setattr__(self, '_device', typing.device(device))
+        self.shape  = shape if isinstance(shape, typing.Size) \
+                 else typing.Size(list(shape))
+        self._dtype = dtype
         
-        self.grad:             tensor | None = None
-        self.data:         np.ndarray | None = None
-        self._buffer:      CudaBuffer | None = None
-        self._device_id: builtins.int | None = None
+        self.data:    np.ndarray | None = None
+        self._buffer: CudaBuffer | None = None
+        self.grad:        tensor | None = None
         
+        self._requires_grad      = requires_grad
         self._backward: Callable = lambda : None
         self._prev:  set[tensor] = set(_children)
         
@@ -85,7 +86,6 @@ class tensor:
         elif self.device == 'cuda': 
             assert isinstance(data, CudaBuffer), \
                 f'Invalid data type for CUDA tensor: {type(data)}'
-            self._device_id = 0 # NEEDS TO BE UPDATED FOR REAL MULTI-GPU ID
             self._buffer = data
         else: raise ValueError(f'Invalid device type: {self.device}')
     
@@ -93,18 +93,18 @@ class tensor:
     def _new(
         cls:    type[Self],
         data:   builtins.int | np.ndarray,
-        shape:  typing.Size | tuple[builtins.int, ...],
+        shape:  typing.Size  | tuple[builtins.int, ...],
         dtype:  typing.DTypeLike,
         device: Literal['cpu', 'cuda'],
         requires_grad: bool = False,
-        _children: tuple = ()
+        _children:    tuple = ()
     ) -> Self:
         out = cls.__new__(cls)
-        out.device         = device
-        out._device_id     = 0
-        out._dtype         = dtype
-        out.shape          = shape if isinstance(shape, typing.Size) \
-                                else typing.Size(shape)
+        out.__setattr__('_device', typing.device(device, device_id=None))
+       
+        out._dtype = dtype
+        out.shape  = shape if isinstance(shape, typing.Size) \
+                        else typing.Size(shape)
         
         out._requires_grad = requires_grad
         out.grad           = None
@@ -127,7 +127,7 @@ class tensor:
         shape: typing.Size | tuple[builtins.int, ...], 
         dtype: typing.DTypeLike, 
         requires_grad: bool = False,
-        _children: tuple = ()
+        _children:    tuple = ()
     ) -> Self:
         '''Helper method to duplicate CPU tensors which share underlying data.
         
@@ -143,11 +143,10 @@ class tensor:
             tensor : The newly created tensor.
         '''
         out = cls.__new__(cls)
-        out.device         = 'cpu'
-        out._device_id     = 0
+        out.__setattr__('_device', typing.device('cpu', device_id=None))
+        
         out._dtype         = dtype
         out.shape          = shape
-        
         
         out.data           = data
         out._buffer        = None
@@ -166,7 +165,7 @@ class tensor:
         shape:  typing.Size,
         dtype:  typing.DTypeLike,
         requires_grad: bool = False,
-        _children: tuple = ()
+        _children:    tuple = ()
     ) -> Self:
         '''Helper method to duplicate CUDA tensors which share underlying data.
         
@@ -182,8 +181,8 @@ class tensor:
             tensor : The newly created tensor.
         '''
         out = cls.__new__(cls)
-        out.device         = 'cuda'
-        out._device_id     = 0
+        out.__setattr__('_device', typing.device('cuda', device_id=None))
+        
         out._dtype         = dtype
         out.shape          = shape if isinstance(shape, typing.Size) \
                                 else typing.Size(shape)
@@ -208,13 +207,11 @@ class tensor:
             'tensor._reference is only valid for CUDA tensors.'
         
         tmp = cls.__new__(cls)
-        tmp.device         = input.device
-        tmp._device_id     = input._device_id
+        tmp.__setattr__('_device', typing.device('cuda', input._device_id))
+        
         tmp._dtype         = target_dtype
         tmp.shape          = input.shape
-        
         tmp._buffer        = CudaBuffer(data_ptr, target_dtype)
-        
         tmp._requires_grad = False
         tmp.grad           = None
         tmp._prev          = set()
@@ -244,6 +241,14 @@ class tensor:
             typing.DtypeLike : The Dtype of the tensor.
         '''
         return self._dtype
+    
+    @property
+    def device(self: Self) -> str:
+        return self._device
+    
+    @property
+    def _device_id(self: Self) -> builtins.int | None:
+        return self._device.device_id
     
     @property
     def ndim(self: tensor) -> builtins.int:
@@ -290,7 +295,7 @@ class tensor:
             value : True to enable grad on the given tensor, False to disable.
         '''
         if self.dtype != typing.bool_: 
-            self._requires_grad = value and autograd.is_grad_enabled()
+              self._requires_grad = value and autograd.is_grad_enabled()
         else: self._requires_grad = False
         
     @property
@@ -351,10 +356,8 @@ class tensor:
         
     @classmethod
     def _normalize_shape_input(
-        csl: type[Self],
-        *shape: int 
-              | tuple[builtins.int, ...]
-              | typing.Size
+        csl:    type[Self],
+        *shape: typing.ShapeType
     ) -> typing.Size:
         if len(shape) == 1 \
         and isinstance(shape[0], (tuple, list, typing.Size)):
@@ -799,10 +802,8 @@ class tensor:
         else: data_str = np.array2string(data, separator=', ', precision=4)
         
         class_name = self.__class__.__name__
-        data_str = data_str.replace('\n', '\n' + ' ' * (len(class_name) + 1))
-        device_str = f'{self.device}' 
-        if self.device == 'cuda' and self._device_id is not None:
-            device_str = f'{device_str}:{self._device_id}'
+        data_str   = data_str.replace('\n', '\n' + ' ' * (len(class_name) + 1))
+        device_str = self._device.__repr__()
         return f'{class_name}({data_str}, device=\'{device_str}\')'
     
     def __repr__(self: tensor) -> str:
@@ -814,11 +815,12 @@ class tensor:
         else: data_str = np.array2string(data, separator=', ', precision=4)
         return (
             f'{self.__class__.__name__}: [\n'
-            f'    shape: {self.shape},\n'
-            f'    dtype: {self.dtype}\n'
+            f'    shape:         {self.shape},\n'
+            f'    dtype:         {self.dtype}\n'
+            f'    device:        {self._device.__repr__()}'
             f'    requires_grad: {self.requires_grad},\n'
-            f'    data: {data_str},\n'
-            f'    _prev: {self._prev}\n'
+            f'    data:          {data_str},\n'
+            f'    _prev:         {self._prev}\n'
             f']'
         )
     
@@ -855,7 +857,7 @@ class tensor:
     
     def reshape(
         self:   tensor, 
-        *shape: builtins.int | tuple[builtins.int, ...] | typing.Size 
+        *shape: typing.ShapeType
     ) -> Self:
         shape = tensor._normalize_shape_input(*shape)
         if -1 in shape:
@@ -888,7 +890,7 @@ class tensor:
     
     def view(
         self:   tensor,
-        *shape: builtins.int | tuple[builtins.int, ...] | typing.Size 
+        *shape: typing.ShapeType
     ) -> Self:
         shape = tensor._normalize_shape_input(*shape)
         
@@ -949,11 +951,8 @@ class tensor:
         return self.reshape(new_shape)
             
     def permute(
-        self: tensor, 
-        *dims: builtins.int 
-             | list[builtins.int] 
-             | tuple[builtins.int, ...] 
-             | None
+        self:  tensor, 
+        *dims: typing.DimsType | None
     ) -> Self:
         dims = tensor._normalize_dim(dims, self.ndim)
         self_requires_grad = self.requires_grad
@@ -994,7 +993,7 @@ class tensor:
 
     def expand(
         self:   tensor, 
-        *shape: builtins.int | tuple[builtins.int, ...] | typing.Size 
+        *shape: typing.ShapeType
     ) -> Self:
         shape = tensor._normalize_shape_input(*shape)
 
@@ -1026,7 +1025,7 @@ class tensor:
 
     def broadcast_to(
         self:   tensor,
-        *shape: builtins.int | tuple[builtins.int, ...] | typing.Size 
+        *shape: typing.ShapeType
     ) -> Self: 
         return self.expand(*shape)
     
@@ -1190,7 +1189,7 @@ class tensor:
         self:   tensor, 
         dim:    builtins.int, 
         index:  tensor, 
-        source: tensor | builtins.int | builtins.float
+        source: tensor | typing.NumberType
     ) -> Self:
         if not isinstance(source, tensor):
             source = self._new(

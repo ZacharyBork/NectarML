@@ -1,6 +1,5 @@
 from .dataloader import Dataloader
 from .collate    import default_collate
-from .utils      import random_split
 
 from .dataset import (
     Dataset, 
@@ -23,5 +22,5 @@ from .sampling import (
     BatchSampler
 )
 
-
+from .utils import random_split
 

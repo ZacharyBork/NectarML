@@ -116,6 +116,10 @@ class device:
         type:      builtins.str,
         device_id: builtins.int | None = None
     ) -> None:
+        if isinstance(type, device):
+            device_id = device_id if device_id is not None else type.device_id
+            type = type.type
+            
         assert type in ['cpu', 'cuda'], f'Device type not valid: {type}'
         if device_id is not None:
             assert isinstance(device_id, builtins.int) and device_id >= 0, \
@@ -123,13 +127,24 @@ class device:
                 
         super().__setattr__('type', type)
         super().__setattr__('device_id', device_id)
-        
-    def __get__(
-        self:     device, 
-        instance: device | None, 
-        owner:       Any | None = None
-    ) -> device | builtins.str:
-        if instance is None: return self
+    
+    def __eq__(self: device, other: builtins.str | device) -> builtins.bool:
+        if isinstance(other, str):
+            return self.type == other
+        if isinstance(other, device):
+            return self.type == other.type \
+               and self.device_id == other.device_id
+        return NotImplemented
+
+    def __hash__(self: device) -> builtins.int:
+        return hash((self.type, self.device_id))
+
+    def __str__(self: device) -> builtins.str:
+        return self.type
+
+    def __repr__(self: device) -> builtins.str:
+        if self.device_id is not None:
+            return f'{self.type}:{self.device_id}'
         return self.type
 
 ### NUMPY DTYPE ALIASING ###
@@ -161,7 +176,7 @@ uint64  = np.uint64
 
 bool_   = np.bool_
 
-### nectarml.Size ###
+### SIZE CLASS ###
 
 class Size(tuple[builtins.int, ...]):
     @property
@@ -223,19 +238,21 @@ class Size(tuple[builtins.int, ...]):
 
 ### COMMON TYPE ALIASING ###
 
-# ShapeType: TypeAlias = (
-#     builtins.int
-#   | list[builtins.int]
-#   | tuple[builtins.int, ...]
-#   | Size
-# )
-# DimsType: TypeAlias = (
-#     builtins.int
-#   | list[builtins.int]
-#   | tuple[builtins.int, ...]
-# )
 DeviceLikeType: TypeAlias = builtins.str | device
-# NumberType:     TypeAlias = builtins.int | builtins.float
 
+ShapeType: TypeAlias = (
+    builtins.int
+  | list [builtins.int]
+  | tuple[builtins.int, ...]
+  | Size
+)
+
+DimsType: TypeAlias = (
+    builtins.int
+  | list [builtins.int]
+  | tuple[builtins.int, ...]
+)
+
+NumberType: TypeAlias = builtins.int | builtins.float 
 
 

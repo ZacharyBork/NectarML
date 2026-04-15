@@ -24,7 +24,7 @@ from .creation import (
     zeros, ones, rand, randn, full, empty, eye, arange, linspace)
 
 from .typing import (
-    ArrayLike, DTypeLike,
+    ArrayLike, DTypeLike, DeviceLikeType, ShapeType, DimsType, NumberType,
     
     device, Size,
     

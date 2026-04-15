@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .tensor import Tensor
     
-import builtins
 from typing import Literal, Self
 
 import numpy as np
@@ -16,9 +15,9 @@ class BoolTensor(tensor):
     def __init__(
         self:          Tensor,
         data:          typing.ArrayLike,
-        shape:         typing.Size | tuple[builtins.int, ...] | None = None,
+        shape:         typing.ShapeType | None = None,
         dtype:         typing.DTypeLike = typing.bool_,
-        device:        Literal['cpu', 'cuda'] = 'cpu',
+        device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
     ) -> None:

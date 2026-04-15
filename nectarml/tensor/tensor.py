@@ -19,9 +19,9 @@ class Tensor(tensor):
     def __init__(
         self:          Tensor,
         data:          typing.ArrayLike,
-        shape:         typing.Size | tuple[builtins.int, ...] | None = None,
+        shape:         typing.ShapeType | None = None,
         dtype:         typing.DTypeLike = typing.float32,
-        device:        Literal['cpu', 'cuda'] = 'cpu',
+        device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
     ) -> None:
