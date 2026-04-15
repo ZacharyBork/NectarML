@@ -8,11 +8,11 @@ from nectarml.cuda.utils import map_dtype
 
 def concatenate(
     inputs: list[Tensor],
-    dim: int
+    dim:    int
 ) -> int:
-    _dtype = inputs[0].dtype
+    _dtype  = inputs[0].dtype
     in_ptrs = [i._data_ptr for i in inputs]
-    shapes = [list(i.shape) for i in inputs]
+    shapes  = [list(i.shape) for i in inputs]
     return _nectarml.tensor.combination.concatenate(
         in_ptrs, shapes, dim, map_dtype(_dtype))
 

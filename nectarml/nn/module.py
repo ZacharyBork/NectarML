@@ -45,11 +45,11 @@ class Module():
         self._submodules[name] = module
         
     def register_buffer(
-        self,
-        name: str,
-        tensor: Tensor,
+        self:      Module,
+        name:      str,
+        tensor:    Tensor,
         persistent: bool = True,
-        pin_dtype: DTypeLike | None = None
+        pin_dtype:  DTypeLike | None = None
     ) -> None:
         self._buffers[name] = tensor
         if persistent: self._persistent_buffers.add(name)
@@ -91,7 +91,7 @@ class Module():
     
     def zero_grad(self: Module) -> None:
         for _, module in self._walk_module_tree():
-            for name, buffer in module._buffers.items():
+            for _, buffer in module._buffers.items():
                 if not buffer.requires_grad: continue
                 buffer.zero_grad()
                 if buffer.grad is not None:
@@ -106,9 +106,9 @@ class Module():
     # DEVICE / DTYPE
     
     def to(
-        self: Module,
+        self:   Module,
         device: Literal['cpu', 'cuda'] | None = None,
-        dtype: DTypeLike | None = None
+        dtype:  DTypeLike | None = None
     ) -> Self:
         for _, module in self._walk_module_tree():
             for name, buffer in module._buffers.items():

@@ -1,7 +1,8 @@
 from typing import Literal
 
-from nectarml.tensor import Tensor
 from nectarml import cpu, cuda
+from nectarml.tensor import Tensor
+from nectarml.typing import float32
 from nectarml.functional.padding import pad
 from nectarml.amp.precision import run_cast_float16
 
@@ -43,19 +44,19 @@ def _conv1d_cpu(
                 out_grad.data, input_padded, weight.data,
                 stride, padding, dilation, groups)
             input.grad += Tensor._new(
-                grad_input, input.shape, input.dtype, 'cpu')
+                grad_input, input.shape, float32, 'cpu')
         
         if weight_requires_grad:
             grad_weight = cpu.conv.conv1d_backward_weight(
                 out_grad.data, input_padded, weight.data,
                 stride, padding, dilation, groups)
             weight.grad += Tensor._new(
-                grad_weight, weight.shape, weight.dtype, 'cpu')
+                grad_weight, weight.shape, float32, 'cpu')
         
         if bias is not None and bias_requires_grad:
             bias.grad += Tensor._new(
                 out_grad.data.sum(axis=(0, 2)), 
-                bias.shape, bias.dtype, 'cpu')
+                bias.shape, float32, 'cpu')
                 
     out._backward = _backward
     return out
@@ -102,7 +103,7 @@ def _conv1d_cuda(
                 out_grad, weight, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
             grad_tensor = Tensor._new(
-                grad_input_ptr, input.shape, input.dtype, input.device)
+                grad_input_ptr, input.shape, float32, input.device)
         
             input.grad += grad_tensor
         
@@ -111,7 +112,7 @@ def _conv1d_cuda(
                 out_grad, input, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation)
             weight.grad += Tensor._new(
-                grad_weight_ptr, weight.shape, weight.dtype, weight.device)
+                grad_weight_ptr, weight.shape, float32, weight.device)
         
         if bias is not None and bias_requires_grad:
             bias.grad += out_grad.sum(dim=(0, 2))

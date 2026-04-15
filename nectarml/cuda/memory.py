@@ -7,11 +7,6 @@ import _nectarml
 from nectarml.typing import DTypeLike
 from nectarml.cuda.utils import data_to_cuda, map_dtype
 
-### UTILS ###
-
-def cuda_synchronize() -> None:
-    _nectarml.cuda_synchronize()
-
 ### STATISTICS ###
 
 def get_cuda_meminfo() -> tuple[builtins.int, builtins.int, builtins.int]:

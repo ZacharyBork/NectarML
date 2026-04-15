@@ -78,6 +78,9 @@ def is_cuda_available() -> builtins.bool:
 
 ### PYTHON-SIDE UTILS ###
 
+def cuda_synchronize() -> None:
+    _nectarml.cuda_synchronize()
+
 def map_dtype(dtype: DTypeLike) -> Any:
     return DTYPE_MAP[dtype]
 

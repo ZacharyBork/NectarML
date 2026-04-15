@@ -12,15 +12,15 @@ from nectarml.typing import DTypeLike, float32
 
 class _BatchNorm(Module):
     def __init__(
-        self: _BatchNorm, 
-        parameter_shape: tuple[int, ...],
-        norm_dims: tuple[int, ...],
-        norm_func: Callable,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                _BatchNorm, 
+        parameter_shape:     tuple[int, ...],
+        norm_dims:           tuple[int, ...],
+        norm_func:           Callable,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(dtype)
         self.norm_dims = norm_dims
@@ -69,13 +69,13 @@ class _BatchNorm(Module):
 
 class BatchNorm1d(_BatchNorm):
     def __init__(
-        self: BatchNorm1d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                BatchNorm1d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1), (0,), F.batch_norm1d, eps, momentum, affine, 
@@ -83,13 +83,13 @@ class BatchNorm1d(_BatchNorm):
 
 class BatchNorm2d(_BatchNorm):
     def __init__(
-        self: BatchNorm2d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                BatchNorm2d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (0, 2, 3), F.batch_norm2d, eps, momentum, 
@@ -97,13 +97,13 @@ class BatchNorm2d(_BatchNorm):
 
 class BatchNorm3d(_BatchNorm):
     def __init__(
-        self: BatchNorm3d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                BatchNorm3d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.batch_norm3d, eps, 
@@ -113,13 +113,13 @@ class BatchNorm3d(_BatchNorm):
 
 class InstanceNorm1d(_BatchNorm):
     def __init__(
-        self: InstanceNorm1d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                InstanceNorm1d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1), (2,), F.instance_norm1d, eps, 
@@ -127,13 +127,13 @@ class InstanceNorm1d(_BatchNorm):
         
 class InstanceNorm2d(_BatchNorm):
     def __init__(
-        self: InstanceNorm2d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                InstanceNorm2d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (2, 3), F.instance_norm2d, eps, 
@@ -141,13 +141,13 @@ class InstanceNorm2d(_BatchNorm):
         
 class InstanceNorm3d(_BatchNorm):
     def __init__(
-        self: InstanceNorm3d, 
-        num_features: int,
-        eps: float = 0.00001,
-        momentum: float = 0.1,
-        affine: bool = True,
+        self:                InstanceNorm3d, 
+        num_features:        int,
+        eps:                 float = 0.00001,
+        momentum:            float = 0.1,
+        affine:              bool = True,
         track_running_stats: bool = True,
-        dtype: DTypeLike = float32
+        dtype:               DTypeLike = float32
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (2, 3, 4), F.instance_norm3d, eps, 
@@ -157,12 +157,12 @@ class InstanceNorm3d(_BatchNorm):
         
 class GroupNorm(Module):
     def __init__(
-        self: GroupNorm, 
-        num_groups: int,
+        self:         GroupNorm, 
+        num_groups:   int,
         num_channels: int,
-        eps: float = 0.00001,
-        affine: bool = True,
-        dtype: DTypeLike = float32
+        eps:          float = 0.00001,
+        affine:       bool  = True,
+        dtype:    DTypeLike = float32
     ) -> None:
         super().__init__(dtype)
         self.num_groups = num_groups
@@ -186,12 +186,12 @@ class GroupNorm(Module):
     
 class LayerNorm(Module):
     def __init__(
-        self: LayerNorm, 
-        normalized_shape: Sequence[int],
-        eps: float = 0.00001,
+        self:               LayerNorm, 
+        normalized_shape:   Sequence[int],
+        eps:                float = 0.00001,
         elementwise_affine: bool = True,
-        bias: bool = True,
-        dtype: DTypeLike = float32
+        bias:               bool = True,
+        dtype:         DTypeLike = float32
     ) -> None:
         super().__init__(dtype)
         self.normalized_shape = normalized_shape

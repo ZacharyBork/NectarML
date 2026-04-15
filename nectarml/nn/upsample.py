@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from typing import Literal
 
@@ -9,28 +11,29 @@ from nectarml.functional.interpolation import upsample
 
 class Upsample(Module):
     def __init__(
-        self,
-        size: int | tuple[int, ...] | None = None,
+        self: Upsample,
+        size:         int   | tuple[int, ...]   | None = None,
         scale_factor: float | tuple[float, ...] | None = None,
         mode: Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        a: float = -0.75,
-        align_corners: bool = False,
+        a:                     float = -0.75,
+        align_corners:          bool = False,
         recompute_scale_factor: bool = False,
-        preserve_aspect_ratio: bool = False
+        preserve_aspect_ratio:  bool = False
     ) -> None:
         super().__init__()
         self.mode = mode
-        self.a = a
-        self.align_corners = align_corners
-        self.recompute_scale_factor = recompute_scale_factor
-        self.preserve_aspect_ratio = preserve_aspect_ratio
+        self.a    = a
         
-        self._validated = False
+        self.align_corners          = align_corners
+        self.recompute_scale_factor = recompute_scale_factor
+        self.preserve_aspect_ratio  = preserve_aspect_ratio
+        
+        self._validated       = False
         self._is_scale_factor = True
                 
-        self.input_dims: tuple[int, ...] = None
+        self.input_dims:  tuple[int, ...] = None
         self.output_dims: tuple[int, ...] = None
         
         self._init_scaling(size, scale_factor)
@@ -38,8 +41,8 @@ class Upsample(Module):
     ### INIT ###
         
     def _init_scaling(
-        self,
-        size: int | tuple[int, ...] | None = None,
+        self:         Upsample,
+        size:         int   | tuple[int, ...]   | None = None,
         scale_factor: float | tuple[float, ...] | None = None
     ) -> None:
         if size is None and scale_factor is None:
@@ -56,7 +59,7 @@ class Upsample(Module):
         
     ### UTILS ###
     
-    def _init_scale_from_input(self, x: Tensor) -> None:
+    def _init_scale_from_input(self: Upsample, x: Tensor) -> None:
         if self._validated: return
         spatial_dims = len(x.shape[2:])
         
@@ -76,7 +79,7 @@ class Upsample(Module):
                         
         self._validated = True
         
-    def _compute_dimensions(self, x: Tensor) -> None:
+    def _compute_dimensions(self: Upsample, x: Tensor) -> None:
         if self.input_dims is not None and self.output_dims is not None: return
         self.input_dims = x.shape[2:]
         self.output_dims = tuple(
@@ -84,7 +87,7 @@ class Upsample(Module):
         
     ### FORWARD ###
         
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self: Upsample, x: Tensor) -> Tensor:
         self._init_scale_from_input(x)
         self._compute_dimensions(x)
         if self._is_scale_factor:

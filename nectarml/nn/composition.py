@@ -9,7 +9,7 @@ from nectarml.nn.module import Module
 
 class ModuleDict(Module):
     def __init__(
-        self: ModuleDict,
+        self:    ModuleDict,
         modules: dict[str, Module]
     ) -> None:
         '''A dictionary to store modules with string lookup keys.
@@ -72,7 +72,7 @@ class ModuleDict(Module):
         '''
         self.modules_dict.update(modules)
 
-    def _walk_module_tree(self) -> list[tuple[str, Module]]:
+    def _walk_module_tree(self: ModuleDict) -> list[tuple[str, Module]]:
         '''Walks the full Module tree of the ModuleDict and returns all items.
         
         This method recurses each module contained within the ModuleDict to
@@ -154,7 +154,7 @@ class ModuleDict(Module):
 
 class ModuleList(Module):
     def __init__(
-        self: ModuleList, 
+        self:    ModuleList, 
         modules: list[Module]
     ) -> None:
         '''A list-type object to store Modules.
@@ -190,7 +190,7 @@ class ModuleList(Module):
         '''
         self.modules_list.insert(index, module)  
         
-    def _walk_module_tree(self) -> list[tuple[str, Module]]:
+    def _walk_module_tree(self: ModuleList) -> list[tuple[str, Module]]:
         '''Walks the full Module tree of the ModuleDict and returns all items.
         
         This method recurses each module contained within the ModuleDict to
@@ -283,7 +283,7 @@ class ModuleList(Module):
 
 class Sequential(ModuleList):
     def __init__(
-        self: Sequential, 
+        self:     Sequential, 
         *modules: Module | Iterable[Module] | OrderedDict[str, Module]
     ) -> None:
         '''A special version of a ModuleList which can be called.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import builtins
+
 from nectarml.tensor import Tensor
 from nectarml.nn.module import Module
 from nectarml.functional.padding import pad
@@ -8,13 +10,13 @@ from nectarml.functional.padding import pad
 
 class ConstantPad1d(Module):
     def __init__(
-        self: ConstantPad1d, 
-        padding: int | tuple[int, int],
-        value: float = 0.0
+        self:    ConstantPad1d, 
+        padding: builtins.int | tuple[builtins.int, builtins.int],
+        value:   builtins.float = 0.0
     ) -> None:
         super().__init__()
         self.padding = padding
-        self.value = value
+        self.value   = value
         
     def forward(self: ConstantPad1d, x: Tensor) -> Tensor:
         assert x.ndim == 3, (
@@ -24,13 +26,13 @@ class ConstantPad1d(Module):
     
 class ConstantPad2d(Module):
     def __init__(
-        self: ConstantPad2d, 
-        padding: int | tuple[int, ...],
-        value: float = 0.0
+        self:    ConstantPad2d, 
+        padding: builtins.int | tuple[builtins.int, ...],
+        value:   builtins.float = 0.0
     ) -> None:
         super().__init__()
         self.padding = padding
-        self.value = value
+        self.value   = value
         
     def forward(self: ConstantPad2d, x: Tensor) -> Tensor:
         assert x.ndim == 4, (
@@ -40,13 +42,13 @@ class ConstantPad2d(Module):
 
 class ConstantPad3d(Module):
     def __init__(
-        self: ConstantPad3d, 
-        padding: int | tuple[int, ...],
-        value: float = 0.0
+        self:    ConstantPad3d, 
+        padding: builtins.int | tuple[builtins.int, ...],
+        value:   builtins.float = 0.0
     ) -> None:
         super().__init__()
         self.padding = padding
-        self.value = value
+        self.value   = value
         
     def forward(self: ConstantPad3d, x: Tensor) -> Tensor:
         assert x.ndim == 5, (
@@ -58,8 +60,8 @@ class ConstantPad3d(Module):
 
 class ReflectionPad1d(Module):
     def __init__(
-        self: ReflectionPad1d, 
-        padding: int | tuple[int, int]
+        self:    ReflectionPad1d, 
+        padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -72,8 +74,8 @@ class ReflectionPad1d(Module):
     
 class ReflectionPad2d(Module):
     def __init__(
-        self: ReflectionPad2d, 
-        padding: int | tuple[int, ...]
+        self:    ReflectionPad2d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -86,8 +88,8 @@ class ReflectionPad2d(Module):
 
 class ReflectionPad3d(Module):
     def __init__(
-        self: ReflectionPad3d, 
-        padding: int | tuple[int, ...]
+        self:    ReflectionPad3d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -102,8 +104,8 @@ class ReflectionPad3d(Module):
 
 class ReplicationPad1d(Module):
     def __init__(
-        self: ReplicationPad1d, 
-        padding: int | tuple[int, int]
+        self:    ReplicationPad1d, 
+        padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -116,8 +118,8 @@ class ReplicationPad1d(Module):
     
 class ReplicationPad2d(Module):
     def __init__(
-        self: ReplicationPad2d, 
-        padding: int | tuple[int, ...]
+        self:    ReplicationPad2d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -130,8 +132,8 @@ class ReplicationPad2d(Module):
 
 class ReplicationPad3d(Module):
     def __init__(
-        self: ReplicationPad3d, 
-        padding: int | tuple[int, ...]
+        self:    ReplicationPad3d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -146,8 +148,8 @@ class ReplicationPad3d(Module):
 
 class CircularPad1d(Module):
     def __init__(
-        self: CircularPad1d, 
-        padding: int | tuple[int, int]
+        self:    CircularPad1d, 
+        padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -160,8 +162,8 @@ class CircularPad1d(Module):
     
 class CircularPad2d(Module):
     def __init__(
-        self: CircularPad2d, 
-        padding: int | tuple[int, ...]
+        self:    CircularPad2d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -174,8 +176,8 @@ class CircularPad2d(Module):
 
 class CircularPad3d(Module):
     def __init__(
-        self: CircularPad3d, 
-        padding: int | tuple[int, ...]
+        self:    CircularPad3d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -190,8 +192,8 @@ class CircularPad3d(Module):
 
 class ZeroPad1d(Module):
     def __init__(
-        self: ZeroPad1d, 
-        padding: int | tuple[int, int]
+        self:    ZeroPad1d, 
+        padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -204,8 +206,8 @@ class ZeroPad1d(Module):
     
 class ZeroPad2d(Module):
     def __init__(
-        self: ZeroPad2d, 
-        padding: int | tuple[int, ...]
+        self:    ZeroPad2d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -218,8 +220,8 @@ class ZeroPad2d(Module):
 
 class ZeroPad3d(Module):
     def __init__(
-        self: ZeroPad3d, 
-        padding: int | tuple[int, ...]
+        self:    ZeroPad3d, 
+        padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
         super().__init__()
         self.padding = padding

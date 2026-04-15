@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import builtins
+
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
 
 class ReLU(Module):
-    def __init__(self: ReLU, inplace: bool = False) -> None:
+    def __init__(self: ReLU, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -15,9 +17,9 @@ class ReLU(Module):
 
 class LeakyReLU(Module):
     def __init__(
-        self: LeakyReLU,
-        negative_slope: float = 0.01,
-        inplace: bool = False
+        self:           LeakyReLU,
+        negative_slope: builtins.float = 0.01,
+        inplace:        builtins.bool  = False
     ) -> None:
         super().__init__()
         self.negative_slope = negative_slope
@@ -29,9 +31,9 @@ class LeakyReLU(Module):
 
 class ELU(Module):
     def __init__(
-        self: ELU,
-        alpha: float = 1.0,
-        inplace: bool = False
+        self:    ELU,
+        alpha:   builtins.float = 1.0,
+        inplace: builtins.bool  = False
     ) -> None:
         super().__init__()
         self.alpha = alpha
@@ -42,7 +44,7 @@ class ELU(Module):
         return F.elu(x, self.alpha)
     
 class SELU(Module):
-    def __init__(self: SELU, inplace: bool = False) -> None:
+    def __init__(self: SELU, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -51,7 +53,7 @@ class SELU(Module):
         return F.selu(x)
     
 class Sigmoid(Module):
-    def __init__(self: Sigmoid, inplace: bool = False) -> None:
+    def __init__(self: Sigmoid, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -60,7 +62,7 @@ class Sigmoid(Module):
         return F.sigmoid(x)
     
 class Tanh(Module):
-    def __init__(self: Tanh, inplace: bool = False) -> None:
+    def __init__(self: Tanh, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -70,9 +72,9 @@ class Tanh(Module):
     
 class Softmax(Module):
     def __init__(
-        self: Softmax,
-        dim: int = -1,
-        inplace: bool = False
+        self:    Softmax,
+        dim:     builtins.int  = -1,
+        inplace: builtins.bool = False
     ) -> None:
         super().__init__()
         self.dim = dim
@@ -84,9 +86,9 @@ class Softmax(Module):
     
 class LogSoftmax(Module):
     def __init__(
-        self: LogSoftmax,
-        dim: int = -1,
-        inplace: bool = False
+        self:    LogSoftmax,
+        dim:     builtins.int  = -1,
+        inplace: builtins.bool = False
     ) -> None:
         super().__init__()
         self.dim = dim
@@ -97,7 +99,7 @@ class LogSoftmax(Module):
         return F.log_softmax(x, self.dim)
     
 class GeLU(Module):
-    def __init__(self: GeLU, inplace: bool = False) -> None:
+    def __init__(self: GeLU, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -106,7 +108,7 @@ class GeLU(Module):
         return F.gelu(x)
 
 class SiLU(Module):
-    def __init__(self: SiLU, inplace: bool = False) -> None:
+    def __init__(self: SiLU, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -115,7 +117,7 @@ class SiLU(Module):
         return F.silu(x)
     
 class Swish(Module):
-    def __init__(self: Swish, inplace: bool = False) -> None:
+    def __init__(self: Swish, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -124,7 +126,7 @@ class Swish(Module):
         return F.swish(x)
     
 class Softplus(Module):
-    def __init__(self: Softplus, inplace: bool = False) -> None:
+    def __init__(self: Softplus, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -133,7 +135,7 @@ class Softplus(Module):
         return F.softplus(x)
 
 class Mish(Module):
-    def __init__(self: Mish, inplace: bool = False) -> None:
+    def __init__(self: Mish, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -143,10 +145,10 @@ class Mish(Module):
     
 class Hardtanh(Module):
     def __init__(
-        self: Hardtanh,
-        min_value: float = -1.0, 
-        max_value: float = 1.0,
-        inplace: bool = False
+        self:      Hardtanh,
+        min_value: builtins.float = -1.0, 
+        max_value: builtins.float = 1.0,
+        inplace:   builtins.bool  = False
     ) -> None:
         super().__init__()
         self.min_value = min_value
@@ -158,7 +160,7 @@ class Hardtanh(Module):
         return F.hardtanh(x, self.min_value, self.max_value)
     
 class Hardsigmoid(Module):
-    def __init__(self: Hardsigmoid, inplace: bool = False) -> None:
+    def __init__(self: Hardsigmoid, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -167,7 +169,7 @@ class Hardsigmoid(Module):
         return F.hardsigmoid(x)
     
 class Hardswish(Module):
-    def __init__(self: Hardswish, inplace: bool = False) -> None:
+    def __init__(self: Hardswish, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -176,7 +178,7 @@ class Hardswish(Module):
         return F.hardswish(x)
     
 class Softsign(Module):
-    def __init__(self: Softsign, inplace: bool = False) -> None:
+    def __init__(self: Softsign, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         
@@ -185,7 +187,7 @@ class Softsign(Module):
         return F.softsign(x)
     
 class Softmin(Module):
-    def __init__(self: Softmin, inplace: bool = False) -> None:
+    def __init__(self: Softmin, inplace: builtins.bool = False) -> None:
         super().__init__()
         self.inplace = inplace
         

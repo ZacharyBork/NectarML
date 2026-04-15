@@ -6,9 +6,9 @@ from nectarml.nn.module import Module
 
 class Dropout(Module):
     def __init__(
-        self: Dropout,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    Dropout,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p
@@ -19,9 +19,9 @@ class Dropout(Module):
 
 class AlphaDropout(Module):
     def __init__(
-        self: AlphaDropout,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    AlphaDropout,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p
@@ -32,9 +32,9 @@ class AlphaDropout(Module):
     
 class FeatureAlphaDropout(Module):
     def __init__(
-        self: FeatureAlphaDropout,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    FeatureAlphaDropout,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p
@@ -45,9 +45,9 @@ class FeatureAlphaDropout(Module):
 
 class Dropout1d(Module):
     def __init__(
-        self: Dropout1d,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    Dropout1d,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p
@@ -58,9 +58,9 @@ class Dropout1d(Module):
 
 class Dropout2d(Module):
     def __init__(
-        self: Dropout2d,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    Dropout2d,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p
@@ -71,9 +71,9 @@ class Dropout2d(Module):
     
 class Dropout3d(Module):
     def __init__(
-        self: Dropout3d,
-        p: float = 0.5,
-        inplace: bool = False
+        self:    Dropout3d,
+        p:       float = 0.5,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.p = p

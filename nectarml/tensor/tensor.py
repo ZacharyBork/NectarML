@@ -850,14 +850,15 @@ class Tensor(tensor):
             self_requires_grad or other_requires_grad, _children=(self, other))
         
         def _backward() -> None:
-            if self_requires_grad or other_requires_grad:
-                self_f32  =  self.to(dtype=typing.float32)
-                other_f32 = other.to(dtype=typing.float32)
             if self_requires_grad:
-                self.grad += out.grad @ other_f32.transpose(-2, -1)
+                other_f32 = other.to(dtype=typing.float32)
+                grad = out.grad @ other_f32.transpose(-2, -1)
+                self.grad += self._broadcast_grad(grad, self.shape)
             if other_requires_grad:
-                other.grad += self_f32.transpose(-2, -1) @ out.grad
-        
+                self_f32  =  self.to(dtype=typing.float32)
+                grad = self_f32.transpose(-2, -1) @ out.grad
+                other.grad += other._broadcast_grad(grad, other.shape)
+                
         out._backward = _backward
         return out
     

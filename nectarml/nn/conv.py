@@ -5,9 +5,9 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml.tensor import Tensor
+from nectarml.nn.module import Module
 from nectarml.creation import empty
 from nectarml.typing import DTypeLike, float32
-from nectarml.nn.module import Module
 from nectarml.nn.init import kaiming_uniform_, uniform_
 
 ### 1-Dimensional ###

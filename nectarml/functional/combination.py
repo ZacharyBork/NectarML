@@ -1,7 +1,6 @@
 from nectarml.tensor import Tensor
-from nectarml.cuda import combination
-from nectarml.cpu import combination as _combination
-from nectarml.amp.precision import run_cast_promote
+from nectarml.cuda import combination as cuda
+from nectarml.cpu  import combination as cpu
 
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])
@@ -17,17 +16,16 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     device = _devices.pop()
     dtype  = _dtypes.pop()
     shape  = list(tensors[0].shape)
-    requires_grad = tensors[0].requires_grad
+    dim    = Tensor._normalize_dim(dim, tensors[0].ndim)
+    _grad = tensors[0].requires_grad
     for i in tensors[1:]: 
         shape[dim] += list(i.shape)[dim]
-        if i.requires_grad: requires_grad = True
+        if i.requires_grad: _grad = True
     
     if device == 'cuda': 
-          data = run_cast_promote(combination.concatenate, tensors, dim)
-    else: data = _combination.concatenate([t.data for t in tensors], dim=dim)
-    
-    out = Tensor._new(
-        data, shape, dtype, device, requires_grad, tuple(tensors))
+          data = cuda.concatenate(tensors, dim)
+    else: data =  cpu.concatenate([t.data for t in tensors], dim=dim)
+    out = Tensor._new(data, shape, dtype, device, _grad, tuple(tensors))
 
     def _backward() -> None:
         offset = 0

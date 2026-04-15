@@ -1,25 +1,25 @@
 from __future__ import annotations
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
-from nectarml.creation import zeros
-from nectarml.typing import DTypeLike, float32
+from nectarml.tensor    import Tensor
+from nectarml.creation  import zeros
+from nectarml.typing    import DTypeLike, float32
 from nectarml.nn.module import Module
 from nectarml.nn.linear import Linear
 
 class MultiheadAttention(Module):
     def __init__(
         self: MultiheadAttention, 
-        embed_dim: int,
-        num_heads: int,
-        dropout: float = 0.0,
-        bias: bool = True,
-        add_bias_kv: bool = False,
+        embed_dim:     int,
+        num_heads:     int,
+        dropout:       float = 0.0,
+        bias:          bool = True,
+        add_bias_kv:   bool = False,
         add_zero_attn: bool = False,
-        kdim: int | None = None,
-        vdim: int | None = None,
-        batch_first: bool = False,
-        dtype: DTypeLike = float32
+        kdim:          int | None = None,
+        vdim:          int | None = None,
+        batch_first:   bool = False,
+        dtype:         DTypeLike = float32
     ) -> None:
         super().__init__(dtype)
         self.embed_dim = embed_dim
@@ -44,14 +44,14 @@ class MultiheadAttention(Module):
 
     def forward(
         self: MultiheadAttention, 
-        query: Tensor,
-        key: Tensor,
-        value: Tensor,
-        key_padding_mask: Tensor | None = None,
-        need_weights: bool = True,
-        attn_mask: Tensor | None = None,
+        query:                Tensor,
+        key:                  Tensor,
+        value:                Tensor,
+        key_padding_mask:     Tensor | None = None,
+        need_weights:         bool = True,
+        attn_mask:            Tensor | None = None,
         average_attn_weights: bool = True,
-        is_causal: bool = False
+        is_causal:            bool = False
     ) -> Tensor:
         if self.batch_first:
             query = query.transpose(0, 1)
@@ -81,22 +81,22 @@ class MultiheadAttention(Module):
             value = F.cat(
                 [value, self.bias_v.expand(value.shape[0], -1, -1)], dim=1)
 
-        attns: list[Tensor] = []
+        attns:   list[Tensor] = []
         weights: list[Tensor] = []
         
         for i in range(self.num_heads):
             start = projection_dim * i
-            end = projection_dim * (i + 1)
+            end   = projection_dim * (i + 1)
             
-            Q_h = query[:, :, start:end]
-            K_h = key[:, :, start:end]
-            V_h = value[:, :, start:end]
+            Q_h = query[:, :, start:end].transpose(0, 1)
+            K_h = key  [:, :, start:end].transpose(0, 1)
+            V_h = value[:, :, start:end].transpose(0, 1)
             
             attn_out, weight = F.scaled_dot_product_attention(
                 Q_h, K_h, V_h, attn_mask, key_padding_mask, 
                 self.dropout, is_causal, self.training)
             
-            attns.append(attn_out)
+            attns.append(attn_out.transpose(0, 1))
             weights.append(weight)
             
         out = self.W_o(F.cat(attns, dim=-1))
