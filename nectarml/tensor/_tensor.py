@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import types
-import warnings
 import builtins
 from typing import Any, Literal, Self
 from collections.abc import Callable
@@ -226,7 +225,7 @@ class tensor:
     ### PROPERTIES ###
       
     @property
-    def _data_ptr(self: tensor) -> builtins.int | None:
+    def _data_ptr(self: Self) -> builtins.int | None:
         '''Property access for CUDA pointer to tensor's data.
         
         Returns:
@@ -238,7 +237,7 @@ class tensor:
         return None
       
     @property
-    def dtype(self: tensor) -> typing.DTypeLike:
+    def dtype(self: Self) -> typing.DTypeLike:
         '''Property access for tensor's Dtype.
         
         Returns:
@@ -256,7 +255,7 @@ class tensor:
         return self.shape.ndim
     
     @property
-    def size(self: tensor) -> builtins.int:
+    def size(self: Self) -> builtins.int:
         '''Propert access for tensor size (i.e. numel).
         
         Returns:
@@ -266,7 +265,7 @@ class tensor:
         return self.shape.numel()
            
     @property
-    def is_contiguous(self) -> bool:
+    def is_contiguous(self: Self) -> bool:
         if self.device == 'cuda': return True
         else: return self.data.flags['C_CONTIGUOUS']
         
@@ -280,7 +279,7 @@ class tensor:
         return self._requires_grad
         
     @requires_grad.setter
-    def requires_grad(self: tensor, value: bool) -> None:
+    def requires_grad(self: Self, value: bool) -> None:
         '''Setter for tensor's requires_grad value.
         
         This setter will allocate a grad tensor for the given data tensor if
@@ -295,7 +294,7 @@ class tensor:
         else: self._requires_grad = False
         
     @property
-    def _mod(self: tensor) -> types.ModuleType:
+    def _mod(self: Self) -> types.ModuleType:
         return cuda if self.device == 'cuda' else cpu
         
     ### CLASS METHODS ###

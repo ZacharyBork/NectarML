@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, TypeAlias, overload
+from dataclasses import dataclass
+from typing import Literal, Any, TypeAlias, overload
 
 import numpy as np
 
@@ -95,15 +96,7 @@ bool_   = dtype(np.bool_)
 
 '''
 
-
-
-'''
-
-NEW DEVICE CLASS (NOT READY FOR DEPLOYMENT YET!)
-
-import builtins
-from typing import Literal, Any, overload, TypeAlias
-from dataclasses import dataclass
+### DEVICE CLASS ###
 
 @dataclass
 class device:
@@ -114,20 +107,19 @@ class device:
     def __init__(self, type: DeviceLikeType) -> None: ...
     @overload
     def __init__(
-        self: device, 
-        type: str, 
+        self:      device, 
+        type:      builtins.str, 
         device_id: builtins.int | None = None
     ) -> None: ...
     def __init__(
         self:      device, 
-        type:      str,
+        type:      builtins.str,
         device_id: builtins.int | None = None
     ) -> None:
         assert type in ['cpu', 'cuda'], f'Device type not valid: {type}'
         if device_id is not None:
             assert isinstance(device_id, builtins.int) and device_id >= 0, \
                 'device_id must be an integer value >= 0.'
-        else: device_id = 0
                 
         super().__setattr__('type', type)
         super().__setattr__('device_id', device_id)
@@ -136,11 +128,9 @@ class device:
         self:     device, 
         instance: device | None, 
         owner:       Any | None = None
-    ) -> device | str:
+    ) -> device | builtins.str:
         if instance is None: return self
         return self.type
-
-'''
 
 ### NUMPY DTYPE ALIASING ###
 
@@ -244,7 +234,7 @@ class Size(tuple[builtins.int, ...]):
 #   | list[builtins.int]
 #   | tuple[builtins.int, ...]
 # )
-# DeviceLikeType: TypeAlias = builtins.str | device
+DeviceLikeType: TypeAlias = builtins.str | device
 # NumberType:     TypeAlias = builtins.int | builtins.float
 
 

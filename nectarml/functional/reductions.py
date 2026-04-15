@@ -1,93 +1,96 @@
 import math
 from typing import Literal
 
+import builtins
+
+from nectarml import return_types
 from nectarml.tensor import Tensor
 from nectarml.functional.combination import cat, stack
 
 def min(
-    input: Tensor,
-    dim: int | None = None,
-    keepdim: bool = False
-) -> Tensor | tuple[Tensor, Tensor]:
+    input:   Tensor,
+    dim:     builtins.int | None = None,
+    keepdim: builtins.bool = False
+) -> Tensor | return_types.min:
     return input.min(dim, keepdim)
 
 def amin(
-    input: Tensor,
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False
+    input:   Tensor,
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.amin(dim, keepdim)
 
 def max(
-    input: Tensor, 
-    dim: int | None = None,
-    keepdim: bool = False
-) -> Tensor | tuple[Tensor, Tensor]:
+    input:   Tensor, 
+    dim:     builtins.int | None = None,
+    keepdim: builtins.bool = False
+) -> Tensor | return_types.max:
     return input.max(dim, keepdim)
 
 def amax(
-    input: Tensor,
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False
+    input:   Tensor,
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.amax(dim, keepdim)
 
 def argmin(
-    input: Tensor,
-    dim: int | None = None,
-    keepdim: bool = False
+    input:   Tensor,
+    dim:     builtins.int | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.argmin(dim, keepdim)
     
 def argmax(
-    input: Tensor,
-    dim: int | None = None,
-    keepdim: bool = False
+    input:  Tensor,
+    dim:     builtins.int | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.argmax(dim, keepdim)
 
 def mean(
-    input: Tensor, 
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False
+    input:   Tensor, 
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.mean(dim, keepdim)
 
 def sum(
-    input: Tensor, 
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False,
-    initial: int | float = 0
+    input:   Tensor, 
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False,
+    initial: builtins.int | builtins.float = 0
 ) -> Tensor:
     return input.sum(dim, keepdim, initial)
 
 def prod(
-    input: Tensor, 
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False,
-    initial: int | float = 0
+    input:   Tensor, 
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False,
+    initial: builtins.int | builtins.float = 1
 ) -> Tensor:
     return input.prod(dim, keepdim, initial)
 
 def norm(
-    input: Tensor,
-    p: Literal['fro', 'l1', 'inf', '-inf', 'l0', 'lp'] = 'fro',
-    dim: int | tuple[int, ...] | None = None,
-    keepdim: bool = False
+    input:   Tensor,
+    p:       Literal['fro', 'l1', 'inf', '-inf', 'l0', 'lp'] = 'fro',
+    dim:     builtins.int | tuple[builtins.int, ...] | None = None,
+    keepdim: builtins.bool = False
 ) -> Tensor:
     return input.norm(p, dim, keepdim)
 
 def quantile(
-    input: Tensor, 
-    q: float | Tensor,
-    dim: int | None = None,
-    keepdim: bool = False,
+    input:         Tensor, 
+    q:             builtins.float | Tensor,
+    dim:           builtins.int | None = None,
+    keepdim:       builtins.bool = False,
     interpolation: Literal[
         'linear', 'lower', 'higher', 'nearest', 'midpoint'
     ] = 'linear'
 ) -> Tensor:
     if isinstance(q, Tensor):
-        assert q.ndim <= 1, 'q must be a float or 1D Tensor.'
+        assert q.ndim <= 1, 'q must be a builtins.float or 1D Tensor.'
         q_vals = q.numpy().tolist()
         scalar_q = False
     else:
@@ -96,17 +99,21 @@ def quantile(
         
     match interpolation:
         case 'lower': 
-            def get_idx(idx_float: float) -> int:
-                return int(math.floor(idx_float))
+            def get_idx(idx_float: builtins.float) -> builtins.int:
+                return builtins.int(math.floor(idx_float))
         case 'higher': 
-            def get_idx(idx_float: float) -> int:
-                return int(math.ceil(idx_float))
+            def get_idx(idx_float: builtins.float) -> builtins.int:
+                return builtins.int(math.ceil(idx_float))
         case 'nearest': 
-            def get_idx(idx_float: float) -> int:
-                return int(round(idx_float))
+            def get_idx(idx_float: builtins.float) -> builtins.int:
+                return builtins.int(round(idx_float))
         case 'midpoint' | 'linear': 
-            def get_idx(idx_float: float) -> tuple[int, int]:
-                return int(math.floor(idx_float)), int(math.ceil(idx_float))
+            def get_idx(
+                idx_float: builtins.float
+            ) -> tuple[builtins.int, builtins.int]:
+                return (
+                    builtins.int(math.floor(idx_float)), 
+                    builtins.int(math.ceil(idx_float)))
         case _: raise ValueError(
             f'Interpolation mode not valid: {interpolation}')
 
@@ -176,5 +183,5 @@ def quantile(
         if keepdim: out = out.unsqueeze(dim + 1)
         return out
 
-def cumsum(input: Tensor, dim: int) -> Tensor:
+def cumsum(input: Tensor, dim: builtins.int) -> Tensor:
     return input.cumsum(dim)

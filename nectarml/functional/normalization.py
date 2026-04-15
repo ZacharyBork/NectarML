@@ -16,10 +16,16 @@ def _batch_norm(
     mean     = x_f32.mean(dim=dim, keepdim=True)
     variance = ((x_f32 - mean)**2).mean(dim=dim, keepdim=True)
     x_norm   = (x_f32 - mean) / (variance + eps).sqrt()
-    if gamma is not None: x_norm = gamma.to(dtype=float32) * x_norm
-    if not beta is None:  x_norm = beta.to(dtype=float32)  + x_norm
     
-    C = x_f32.shape[1]
+    C        = x_f32.shape[1]
+    ndim     = x_f32.ndim
+    reshape  = tuple(C if i == 1 else 1 for i in range(ndim))
+    
+    if gamma is not None:
+        x_norm = gamma.to(dtype=float32).reshape(reshape) * x_norm
+    if beta is not None:
+        x_norm = beta.to(dtype=float32).reshape(reshape)  + x_norm
+        
     return (
         x_norm.to(dtype=input_dtype),
         (mean.reshape(1, C, 1, 1), variance.reshape(1, C, 1, 1))
@@ -104,9 +110,11 @@ def group_norm(
     x_norm     = (x_reshaped - mean) / (variance + eps).sqrt()
     x_norm     = x_norm.reshape(x_f32.shape)
     
-    if gamma is not None: x_norm = gamma.to(dtype=float32) * x_norm
-    if beta  is not None: x_norm = beta.to(dtype=float32)  + x_norm
-    
+    if gamma is not None:
+        x_norm = gamma.to(dtype=float32).reshape(1, C, 1, 1) * x_norm
+    if beta is not None:
+        x_norm = beta.to(dtype=float32).reshape(1, C, 1, 1)  + x_norm
+        
     return (
         x_norm.to(dtype=input_dtype),
         (mean.reshape(1, C, 1, 1), variance.reshape(1, C, 1, 1))
@@ -125,9 +133,9 @@ def layer_norm(
     x_f32       = x.to(dtype=float32)
     dims        = tuple(range(-len(normalized_shape), 0))
     
-    mean = x_f32.mean(dim=dims, keepdim=True)
+    mean     = x_f32.mean(dim=dims, keepdim=True)
     variance = ((x_f32 - mean) ** 2).mean(dim=dims, keepdim=True)
-    x_norm = (x_f32 - mean) / (variance + eps).sqrt()
+    x_norm   = (x_f32 - mean) / (variance + eps).sqrt()
     
     if gamma is not None: x_norm = gamma.to(dtype=float32) * x_norm
     if beta is not None:  x_norm = beta.to(dtype=float32) + x_norm

@@ -10,7 +10,7 @@ from .activation import (
 from .attention import scaled_dot_product_attention
 
 from .combination import (
-    concatenate, cat, stack, unstack, unbind, split, chunk)
+    concatenate, cat, stack, select, unstack, unbind, split, chunk)
 
 from .conv import (
     conv1d, conv_transpose1d, conv2d, conv_transpose2d, conv3d)
@@ -20,7 +20,7 @@ from .dropout import (
     dropout1d, dropout2d, dropout3d)
 
 from .indexing import (
-    gather, scatter, where, masked_fill, index_select)
+    gather, scatter, scatter_add, where, masked_fill, index_select)
 
 from .interpolation import (
     upsample, upsample_nearest, upsample_linear, upsample_bilinear, 

@@ -124,9 +124,10 @@ def huber_loss(
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     distance   = input - target
+    delta      = delta if delta is not None else 1.0
     quadratic  = 0.5 * (distance ** 2)
-    linear     = delta * (abs(distance) - 0.5 * delta)
-    loss_value = where((abs(distance)).data < delta, quadratic, linear)
+    linear     = delta * (distance.abs() - 0.5 * delta)
+    loss_value = where((distance).abs() < delta, quadratic, linear)
     return _reduce_loss(loss_value, reduction)
 
 def log_cosh_loss(
@@ -211,8 +212,9 @@ def kl_divergence_loss(
 ) -> Tensor:
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = y * log(y / x)
-    out         = _reduce_loss(loss_value, reduction)
+    safe_y     = y.clamp(min_value=1e-8)
+    loss_value = safe_y * (safe_y.log() - x)
+    out        = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
 def bce_with_logits_loss(

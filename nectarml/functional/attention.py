@@ -1,7 +1,7 @@
 import math
 
 from nectarml.tensor import Tensor
-from nectarml.typing import bool_
+from nectarml.typing import bool_, float16
 from nectarml.creation import tril
 from nectarml.functional import activation
 from nectarml.functional.dropout import dropout as dropout_fn
@@ -32,27 +32,28 @@ def scaled_dot_product_attention(
         tuple[Tensor, Tensor] : The resulting Tensor from the attention 
             mechanism, and the raw weights applied to the attention.
     '''
-    k_t = K.transpose((-2, -1))
-    scores = Q @ k_t
-    
-    d_k = K.shape[-1]
+    k_t           = K.transpose(-2, -1)
+    scores        = Q @ k_t
+    d_k           = K.shape[-1]
     scaled_scores = scores / math.sqrt(d_k)
+    
     if attn_mask is not None:
         if attn_mask.dtype == bool_:
-            scaled_scores += attn_mask.to(dtype=Q.dtype) * -1e9
-        else: scaled_scores += attn_mask
+              scaled_scores = scaled_scores + attn_mask.to(dtype=Q.dtype)*-1e9
+        else: scaled_scores = scaled_scores + attn_mask
     
     if key_padding_mask is not None:
-        mask = key_padding_mask.unsqueeze(1).unsqueeze(2)
-        scaled_scores += mask * -1e9
+        mask          = key_padding_mask.unsqueeze(1).unsqueeze(2)
+        scaled_scores = scaled_scores + mask*-1e9
         
     if is_causal:
-        T = Q.shape[-2]
-        causal = tril(size=T, device=Q.device)
-        causal_mask = (1 - causal) * -1e9
-        scaled_scores += causal_mask
+        T           = Q.shape[-2]
+        causal      = tril(size=T, device=Q.device)
+        mask_val    = -1e4 if Q.dtype == float16 else -1e9
+        causal_mask = (1 - causal) * mask_val
+        scaled_scores = scaled_scores + causal_mask
         
-    weights = activation.Softmax(scaled_scores)
+    weights = activation.softmax(scaled_scores)
     if dropout > 0.0 and training:
         weights = dropout_fn(weights, p=dropout, training=training)
     return weights @ V, weights

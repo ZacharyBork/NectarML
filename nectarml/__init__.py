@@ -14,6 +14,9 @@ from .creation import (
 
 from .typing import (
     ArrayLike, DTypeLike,
+    
+    device, Size,
+    
     float, float16, float32, half, double, 
     int, int8, int16, int32, int64, short, long, 
     uint, uint8, uint16, uint32, uint64, 

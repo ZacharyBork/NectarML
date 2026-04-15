@@ -353,7 +353,7 @@ def log_softmax(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''
     input_dtype = input.dtype
     x           = input.to(dtype=float32)
-    exp_x       = (x - x.max(dim=dim, keepdim=True)[0]).exp()
+    exp_x       = (x - x.max(dim=dim, keepdim=True).values).exp()
     softmax_x   = exp_x / exp_x.sum(dim=dim, keepdim=True)
     out         = softmax_x.log()
     return out.to(dtype=input_dtype)
@@ -452,7 +452,7 @@ def silu(input: Tensor) -> Tensor:
         Tensor : The resulting Tensor from the activation function.
     '''
     input_dtype = input.dtype
-    x           = -input.to(dtype=float32)
+    x           = input.to(dtype=float32)
     sigmoid     = 1 / (1 + (-x).exp())
     out         = x * sigmoid
     return out.to(dtype=input_dtype)
@@ -576,7 +576,7 @@ def mish(input: Tensor) -> Tensor:
         Tensor : The resulting Tensor from the activation function.
     '''
     input_dtype = input.dtype
-    x           = -input.to(dtype=float32)
+    x           = input.to(dtype=float32)
     softplus    = (1 + x.exp()).log()
     sp_exp      = softplus.exp()
     inv_sp_exp  = (-softplus).exp()
@@ -661,7 +661,7 @@ def hardsigmoid(input: Tensor) -> Tensor:
     Returns:
         Tensor : The resulting Tensor from the activation function.
     '''
-    return ((input + 1) / 2).clamp(0.0, 1.0)
+    return (input / 6 + 0.5).clamp(0.0, 1.0)
 
 def hardsigmoid_(input: Tensor) -> Tensor:
     '''In-place hardsigmoid activation function.
