@@ -1,6 +1,6 @@
-from ._tensor import tensor
-from .tensor  import Tensor
-from .bool    import BoolTensor
+from ._tensor    import tensor
+from .tensor     import Tensor
+from .bool       import BoolTensor
 from .conversion import to_bool_tensor, to_numerical_tensor
 
 _tensor.tensor._subclasses['Tensor']     = Tensor

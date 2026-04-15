@@ -3,8 +3,19 @@ import _nectarml
 
 atexit.register(_nectarml.destroy_cublas_handle)
 
-from . import constants, random
-from . import amp, autograd, cpu, cuda, nn, optim, functional, utils
+from . import (
+    constants,
+    random,
+    amp,
+    autograd,
+    cpu,
+    cuda,
+    nn,
+    optim,
+    functional,
+    utils
+
+)
 from .tensor import tensor, Tensor, BoolTensor
 from .autograd import no_grad
 

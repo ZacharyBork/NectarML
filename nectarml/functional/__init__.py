@@ -29,8 +29,7 @@ from .interpolation import (
 from .loss import(
     l1_loss, mae_loss, l2_loss, mse_loss, rmse_loss, huber_loss, log_cosh_loss,
     bce_loss, cross_entropy_loss, nll_loss, hinge_loss, hinge2_loss,
-    kl_divergence_loss, bce_with_logits_loss, triplet_margin_loss
-)
+    kl_divergence_loss, bce_with_logits_loss, triplet_margin_loss)
 
 from .math import (
     add, subtract, multiply, pow, matmul, negate, floor, ceil, round, clamp, 
