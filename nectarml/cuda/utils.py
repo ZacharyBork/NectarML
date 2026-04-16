@@ -117,6 +117,15 @@ def to_cpu(
         input._data_ptr, [int(i) for i in input.shape], input.dtype.cuda)
     return data.astype(cast_dtype.cpu)
 
+def inspect_cuda_data(
+    device_ptr: builtins.int, 
+    dtype:      typing.dtype,
+    shape:      typing.Size,
+    precision:  builtins.int = 4
+) -> str:
+    data = _nectarml.to_cpu(device_ptr, [int(i) for i in shape], dtype.cuda)
+    return np.array2string(data, separator=', ', precision=precision)
+
 def clone(input: Tensor) -> builtins.int:
     return _nectarml.clone(input._data_ptr, input.size, input.dtype.cuda)
     

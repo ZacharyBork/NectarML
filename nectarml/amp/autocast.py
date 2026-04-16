@@ -28,10 +28,10 @@ class autocast:
     def __enter__(self) -> Self:
         if self.enabled:
             set_autocast_enabled(True)
-            tl.autocast_state.context = self.context
+            tl.autocast.context = self.context
     
     def __exit__(self, *args: Any) -> None:
         if self.enabled:
             set_autocast_enabled(False)
-            tl.autocast_state.context = None
+            tl.autocast.context = None
 

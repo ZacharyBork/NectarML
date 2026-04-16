@@ -112,25 +112,17 @@ class dtype:
 
     ### COMPARISON ###
     
-    def __hash__(self: dtype) -> builtins.int: 
-        return id(self)
-    
+    def __hash__(self: dtype) -> builtins.int: return id(self)
     def __eq__(self: dtype, other: dtype) -> builtins.bool:
-        return self._type_cpu == other._type_cpu
+        return self.name == other.name
+    
+    def __ne__(self: dtype, other: dtype) -> builtins.bool:
+        return self.name != other.name
     
     ### INSPECTION ###
     
-    def __str__ (self: dtype) -> str:  return f'nectarml.{self.name}'
-    def __repr__(self: dtype) -> str: 
-        return (
-            f'{self.__str__()} [\n'
-            f'    DType (CPU):  {self.cpu}\n'
-            f'    DType (CUDA): {self.cuda}\n\n'
-            f'    Info[\n'
-            f'        {self.info.__repr__()}\n'
-            f'    ]\n'
-            f']'
-        )
+    def __str__ (self: dtype) -> str: return f'nectarml.{self.name}'
+    def __repr__(self: dtype) -> str: return self.__str__()
 
 float   = dtype(np.float32)
 float16 = dtype(np.float16)
@@ -188,11 +180,11 @@ class device:
         super().__setattr__('type', type)
         super().__setattr__('device_id', device_id)
     
-    def __eq__(self: device, other: builtins.str | device) -> builtins.bool:
+    def __eq__(self: device, other: DeviceLikeType) -> builtins.bool:
         if isinstance(other, str):
             return self.type == other
         if isinstance(other, device):
-            return self.type == other.type \
+            return self.type      == other.type \
                and self.device_id == other.device_id
         return NotImplemented
 

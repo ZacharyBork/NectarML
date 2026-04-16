@@ -31,7 +31,7 @@ class ToTensor(Transform):
         
         output = Tensor(data.astype(np.float32), dtype=float32, device='cpu')
         if self.normalize:
-            output = output / np.maximum(data.max(), 1.0)
+            output = output / np.maximum(data.max().astype(np.float32), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:

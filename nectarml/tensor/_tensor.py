@@ -854,7 +854,7 @@ class tensor:
         
         class_name = self.__class__.__name__
         data_str   = data_str.replace('\n', '\n' + ' ' * (len(class_name) + 1))
-        device_str = self._device.__repr__()
+        device_str = self._device.__str__()
         return f'{class_name}({data_str}, device=\'{device_str}\')'
     
     def __repr__(self: tensor) -> str:
@@ -868,7 +868,7 @@ class tensor:
             f'{self.__class__.__name__}: [\n'
             f'    shape:         {self.shape},\n'
             f'    dtype:         {self._dtype}\n'
-            f'    device:        {self._device.__repr__()}'
+            f'    device:        {self._device.__str__()}'
             f'    requires_grad: {self._requires_grad},\n'
             f'    data:          {data_str},\n'
             f'    _prev:         {self._prev}\n'

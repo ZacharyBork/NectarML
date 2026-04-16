@@ -33,7 +33,7 @@ def _run_cast(
     def cast_arg(arg: Any) -> Tensor | Any:
         if not getattr(arg, '_class_type_nectar_tensor', False): return arg
         if arg.device != 'cuda' or arg.dtype == target_dtype:    return arg
-        ptr = utils.cast_tensor(arg, target_dtype.cuda)
+        ptr = utils.cast_tensor(arg, target_dtype)
         return Tensor._temporary(arg, ptr, target_dtype)
     
     cast_args   = [cast_arg(a) for a in args]
