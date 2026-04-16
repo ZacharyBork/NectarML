@@ -1,6 +1,5 @@
 import math
 import warnings
-from typing import Literal
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
@@ -8,20 +7,20 @@ from pyfastnoiselite.pyfastnoiselite import \
     FastNoiseLite, NoiseType, FractalType
 
 import nectarml.functional as F
-from nectarml import typing
-from nectarml.tensor import Tensor
+from nectarml          import typing
+from nectarml.tensor   import Tensor
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms.transform import Transform 
-from nectarml.vision.transforms.common import TransformInput, lerp
+from nectarml.vision.transforms.common    import TransformInput, lerp
 
 class Erasing(Transform):
     def __init__(
         self,
         scale: tuple[float, float] = (0.02, 0.33),
         ratio: tuple[float, float] = (0.3, 3.3),
-        fill: float = 0.0,
-        erase_mask: bool = False,
-        p: float = 0.5
+        fill:                float = 0.0,
+        erase_mask:           bool = False,
+        p:                   float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.scale = scale
@@ -83,12 +82,12 @@ class Erasing(Transform):
 class CoarseDropout(Transform):
     def __init__(
         self,
-        num_holes_range: tuple[int, int] = (1, 2),
+        num_holes_range:    tuple[int,   int]   = (1, 2),
         holes_height_range: tuple[float, float] = (0.1, 0.2),
-        holes_width_range: tuple[float, float] = (0.1, 0.2),
-        fill: float = 0.0,
-        erase_mask: bool = False,
-        p: float = 0.5
+        holes_width_range:  tuple[float, float] = (0.1, 0.2),
+        fill:               float = 0.0,
+        erase_mask:          bool = False,
+        p:                  float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.num_holes_range = num_holes_range
@@ -160,13 +159,13 @@ class CoarseDropout(Transform):
 class GridDropout(Transform):
     def __init__(
         self,
-        ratio: float = 0.5,
-        random_offset: bool = True,
-        holes_number_xy: tuple[int, int] = (10, 10),
-        shift_xy: tuple[float, float] = (0.0, 0.0),
-        fill: float = 0.0,
-        erase_mask: bool = False,
-        p: float = 0.5
+        ratio:           float = 0.5,
+        random_offset:   bool  = True,
+        holes_number_xy: tuple[int,   int]   = (10, 10),
+        shift_xy:        tuple[float, float] = (0.0, 0.0),
+        fill:            float = 0.0,
+        erase_mask:      bool  = False,
+        p:               float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.ratio = ratio
@@ -243,19 +242,19 @@ class GridDropout(Transform):
 class RandomLensFlare(Transform):
     def __init__(
         self,
-        num_ghosts: int = 4,
+        num_ghosts:         int   = 4,
         ghost_radius_range: tuple[float, float] = (0.01, 0.06),
-        ghost_alpha_range: tuple[float, float] = (0.1, 0.4),
-        halo_radius: float = 0.15,
-        halo_alpha: float = 0.1,
-        streak_count: int = 6,
-        streak_alpha: float = 0.15,
-        streak_length: float = 0.3,
-        chromatic_shift: float = 2.0,
-        glow_radius: float = 0.05,
-        global_scale: float = 1.0,
-        source_position: tuple[float, float] | None = None,
-        p: float = 0.5
+        ghost_alpha_range:  tuple[float, float] = (0.1,  0.4),
+        halo_radius:        float = 0.15,
+        halo_alpha:         float = 0.1,
+        streak_count:       int   = 6,
+        streak_alpha:       float = 0.15,
+        streak_length:      float = 0.3,
+        chromatic_shift:    float = 2.0,
+        glow_radius:        float = 0.05,
+        global_scale:       float = 1.0,
+        source_position:    tuple[float, float] | None = None,
+        p:                  float = 0.5
     ) -> None:
         '''
         Based on the lens flare algorithm described in this paper:
@@ -407,11 +406,11 @@ class RandomLensFlare(Transform):
 class RandomFog(Transform):
     def __init__(
         self,
-        scale: int = 100,
-        octaves: int = 4,
-        intensity_range: tuple[float, float] = (0.3, 0.7),
-        fog_color: tuple[int, int, int] = (255, 255, 255),
-        p: float = 0.5
+        scale:           int = 100,
+        octaves:         int = 4,
+        intensity_range: tuple[float, float]  = (0.3, 0.7),
+        fog_color:       tuple[int, int, int] = (255, 255, 255),
+        p:               float = 0.5
     ) -> None:
         super().__init__(p=p)
         assert scale > 0, 'RandomFog "scale" must be > 0.'
@@ -482,12 +481,12 @@ class RandomRain(Transform):
     def __init__(
         self,
         brightness_coef: float | tuple[float, float] = (0.5, 0.8),
-        num_drops: int | tuple[int, int] = (100, 300),
-        drop_length: int | tuple[int, int] = (20, 35),
-        drop_width: int | tuple[int, int] = (1, 2),
-        drop_color: tuple[int, int, int] = (200, 200, 200),
-        blur_value: int = 3,
-        p: float = 0.5
+        num_drops:       int   | tuple[int,   int]   = (100, 300),
+        drop_length:     int   | tuple[int,   int]   = (20,  35),
+        drop_width:      int   | tuple[int,   int]   = (1,   2),
+        drop_color:      tuple[int, int, int] = (200, 200, 200),
+        blur_value:      int   = 3,
+        p:               float = 0.5
     ) -> None:
         '''
         Reference:
@@ -584,9 +583,9 @@ class RandomRain(Transform):
 class RandomSnow(Transform):
     def __init__(
         self,
-        brighness_coef: float = 1.5,
+        brighness_coef:   float = 1.5,
         snow_point_range: tuple[float, float] = (0.1, 0.3),
-        p: float = 0.5
+        p:                float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.brightness_coef = brighness_coef
@@ -626,14 +625,14 @@ class RandomSnow(Transform):
 class RandomShadow(Transform):
     def __init__(
         self,
-        shadow_intensity: float | tuple[float, float] = (0.3, 0.7),
-        noise_frequency: float | tuple[float, float] = (0.01, 0.04),
-        noise_threshold: float | tuple[float, float] = (0.1, 0.4),
-        blur_sigma: float | tuple[float, float] = (15.0, 40.0),
-        color_shift: float | tuple[float, float] = (0.0, 0.05),
-        falloff_intensity: float | tuple[float, float] = (1.0, 1.5),
-        falloff_contrast: float | tuple[float, float] = (0.8, 1.6),
-        p: float = 0.5
+        shadow_intensity:  float | tuple[float, float] = (0.3,  0.7),
+        noise_frequency:   float | tuple[float, float] = (0.01, 0.04),
+        noise_threshold:   float | tuple[float, float] = (0.1,  0.4),
+        blur_sigma:        float | tuple[float, float] = (15.0, 40.0),
+        color_shift:       float | tuple[float, float] = (0.0,  0.05),
+        falloff_intensity: float | tuple[float, float] = (1.0,  1.5),
+        falloff_contrast:  float | tuple[float, float] = (0.8,  1.6),
+        p:                 float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.shadow_intensity = (shadow_intensity, shadow_intensity) \
@@ -678,10 +677,10 @@ class RandomShadow(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
 
-        out = input.clone()
-        mask = self._mask.unsqueeze(0).to(input.device, input.dtype)
+        out    = input.clone()
+        mask   = self._mask.unsqueeze(0).to(input.device, input.dtype)
         shadow = 1.0 - self._intensity * mask
-        out = out * shadow
+        out    = out * shadow
         
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -718,11 +717,11 @@ class RandomShadow(Transform):
 class Spatter(Transform):
     def __init__(
         self,
-        droplet_scales: int | tuple[int, int] = (3, 5),
-        droplet_density: float | tuple[float, float] = (0.08, 0.12),
-        droplet_color: tuple[int, int, int] = (255, 255, 255),
+        droplet_scales:     int | tuple[int, int] = (3, 5),
+        droplet_density:    float | tuple[float, float] = (0.08, 0.12),
+        droplet_color:      tuple[int, int, int] = (255, 255, 255),
         droplet_refraction: float = 0.15,
-        p: float = 0.5
+        p:                  float = 0.5
     ) -> None:
         '''
         Adapted from Élie Michel's awesome GLSL shader, found here:

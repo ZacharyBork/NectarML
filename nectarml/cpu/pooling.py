@@ -16,7 +16,7 @@ def avg_pool1d_forward(
     data = input.data
     if P > 0:
         data = np.pad(data, ((0,0),(0,0),(P,P)), mode='constant')
-    out = np.zeros((B, C, L_out), dtype=input.dtype)
+    out = np.zeros((B, C, L_out), dtype=input.dtype.numpy)
     for n in range(L_out):
         start  = n * S
         window = data[:, :, start:start+K]
@@ -35,7 +35,7 @@ def avg_pool1d_backward(
     K: int, S: int, P: int,
     count_include_pad: bool
 ) -> np.ndarray:
-    grad_input = np.zeros((B, C, L + 2*P), dtype=out_grad.dtype)
+    grad_input = np.zeros((B, C, L + 2*P), dtype=out_grad.dtype.numpy)
     for n in range(L_out):
         start = n * S
         if count_include_pad:
@@ -63,7 +63,7 @@ def avg_pool2d_forward(
     data = input.data
     if PH > 0 or PW > 0:
         data = np.pad(data, ((0,0),(0,0),(PH,PH),(PW,PW)), mode='constant')
-    out = np.zeros((B, C, H_out, W_out), dtype=input.dtype)
+    out = np.zeros((B, C, H_out, W_out), dtype=input.dtype.numpy)
     for i in range(H_out):
         for j in range(W_out):
             h_start = i * SH
@@ -90,7 +90,7 @@ def avg_pool2d_backward(
     count_include_pad: bool,
     divisor_override: int | float | None = None
 ) -> np.ndarray:
-    grad_input = np.zeros((B, C, H + 2*PH, W + 2*PW), dtype=out_grad.dtype)
+    grad_input = np.zeros((B, C, H+2*PH, W+2*PW), dtype=out_grad.dtype.numpy)
     for i in range(H_out):
         for j in range(W_out):
             h_start = i * SH
@@ -125,7 +125,7 @@ def avg_pool3d_forward(
     if PD > 0 or PH > 0 or PW > 0:
         data = np.pad(
             data, ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)), mode='constant')
-    out = np.zeros((B, C, D_out, H_out, W_out), dtype=input.dtype)
+    out = np.zeros((B, C, D_out, H_out, W_out), dtype=input.dtype.numpy)
     for d in range(D_out):
         for i in range(H_out):
             for j in range(W_out):
@@ -161,7 +161,7 @@ def avg_pool3d_backward(
     divisor_override: int | float | None = None
 ) -> np.ndarray:
     grad_input = np.zeros(
-        (B, C, D + 2*PD, H + 2*PH, W + 2*PW), dtype=out_grad.dtype)
+        (B, C, D + 2*PD, H + 2*PH, W + 2*PW), dtype=out_grad.dtype.numpy)
     for d in range(D_out):
         for i in range(H_out):
             for j in range(W_out):
@@ -200,7 +200,7 @@ def max_pool1d_forward(
         data = np.pad(
             data, ((0,0),(0,0),(P,P)), 
             mode='constant', constant_values=-np.inf)
-    out     = np.full((B, C, L_out), -np.inf, dtype=input.dtype)
+    out     = np.full((B, C, L_out), -np.inf, dtype=input.dtype.numpy)
     indices = np.zeros((B, C, L_out), dtype=np.int64)
     for n in range(L_out):
         positions     = np.arange(K) * D + n * S
@@ -218,7 +218,7 @@ def max_pool1d_backward(
     indices: np.ndarray,
     B: int, C: int, L: int, L_out: int
 ) -> np.ndarray:
-    grad_input = np.zeros((B, C, L), dtype=out_grad.dtype)
+    grad_input = np.zeros((B, C, L), dtype=out_grad.dtype.numpy)
     for n in range(L_out):
         idx = indices[:, :, n]
         np.add.at(grad_input,
@@ -240,7 +240,7 @@ def max_pool2d_forward(
         data = np.pad(
             data, ((0,0),(0,0),(PH,PH),(PW,PW)),
             mode='constant', constant_values=-np.inf)
-    out     = np.full((B, C, H_out, W_out), -np.inf, dtype=input.dtype)
+    out     = np.full((B, C, H_out, W_out), -np.inf, dtype=input.dtype.numpy)
     indices = np.zeros((B, C, H_out, W_out), dtype=np.int64)
     h_pos   = np.arange(KH) * D
     w_pos   = np.arange(KW) * D
@@ -269,7 +269,7 @@ def max_pool2d_backward(
     B: int, C: int, H: int, W: int,
     H_out: int, W_out: int
 ) -> np.ndarray:
-    grad_input = np.zeros((B, C, H, W), dtype=out_grad.dtype)
+    grad_input = np.zeros((B, C, H, W), dtype=out_grad.dtype.numpy)
     for i in range(H_out):
         for j in range(W_out):
             idx   = indices[:, :, i, j]
@@ -295,7 +295,8 @@ def max_pool3d_forward(
         data = np.pad(
             data, ((0,0),(0,0),(PD,PD),(PH,PH),(PW,PW)),
             mode='constant', constant_values=-np.inf)
-    out     = np.full((B, C, D_out, H_out, W_out), -np.inf, dtype=input.dtype)
+    out     = np.full((B, C, D_out, H_out, W_out), 
+                      -np.inf, dtype=input.dtype.numpy)
     indices = np.zeros((B, C, D_out, H_out, W_out), dtype=np.int64)
     d_pos   = np.arange(KD) * D
     h_pos   = np.arange(KH) * D
@@ -331,7 +332,7 @@ def max_pool3d_backward(
     B: int, C: int, Dp: int, H: int, W: int,
     D_out: int, H_out: int, W_out: int
 ) -> np.ndarray:
-    grad_input = np.zeros((B, C, Dp, H, W), dtype=out_grad.dtype)
+    grad_input = np.zeros((B, C, Dp, H, W), dtype=out_grad.dtype.numpy)
     for di in range(D_out):
         for i in range(H_out):
             for j in range(W_out):

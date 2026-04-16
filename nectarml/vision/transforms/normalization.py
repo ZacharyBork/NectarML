@@ -5,15 +5,15 @@ import numpy as np
 from nectarml.tensor import Tensor
 from nectarml.typing import float16, float32, uint8
 from nectarml.vision.transforms.transform import Transform 
-from nectarml.vision.transforms.common import TransformInput
+from nectarml.vision.transforms.common    import TransformInput
 
 class Normalize(Transform):
     def __init__(
         self,
-        mean: list[float],
-        std: list[float],
-        eps: float = 1e-8,
-        inplace: bool = False
+        mean:    list[float],
+        std:     list[float],
+        eps:     float = 1e-8,
+        inplace: bool  = False
     ) -> None:
         super().__init__()
         self.mean = mean
@@ -30,9 +30,9 @@ class Normalize(Transform):
         elif input.ndim == 4: broadcast_shape = (1, len(self.mean), 1, 1)
         elif input.ndim == 5: broadcast_shape = (1, len(self.mean), 1, 1, 1)
         
-        mean = Tensor(np.array(self.mean, dtype=float32))
+        mean = Tensor(np.array(self.mean, dtype=np.float32))
         mean = mean.reshape(broadcast_shape).to(input.device, input.dtype)
-        std  = Tensor(np.array(self.std,  dtype=float32))
+        std  = Tensor(np.array(self.std,  dtype=np.float32))
         std  = std.reshape(broadcast_shape).to(input.device, input.dtype)
         
         out = (input - mean) / (std + self.eps)
@@ -51,8 +51,8 @@ class Normalize(Transform):
 class Denormalize(Transform):
     def __init__(
         self,
-        mean: list[float],
-        std: list[float],
+        mean:    list[float],
+        std:     list[float],
         inplace: bool = False
     ) -> None:
         super().__init__()
@@ -66,9 +66,9 @@ class Denormalize(Transform):
         elif input.ndim == 4: broadcast_shape = (1, len(self.mean), 1, 1)
         elif input.ndim == 5: broadcast_shape = (1, len(self.mean), 1, 1, 1)
 
-        mean = Tensor(np.array(self.mean, dtype=float32))
+        mean = Tensor(np.array(self.mean, dtype=np.float32))
         mean = mean.reshape(broadcast_shape).to(input.device)
-        std  = Tensor(np.array(self.std, dtype=float32))
+        std  = Tensor(np.array(self.std, dtype=np.float32))
         std  = std.reshape(broadcast_shape).to(input.device)
 
         out = input * std + mean
@@ -89,7 +89,7 @@ class MinMaxNormalize(Transform):
         self,
         min_value: int | float = 0.0,
         max_value: int | float = 1.0,
-        inplace: bool = False
+        inplace:          bool = False
     ) -> None:
         super().__init__()
         self.min_value = min_value
@@ -120,7 +120,7 @@ class ToFloat(Transform):
     def __init__(
         self, 
         half_precision: bool = False,
-        scale: bool = False
+        scale:          bool = False
     ) -> None:
         super().__init__()
         self.output_dtype = float16 if half_precision else float32

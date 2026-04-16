@@ -2,7 +2,7 @@
 import numpy as np
 
 from nectarml        import typing
-from nectarml.random import RNG
+from nectarml.random import RNG, Random
 from nectarml.tensor import Tensor
 
 # CREATION / DUPLICATION
@@ -72,7 +72,7 @@ def rand(
     device:        typing.DeviceLikeType = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
-    rng = np.random.default_rng(seed) if seed is not None else RNG
+    rng = Random(seed) if seed is not None else RNG
     return Tensor(
         rng.random(shape, dtype=dtype), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
@@ -84,9 +84,9 @@ def randn(
     device:        typing.DeviceLikeType = 'cpu',
     requires_grad: bool = False
 ) -> Tensor: 
-    rng = np.random.default_rng(seed) if seed is not None else RNG
+    rng = Random(seed) if seed is not None else RNG
     return Tensor(
-        rng.standard_normal(shape, dtype=dtype), shape=shape, dtype=dtype, 
+        rng.standard_normal(shape, dtype=dtype.numpy), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def full(

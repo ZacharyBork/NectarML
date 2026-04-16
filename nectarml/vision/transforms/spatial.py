@@ -16,8 +16,8 @@ from nectarml.vision.transforms.common import TransformInput
 class Pad(Transform):
     def __init__(
         self,
-        padding: int | tuple[int, ...],
-        fill: float = 0.0,
+        padding:      int | tuple[int, ...],
+        fill:         float = 0.0,
         padding_mode: Literal[
             'constant', 'reflect', 'replicate', 'circular'
         ] = 'constant',
@@ -62,15 +62,15 @@ class Pad(Transform):
 class _Crop(Transform):
     def __init__(
         self,
-        size: int | tuple[int, int],
-        padding: int | tuple[int, ...] | None = None,
-        pad_if_needed: bool = False,
-        fill: float = 0.0,
-        padding_mode: Literal[
+        size:           int | tuple[int, int],
+        padding:        int | tuple[int, ...] | None = None,
+        pad_if_needed:  bool  = False,
+        fill:           float = 0.0,
+        padding_mode:   Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
-        p: float = 1.0,
-        transform_mask: bool = True
+        p:              float = 1.0,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         if isinstance(size, int): self.size = (size, size)
@@ -117,15 +117,15 @@ class _Crop(Transform):
 class RandomCrop(_Crop):
     def __init__(
         self,
-        size: int | tuple[int, int],
-        padding: int | tuple[int, ...] | None = None,
-        pad_if_needed: bool = False,
-        fill: float = 0.0,
+        size:           int | tuple[int, int],
+        padding:        int | tuple[int, ...] | None = None,
+        pad_if_needed:  bool  = False,
+        fill:           float = 0.0,
         padding_mode: Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
-        p: float = 1.0,
-        transform_mask: bool = True
+        p:              float = 1.0,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(
             size, padding, pad_if_needed, fill, 
@@ -158,11 +158,11 @@ class RandomCrop(_Crop):
 class CenterCrop(_Crop):
     def __init__(
         self,
-        size: int | tuple[int, int],
-        padding: int | tuple[int, ...] | None = None,
-        pad_if_needed: bool = False,
-        fill: float = 0.0,
-        padding_mode: Literal[
+        size:           int | tuple[int, int],
+        padding:        int | tuple[int, ...] | None = None,
+        pad_if_needed:  bool  = False,
+        fill:           float = 0.0,
+        padding_mode:   Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
         transform_mask: bool = True
@@ -196,19 +196,19 @@ class CenterCrop(_Crop):
 class RandomResizedCrop(_Crop):
     def __init__(
         self,
-        crop_size: int | tuple[int, int],
-        output_size: int | tuple[int, int] | None = None,
-        padding: int | tuple[int, ...] | None = None,
+        crop_size:     int | tuple[int, int],
+        output_size:   int | tuple[int, int] | None = None,
+        padding:       int | tuple[int, ...] | None = None,
         pad_if_needed: bool = False,
-        fill: float = 0.0,
-        padding_mode: Literal[
+        fill:          float = 0.0,
+        padding_mode:  Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
-        scaling_mode: Literal[
+        scaling_mode:  Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        a: float = -0.75,
-        p: float = 1.0,
+        a:             float = -0.75,
+        p:             float = 1.0,
         transform_mask: bool = True
     ) -> None:
         super().__init__(
@@ -251,13 +251,13 @@ class RandomResizedCrop(_Crop):
 class Resize(Transform):
     def __init__(
         self,
-        size: int | tuple[int, ...] | None = None,
-        scale_factor: float | tuple[float, ...] | None = None,
-        mode: Literal[
+        size:          int   | tuple[int,   ...] | None = None,
+        scale_factor:  float | tuple[float, ...] | None = None,
+        mode:          Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        a: float = -0.75,
-        align_corners: bool = False,
+        a:             float = -0.75,
+        align_corners:  bool = False,
         transform_mask: bool = True
     ) -> None:
         super().__init__()
@@ -289,7 +289,7 @@ class Resize(Transform):
 class RandomHorizontalFlip(Transform):
     def __init__(
         self,
-        p: float = 0.5,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -313,8 +313,8 @@ class RandomHorizontalFlip(Transform):
 class RandomVerticalFlip(Transform):
     def __init__(
         self,
-        p: float = 0.5,
-        transform_mask: bool = True
+        p:              float = 0.5,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         self.transform_mask = transform_mask
@@ -337,8 +337,8 @@ class RandomVerticalFlip(Transform):
 class Transpose(Transform):
     def __init__(
         self,
-        p: float = 0.5,
-        transform_mask: bool = True
+        p:              float = 0.5,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         self.transform_mask = transform_mask
@@ -363,10 +363,10 @@ class Transpose(Transform):
 class Rotate(Transform):
     def __init__(
         self,
-        angle: float = 90.0,
-        fill_value: float = 0.0,
+        angle:         float = 90.0,
+        fill_value:    float = 0.0,
         transform_mask: bool = True,
-        p: float = 1.0
+        p:             float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.angle = angle
@@ -405,9 +405,9 @@ class RandomRotation(Transform):
     def __init__(
         self,
         rotation_range: tuple[float, float] = (-180.0, 180.0),
-        fill_value: float = 0.0,
-        transform_mask: bool = True,
-        p: float = 0.5
+        fill_value:     float = 0.0,
+        transform_mask: bool  = True,
+        p:              float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.rotation_range = rotation_range
@@ -436,9 +436,9 @@ class RandomRotation(Transform):
 class RandomRotate90(Transform):
     def __init__(
         self,
-        mode: Literal['90', '180', '270', '360'] = '360',
-        fill_value: float = 0.0,
-        p: float = 0.5,
+        mode:          Literal['90', '180', '270', '360'] = '360',
+        fill_value:    float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -499,15 +499,15 @@ class _GridSampleTransform(Transform):
 class RandomAffine(_GridSampleTransform):
     def __init__(
         self,
-        degrees: float | tuple[float, float] = (-45, 45),
-        translate: tuple[float, float] | None = (-0.05, 0.05),
-        scale: tuple[float, float] | None = (0.5, 2.0),
-        shear: float | tuple[float, float] | None = (-15.0, 15.0),
+        degrees:     float | tuple[float, float] = (-45,   45),
+        translate:   tuple[float, float] | None  = (-0.05, 0.05),
+        scale:       tuple[float, float] | None  = (0.5,   2.0),
+        shear:       float | tuple[float, float] | None = (-15.0, 15.0),
         border_mode: Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
+        fill:          float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -570,7 +570,7 @@ class RandomAffine(_GridSampleTransform):
             self._ty, self._scale, self._shear)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
@@ -608,9 +608,9 @@ class RandomPerspective(_GridSampleTransform):
         border_mode: Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
-        transform_mask: bool = True
+        fill:           float = 0.0,
+        p:              float = 0.5,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         self.distortion_scale = distortion_scale
@@ -697,10 +697,12 @@ class OpticalDistortion(_GridSampleTransform):
     def __init__(
         self,
         distort_limit: float | tuple[float, float] = 0.05,
-        shift_limit: float | tuple[float, float] = 0.05,
-        border_mode: Literal['reflect', 'constant', 'nearest', 'wrap'] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
+        shift_limit:   float | tuple[float, float] = 0.05,
+        border_mode:   Literal[
+            'reflect', 'constant', 'nearest', 'wrap'
+        ] = 'reflect',
+        fill:          float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -761,13 +763,13 @@ class OpticalDistortion(_GridSampleTransform):
 class ElasticTransform(_GridSampleTransform):
     def __init__(
         self,
-        alpha: float | tuple[float, float] = (50.0, 150.0),
-        sigma: float | tuple[float, float] = (8.0, 12.0),
-        border_mode: Literal[
+        alpha:         float | tuple[float, float] = (50.0, 150.0),
+        sigma:         float | tuple[float, float] = (8.0, 12.0),
+        border_mode:   Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
+        fill:          float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -794,7 +796,7 @@ class ElasticTransform(_GridSampleTransform):
         src_x, src_y = self._compute_flow(H, W)
         result = self._apply_flow(a, src_x, src_y)
         return Tensor(
-            result[np.newaxis].astype(input.dtype), 
+            result[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self) -> None:
@@ -815,13 +817,13 @@ class ElasticTransform(_GridSampleTransform):
 class GridDistortion(_GridSampleTransform):
     def __init__(
         self,
-        num_steps: int = 5,
+        num_steps:     int = 5,
         distort_limit: float | tuple[float, float] = 0.3,
-        border_mode: Literal[
+        border_mode:   Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
+        fill:          float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)
@@ -883,14 +885,14 @@ class GridDistortion(_GridSampleTransform):
 class Swirl(_GridSampleTransform):
     def __init__(
         self,
-        strength: float | tuple[float, float] = (1.0, 3.0),
-        radius: float | tuple[float, float] = (0.0, 360.0),
-        center: tuple[float, float] = (0.5, 0.5),
+        strength:    float | tuple[float, float] = (1.0, 3.0),
+        radius:      float | tuple[float, float] = (0.0, 360.0),
+        center:      tuple[float, float] = (0.5, 0.5),
         border_mode: Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill: float = 0.0,
-        p: float = 0.5,
+        fill:          float = 0.0,
+        p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
         super().__init__(p=p)

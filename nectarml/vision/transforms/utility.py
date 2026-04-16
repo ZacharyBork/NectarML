@@ -77,12 +77,12 @@ class NoOp(Transform):
 class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
     def __init__(
         self, 
-        nrow: int = 8,
-        padding: int = 2,
-        normalize: bool = False,
+        nrow:        int   = 8,
+        padding:     int   = 2,
+        normalize:   bool  = False,
         value_range: tuple[int, int] = (0, 255),
-        scale_each: bool = False,
-        pad_value: float = 0.0
+        scale_each:  bool  = False,
+        pad_value:   float = 0.0
     ) -> None:
         super().__init__()
         self.nrow = nrow
@@ -140,8 +140,8 @@ class LoadImageFile(UtilityTransform[None, Tensor]):
     def __init__(
         self, 
         image_path: PathLike,
-        dtype: typing.dtype = typing.float32,
-        device: typing.DeviceLikeType = 'cpu',
+        dtype:      typing.dtype = typing.float32,
+        device:     typing.DeviceLikeType = 'cpu',
     ) -> None:
         super().__init__(device)
         self.image_path = Path(image_path)
@@ -162,7 +162,7 @@ class SaveImageFile(UtilityTransform[Tensor, Tensor]):
     def __init__(
         self, 
         output_path: PathLike,
-        normalize: bool = False
+        normalize:   bool = False
     ) -> None:
         super().__init__()
         self.output_path = Path(output_path)
@@ -180,15 +180,15 @@ class SaveImageFile(UtilityTransform[Tensor, Tensor]):
 class Resample(Transform):
     def __init__(
         self,
-        size: int | tuple[int, ...] | None = None,
+        size:         int   | tuple[int,   ...]   | None = None,
         scale_factor: float | tuple[float, ...] | None = None,
         mode: Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
         ] = 'nearest',
-        a: float = -0.75,
-        align_corners: bool = False,
+        a:                    float = -0.75,
+        align_corners:         bool = False,
         preserve_aspect_ratio: bool = False,
-        transform_mask: bool = True
+        transform_mask:        bool = True
     ) -> None:
         super().__init__()
         self.size = size
@@ -219,14 +219,14 @@ class Resample(Transform):
 class Derivative(Transform):
     def __init__(
         self,
-        mode: Literal['ddx', 'ddy'] = 'ddx',
+        mode:        Literal['ddx', 'ddy'] = 'ddx',
         per_channel: bool = False
     ) -> None:
         super().__init__()
         self.mode = mode
         self.per_channel = per_channel
 
-    def _transform(self, input: Tensor | None) -> Tensor | None:
+    def _transform(self, input: Tensor | None) -> Tensor | None:        
         if input is None: return input
         if not self.per_channel:
             t = input.mean(dim=1, keepdim=True)
@@ -252,10 +252,13 @@ class Derivative(Transform):
                 result = F.cat([left, interior, right], dim=axis).unsqueeze(0)
                 channels.append(result)
             
-            if self.per_channel: outputs.append(F.cat(channels, dim=0))
-            else: outputs.extend(channels)
-            
-        return F.stack(outputs, dim=0)
+            if not self.per_channel: channels = channels * input.shape[1]
+            outputs.append(F.cat(channels, dim=0))
+
+        out = F.stack(outputs, dim=0)
+        
+        print(out.shape)        
+        return out
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -301,7 +304,7 @@ class NormalMap(Transform):
     def __init__(
         self,
         normal_power: float = 1.0,
-        invert: bool = False
+        invert:        bool = False
     ) -> None:
         super().__init__()
         assert normal_power > 0.0, '"normal_power" must be greater than 0.0.'
@@ -338,8 +341,8 @@ class ApplyLUT(Transform):
     def __init__(
         self,
         lut_file: PathLike,
-        alpha: float = 1.0,
-        p: float = 1.0
+        alpha:    float = 1.0,
+        p:        float = 1.0
     ) -> None:
         super().__init__(p=p)
         lut_file = Path(lut_file)
@@ -505,10 +508,10 @@ class MaskedFill(Transform):
 class Morphological(Transform):
     def __init__(
         self,
-        scale: int | tuple[int, int] = (13, 15),
-        operation: Literal['dilation', 'erosion'] = 'dilation',
+        scale:       int | tuple[int, int] = (13, 15),
+        operation:   Literal['dilation', 'erosion'] = 'dilation',
         per_channel: bool = False,
-        p: float = 0.5
+        p:          float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.scale = (scale, scale) if isinstance(scale, int) else scale
@@ -553,12 +556,12 @@ class Morphological(Transform):
 class OverlayElements(Transform):
     def __init__(
         self,
-        element: Tensor,
-        location: float | tuple[float, float] = (0.1, 0.1),
-        scale: float | tuple[float, float] = (0.2, 0.2),
+        element:       Tensor,
+        location:      float | tuple[float, float] = (0.1, 0.1),
+        scale:         float | tuple[float, float] = (0.2, 0.2),
         resample_mode: Literal['nearest', 'bilinear', 'bicubic'] = 'bilinear',
         preserve_aspect_ratio: bool = True,
-        p: float = 1.0
+        p:                    float = 1.0
     ) -> None:
         '''
         - Pivot point is top left corner of element.
@@ -612,14 +615,14 @@ class OverlayElements(Transform):
 class OverlayText(Transform):
     def __init__(
         self,
-        text: str,
-        font: str | None = None,
-        font_size: int = 36,
-        text_color: tuple[int, int, int] = (255, 255, 255),
-        background_color: tuple[int, int, int] | None = None,
+        text:               str,
+        font:               str | None = None,
+        font_size:          int = 36,
+        text_color:         tuple[int, int, int] = (255, 255, 255),
+        background_color:   tuple[int, int, int] | None = None,
         background_padding: int = 5,
-        location: float | tuple[float, float] = (0.1, 0.1),
-        p: float = 1.0
+        location:           float | tuple[float, float] = (0.1, 0.1),
+        p:                  float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.text = text

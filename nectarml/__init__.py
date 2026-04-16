@@ -13,7 +13,8 @@ from . import (
     nn,
     optim,
     functional,
-    utils
+    utils,
+    vision
 
 )
 from .tensor import tensor, Tensor, BoolTensor

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import types
 import builtins
-from typing import Any, Literal, Self
-from collections.abc import Callable
+from   typing          import Any, Literal, Self
+from   collections.abc import Callable
 
 import numpy as np
 
@@ -233,7 +233,7 @@ class tensor:
     
     @property
     def device(self: Self) -> str:
-        return self._device
+        return self._device.type
     
     @property
     def _device_id(self: Self) -> builtins.int | None:

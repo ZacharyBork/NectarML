@@ -32,7 +32,7 @@ class Random:
         size:  tuple[int, ...] | typing.Size | None = None, 
         dtype: typing.dtype = typing.float32,
     ) -> float | NDArray[np.float64]:
-        return self._rng.random(size=size, dtype=np.float32).astype(dtype.cpu)
+        return self._rng.random(size=size, dtype=dtype.cpu)
     
     def uniform(
         self,
@@ -160,9 +160,9 @@ class Random:
         low:   int,
         high:  int,
         size:  tuple[int, ...] | typing.Size | None = None,
-        dtype: typing.dtype = typing.float32,
+        dtype: typing.dtype = typing.int32,
     ) -> NDArray[Any]:
-        return self._rng.integers(low, high, size, dtype.cpu)
+        return self._rng.integers(low, high, size).astype(dtype.cpu)
     
     def laplace(
         self,

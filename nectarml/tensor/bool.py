@@ -9,7 +9,7 @@ import numpy as np
 
 from nectarml import typing, cpu, cuda
 from nectarml.tensor._tensor import tensor
-from nectarml.cuda.memory import CudaBuffer
+from nectarml.cuda.memory    import CudaBuffer
    
 class BoolTensor(tensor):    
     def __init__(
@@ -51,7 +51,8 @@ class BoolTensor(tensor):
             case 'cpu': ref = data
             case 'cuda': 
                 ref = CudaBuffer(
-                    cuda.data_to_cuda(data, shape.numel(), np.bool_), np.bool_)
+                    cuda.data_to_cuda(data, shape.numel(), typing.bool_), 
+                    typing.bool_)
             case _: raise ValueError(f'Invalid device type: {device}')
         return ref
     
