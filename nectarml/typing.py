@@ -200,12 +200,16 @@ class device:
         return hash((self.type, self.device_id))
 
     def __str__(self: device) -> builtins.str:
-        return self.type
-
-    def __repr__(self: device) -> builtins.str:
         if self.device_id is not None:
             return f'{self.type}:{self.device_id}'
         return self.type
+
+    def __repr__(self: device) -> builtins.str:
+        return (
+            f'nectarml.device('
+            f'type="{self.type}", '
+            f'device_id={self.device_id})'
+        )
 
 ### SIZE CLASS ###
 
