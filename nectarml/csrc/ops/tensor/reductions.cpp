@@ -136,7 +136,7 @@ namespace nectar {
     uintptr_t reduce_mean(uintptr_t in_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_out;
-            cudaMalloc(&d_out, sizeof(T));
+            cudaMalloc(&d_out, n_elements * sizeof(T));
             launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
             launch_elementwise_math_tensorscalar<T, ElemWiseDivTSOp>(
                 d_out, d_out, static_cast<float>(n_elements), 1);
