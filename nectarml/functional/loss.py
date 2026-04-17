@@ -1,10 +1,9 @@
 import builtins
 from typing import Literal
 
-from nectarml.tensor import Tensor
-from nectarml.typing import float32
-from nectarml.functional.reductions import mean, sum
-from nectarml.functional.math import sqrt, log, exp, cosh, maximum
+from nectarml.tensor              import Tensor
+from nectarml.typing              import float32
+from nectarml.functional          import math
 from nectarml.functional.indexing import where, gather
 
 # ABSTRACTS
@@ -15,8 +14,8 @@ def _reduce_loss(
 ) -> Tensor:
     match reduction:
         case 'none': return loss_value
-        case 'mean': return mean(loss_value)
-        case 'sum':  return sum(loss_value)
+        case 'mean': return loss_value.mean()
+        case 'sum':  return loss_value.sum()
         case _: raise ValueError(f'Invalid reduction mode: {reduction}')
 
 # LOSS - REGRESSION
@@ -40,7 +39,7 @@ def l1_loss(
     '''
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    out         = _reduce_loss(abs((x - y)), reduction)
+    out         = _reduce_loss((x - y).abs(), reduction)
     return out.to(dtype=input_dtype)
 
 def mae_loss(
@@ -113,7 +112,7 @@ def rmse_loss(
 ) -> Tensor: 
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = sqrt(mse_loss(x, y, reduction='none'))
+    loss_value  = mse_loss(x, y, reduction='none').sqrt()
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
@@ -137,7 +136,7 @@ def log_cosh_loss(
 ) -> Tensor: 
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = log(cosh(x - y))
+    loss_value  = (x - y).cosh().log()
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
@@ -150,7 +149,7 @@ def bce_loss(
 ) -> Tensor: 
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = -(y * log(x) + (1 - y) * log(1 - x))
+    loss_value  = -(y * x.log() + (1 - y) * (1 - x).log())
     out         =  _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
@@ -161,7 +160,7 @@ def cross_entropy_loss(
 ) -> Tensor: 
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    out         = _reduce_loss(-sum(y * log(x)), reduction)
+    out         = _reduce_loss(-sum(y * x.log()), reduction)
     return out.to(dtype=input_dtype)
 
 def nll_loss(
@@ -183,7 +182,7 @@ def nll_loss(
     '''
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target
-    loss_value  = -log(gather(x, dim=1, index=y))
+    loss_value  = -(gather(x, dim=1, index=y)).log()
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
@@ -193,14 +192,14 @@ def hinge_loss(
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
     return _reduce_loss(
-        maximum(1 - target * input), reduction, 0.0)
+        math.maximum(1 - target * input), reduction, 0.0)
 
 def hinge2_loss(
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor:
-    loss_value = maximum(1 - target * input, 0.0) ** 2
+    loss_value = math.maximum(1 - target * input, 0.0) ** 2
     return _reduce_loss(loss_value, reduction)
 
 # LOSS - PROBABILISTIC
@@ -224,7 +223,7 @@ def bce_with_logits_loss(
 ) -> Tensor:
     input_dtype = input.dtype
     x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    loss_value  = maximum(x, 0.0) - x * y + log(1.0 + exp(-abs(x)))
+    loss_value  = math.maximum(x, 0.0) - x * y + (1.0 + (-abs(x)).exp()).log()
     out         = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 
@@ -245,8 +244,8 @@ def triplet_margin_loss(
     p = positive.to(dtype=float32)
     n = negative.to(dtype=float32)
     
-    dist       = lambda x, y: sqrt(sum((x - y) ** 2) + eps)
-    loss_value = maximum(dist(a, p) - dist(a, n) + margin, 0.0)
+    dist       = lambda x, y: (((x - y) ** 2).sum() + eps).sqrt()
+    loss_value = math.maximum(dist(a, p) - dist(a, n) + margin, 0.0)
     out        = _reduce_loss(loss_value, reduction)
     return out.to(dtype=input_dtype)
 

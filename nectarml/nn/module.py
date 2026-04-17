@@ -5,7 +5,8 @@ from typing import Any, Self
 from nectarml        import typing
 from nectarml.tensor import Tensor
 
-class Module():
+class Module:
+    _class_type_nectar_module = True
     _submodules:           dict[str, Module]
     _parameters:           dict[str, Tensor]
     _buffers:              dict[str, Tensor]
@@ -21,7 +22,7 @@ class Module():
         super().__setattr__('_pinned_buffer_dtypes', {})
         
         self.dtype: typing.dtype = dtype
-        self.training:   bool = True
+        self.training:      bool = True
         
         self._device_id:        int | None = None
         self._persistent_buffers: set[str] = set()
@@ -61,6 +62,7 @@ class Module():
     def __setattr__(self: Module, name: str, value: Any) -> None:
         if '_buffers' in self.__dict__ and name in self._buffers:
             self._buffers[name] = value
+            return
         if isinstance(value, Module):
             self.register_submodule(name, value)
         elif isinstance(value, Tensor):

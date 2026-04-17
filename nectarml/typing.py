@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass
-from typing import Literal, Any, TypeAlias, overload
+from typing import Literal, Any, Self, TypeAlias, overload
 
 import numpy as np
 
@@ -114,6 +114,9 @@ class dtype:
     
     def __hash__(self: dtype) -> builtins.int: return id(self)
     def __eq__(self: dtype, other: dtype) -> builtins.bool:
+        if not isinstance(other, dtype):
+            raise ValueError(
+                f'Unable to compare dtype object to type [{type(other)}]')
         return self.name == other.name
     
     def __ne__(self: dtype, other: dtype) -> builtins.bool:
@@ -150,10 +153,31 @@ bool_   = dtype(np.bool_)
 
 ### DEVICE CLASS ###
 
+_DEVICE_CACHE: dict[tuple, device] = {}
+
 @dataclass
 class device:
     type:      Literal['cpu', 'cuda']
     device_id: builtins.int | None = None
+
+    def __new__(
+        cls:       type[Self], 
+        type:      DeviceLikeType | builtins.str, 
+        device_id: builtins.int   | None = None
+    ) -> None:
+        if isinstance(type, device):
+            type      = type.type
+            device_id = device_id if device_id is not None else type.device_id
+        if type == 'cuda' and device_id is None: device_id = 0
+        if type == 'cpu': device_id = None
+        
+        key = (type, device_id)
+        if key in _DEVICE_CACHE:
+            return _DEVICE_CACHE[key]
+        
+        obj = object.__new__(cls)
+        _DEVICE_CACHE[key] = obj
+        return obj
 
     @overload
     def __init__(self, type: DeviceLikeType) -> None: ...
@@ -168,6 +192,8 @@ class device:
         type:      builtins.str,
         device_id: builtins.int | None = None
     ) -> None:
+        if hasattr(self, 'type'): return
+        
         if isinstance(type, device):
             device_id = device_id if device_id is not None else type.device_id
             type = type.type

@@ -27,6 +27,7 @@ dependencies = [
     "numpy>=2.2.1",
     "scipy>=1.17.1",
     "opencv-python>=4.13",
+    "psutil>=7.0.0",
     "pillow>=11.2.1",
     "aiohttp>=3.13.3",
     "pyfastnoiselite>=0.0.7"

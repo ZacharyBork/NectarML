@@ -18,6 +18,7 @@ from . import (
 
 )
 from .tensor import tensor, Tensor, BoolTensor
+from .random import manual_seed, fork_rng
 from .autograd import no_grad
 
 from .creation import (

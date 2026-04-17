@@ -37,10 +37,10 @@ class _BatchNorm(Module):
         
         if track_running_stats:
             self.register_buffer(
-                'running_mean', zeros(parameter_shape, dtype=typing.float32),
+                'running_mean', zeros(parameter_shape, requires_grad=False),
                 persistent=True, pin_dtype=typing.float32)
             self.register_buffer(
-                'running_var', ones(parameter_shape, dtype=typing.float32),
+                'running_var', ones(parameter_shape, requires_grad=False),
                 persistent=True, pin_dtype=typing.float32)
         
     def forward(self: _BatchNorm, x: Tensor) -> Tensor:
@@ -49,11 +49,13 @@ class _BatchNorm(Module):
                 x, self.gamma, self.beta, self.eps)
             
             if self.track_running_stats:
-                M = self.momentum
+                M        = self.momentum
+                mean_f32 = mean.to(dtype=typing.float32)
+                var_f32  = var.to(dtype=typing.float32)
                 self.running_mean = (
-                    M * self.running_mean + (1 - M) * mean).detach()
-                self.running_var = (
-                    M * self.running_var + (1 - M) * var).detach()   
+                    (1 - M) * self.running_mean + M * mean_f32).detach()
+                self.running_var  = (
+                    (1 - M) * self.running_var  + M * var_f32).detach()
         else:
             if self.track_running_stats:
                 x_norm = (x - self.running_mean) 

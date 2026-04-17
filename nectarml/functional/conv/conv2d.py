@@ -1,10 +1,8 @@
 from typing import Literal
 
-from nectarml import cpu, cuda
-from nectarml.tensor import Tensor
-from nectarml.typing import float32
+from nectarml                    import cpu, cuda, typing
+from nectarml.tensor             import Tensor
 from nectarml.functional.padding import pad
-from nectarml.amp.precision import run_cast_float16
 
 ### CPU ###
 
@@ -49,7 +47,7 @@ def _conv2d_cpu(
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
             input.grad += Tensor._new(
-                grad_input, input.shape, float32, 'cpu')
+                grad_input, input.shape, typing.float32, 'cpu')
         
         if weight_requires_grad:
             grad_weight = cpu.conv.conv2d_backward_weight(
@@ -57,12 +55,12 @@ def _conv2d_cpu(
                 KH, KW, H_out, W_out,
                 stride_h, stride_w, dilation_h, dilation_w, groups)
             weight.grad += Tensor._new(
-                grad_weight, weight.shape, float32, 'cpu')
+                grad_weight, weight.shape, typing.float32, 'cpu')
         
         if bias is not None and bias_requires_grad:
             bias.grad += Tensor._new(
                 out_grad.data.sum(axis=(0, 2, 3)), 
-                bias.shape, float32, 'cpu')
+                bias.shape, typing.float32, 'cpu')
                 
     out._backward = _backward
     return out
@@ -91,8 +89,7 @@ def _conv2d_cuda(
         _children.append(bias)
         _requires_grad = _requires_grad or bias.requires_grad
         
-    out_data = run_cast_float16(
-        cuda.conv.conv2d,
+    out_data = cuda.conv.conv2d(
         input, weight, bias, 
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w, 
@@ -105,24 +102,28 @@ def _conv2d_cuda(
         
         B, C_in, H, W = input.shape
         C_out, _, KH, KW = weight.shape
-    
+
         if input_requires_grad:
+            weight_f32 = weight.to(dtype=typing.float32) \
+                      if weight.dtype != typing.float32 else weight
             grad_input_ptr = cuda.conv.conv2d_backward_input(
-                out_grad, weight, 
+                out_grad, weight_f32, 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
             input.grad += Tensor._new(
-                grad_input_ptr, input.shape, float32, input.device)
+                grad_input_ptr, input.shape, typing.float32, input.device)
         
         if weight_requires_grad:
+            input_f32 = input.to(dtype=typing.float32) \
+                     if input.dtype != typing.float32 else input
             grad_weight_ptr = cuda.conv.conv2d_backward_weight(
-                out_grad, input, 
+                out_grad, input_f32, 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w)
             weight.grad += Tensor._new(
-                grad_weight_ptr, weight.shape, float32, weight.device)
+                grad_weight_ptr, weight.shape, typing.float32, weight.device)
         
         if bias is not None and bias_requires_grad:
             bias.grad += out_grad.sum(dim=(0, 2, 3))

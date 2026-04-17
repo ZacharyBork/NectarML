@@ -1,4 +1,3 @@
-import threading
 from dataclasses import dataclass
 from typing import Any, Self, Literal
 
@@ -7,14 +6,13 @@ class AutocastState:
     enabled: bool
     context: str | None
 
-tl = threading.local()
-tl.autocast = AutocastState(enabled=False, context=None)
+_STATE = AutocastState(enabled=False, context=None)
 
-def autocast_state() -> AutocastState:    return tl.autocast
-def is_autocast_enabled() -> bool:        return tl.autocast.enabled
-def autocast_context() -> str | None:     return tl.autocast.context
-def set_autocast_enabled(enabled: bool) -> None: tl.autocast.enabled = enabled
-def set_autocast_context(context: str)  -> None: tl.autocast.context = context
+def autocast_state() -> AutocastState:    return _STATE
+def is_autocast_enabled() -> bool:        return _STATE.enabled
+def autocast_context() -> str | None:     return _STATE.context
+def set_autocast_enabled(enabled: bool) -> None: _STATE.enabled = enabled
+def set_autocast_context(context: str)  -> None: _STATE.context = context
 
 class autocast:
     def __init__(
@@ -26,12 +24,14 @@ class autocast:
         self.enabled = enabled
     
     def __enter__(self) -> Self:
+        global _STATE
         if self.enabled:
-            set_autocast_enabled(True)
-            tl.autocast.context = self.context
+            _STATE.enabled = True
+            _STATE.context = self.context
     
     def __exit__(self, *args: Any) -> None:
+        global _STATE
         if self.enabled:
-            set_autocast_enabled(False)
-            tl.autocast.context = None
+            _STATE.enabled = False
+            _STATE.context = None
 

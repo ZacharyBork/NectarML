@@ -1,17 +1,18 @@
 from __future__ import annotations
+import builtins
 
-from nectarml.tensor import Tensor
-from nectarml.typing import float32
+from nectarml                 import typing
+from nectarml.tensor          import Tensor
 from nectarml.optim.optimizer import Optimizer
-from nectarml.utils import inspection
+from nectarml.utils           import inspection
 
 class GradScaler():
     def __init__(
-        self: GradScaler,
-        scale:          float = 65536.0,
-        backoff_factor: float = 0.5,
-        growth_factor:  float = 2.0,
-        growth_interval:  int = 2000
+        self:            GradScaler,
+        scale:           builtins.float = 65536.0,
+        backoff_factor:  builtins.float = 0.5,
+        growth_factor:   builtins.float = 2.0,
+        growth_interval: builtins.int   = 2000
     ) -> None:
         self.scale_factor    = scale
         self.backoff_factor  = backoff_factor
@@ -21,31 +22,29 @@ class GradScaler():
         self._unscaled       = False
         self._skipped        = False
     
-    def scale(self: GradScaler, loss: Tensor) -> Tensor:
+    def scale(self, loss: Tensor) -> Tensor:
         return loss * self.scale_factor
-    
-    def unscale_(self: GradScaler, optimizer: Optimizer) -> None:
+
+    def unscale_(self, optimizer):
         if self._unscaled: return
         for param in optimizer._get_all_params():
             if param.grad is None: continue
-            param.grad = param.grad.to(dtype=float32) / self.scale_factor
+            param.grad = param.grad.to(dtype=typing.float32) \
+                       / self.scale_factor
         self._unscaled = True
-    
+            
     def step(self: GradScaler, optimizer: Optimizer) -> None:
         if not self._unscaled: self.unscale_(optimizer)
         
-        found_bad = False
+        self._skipped = False
         for param in optimizer._get_all_params():
             if param.grad is None: continue
-            if inspection.has_inf(param.grad) or \
-               inspection.has_nan(param.grad):
-                found_bad = True
-                if found_bad: break
-
-        if not found_bad: 
-            self._skipped = False
-            optimizer.step()
-        else: self._skipped = True
+            if inspection.has_inf(param.grad) \
+            or inspection.has_nan(param.grad):
+                self._skipped = True
+                break
+                
+        if not self._skipped: optimizer.step()
         
     def update(self: GradScaler) -> None:
         self._unscaled = False

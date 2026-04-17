@@ -4,7 +4,6 @@ import builtins
 from typing import Literal
 
 import nectarml.functional as F
-from nectarml           import typing
 from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
 
@@ -13,10 +12,9 @@ from nectarml.nn.module import Module
 class L1Loss(Module):
     def __init__(
         self:      L1Loss, 
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: L1Loss, x: Tensor, y: Tensor) -> Tensor:
@@ -27,10 +25,9 @@ MAELoss = L1Loss
 class L2Loss(Module):
     def __init__(
         self:      L2Loss, 
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: L2Loss, x: Tensor, y: Tensor) -> Tensor:
@@ -41,10 +38,9 @@ MSELoss = L2Loss
 class RMSELoss(Module):
     def __init__(
         self:      RMSELoss, 
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: RMSELoss, x: Tensor, y: Tensor) -> Tensor:
@@ -54,10 +50,9 @@ class HuberLoss(Module):
     def __init__(
         self:      HuberLoss, 
         delta:     builtins.float = 1.0, 
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.delta = delta
         self.reduction = reduction
 
@@ -67,10 +62,9 @@ class HuberLoss(Module):
 class LogCoshLoss(Module):
     def __init__(
         self:      LogCoshLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: LogCoshLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -81,10 +75,9 @@ class LogCoshLoss(Module):
 class BCELoss(Module):
     def __init__(
         self:      BCELoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: BCELoss, x: Tensor, y: Tensor) -> Tensor:
@@ -93,10 +86,9 @@ class BCELoss(Module):
 class CrossEntropyLoss(Module):
     def __init__(
         self:      CrossEntropyLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: CrossEntropyLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -105,10 +97,9 @@ class CrossEntropyLoss(Module):
 class NLLLoss(Module):
     def __init__(
         self:      NLLLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: NLLLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -117,10 +108,9 @@ class NLLLoss(Module):
 class HingeLoss(Module):
     def __init__(
         self:      HingeLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: HingeLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -129,10 +119,9 @@ class HingeLoss(Module):
 class Hinge2Loss(Module):
     def __init__(
         self:      Hinge2Loss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: Hinge2Loss, x: Tensor, y: Tensor) -> Tensor:
@@ -143,10 +132,9 @@ class Hinge2Loss(Module):
 class KLDivergenceLoss(Module):
     def __init__(
         self:      KLDivergenceLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'sum'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: KLDivergenceLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -155,10 +143,9 @@ class KLDivergenceLoss(Module):
 class BCEWithLogitsLoss(Module):
     def __init__(
         self:      BCEWithLogitsLoss,  
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self: BCEWithLogitsLoss, x: Tensor, y: Tensor) -> Tensor:
@@ -171,10 +158,9 @@ class TripletMarginLoss(Module):
         self:      TripletMarginLoss, 
         margin:    builtins.float = 1.0,
         eps:       builtins.float = 1e-6, 
-        dtype:     typing.dtype = typing.float32,
         reduction: Literal['none', 'mean', 'sum'] = 'mean'
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.margin = margin
         self.eps = eps
         self.reduction = reduction

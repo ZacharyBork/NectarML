@@ -1,9 +1,7 @@
 from typing import Literal
 
-from nectarml import cpu, cuda
+from nectarml        import cpu, cuda, typing
 from nectarml.tensor import Tensor
-from nectarml.typing import float32
-from nectarml.amp.precision import run_cast_float16
 
 ### CPU ###
 
@@ -50,7 +48,7 @@ def _conv_transpose1d_cpu(
                 B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
             input.grad += Tensor._new(
-                grad_input, input.shape, float32, 'cpu')
+                grad_input, input.shape, typing.float32, 'cpu')
 
         if weight_requires_grad:
             grad_weight = cpu.conv.conv_transpose1d_backward_weight(
@@ -58,12 +56,12 @@ def _conv_transpose1d_cpu(
                 B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
             weight.grad += Tensor._new(
-                grad_weight, weight.shape, float32, 'cpu')
+                grad_weight, weight.shape, typing.float32, 'cpu')
 
         if bias is not None and bias_requires_grad:
             bias.grad += Tensor._new(
                 out_grad.data.sum(axis=(0, 2)),
-                bias.shape, float32, 'cpu')
+                bias.shape, typing.float32, 'cpu')
                 
     out._backward = _backward
     return out
@@ -92,8 +90,7 @@ def _conv_transpose1d_cuda(
         _children.append(bias)
         _requires_grad = _requires_grad or bias.requires_grad
         
-    out_data = run_cast_float16(
-        cuda.conv.conv_transpose1d,
+    out_data = cuda.conv.conv_transpose1d(
         input, weight, bias, B, C_in, L_in, C_out, K,
         stride, padding, output_padding, dilation, groups)
     out = Tensor._new(out_data, (B, C_out, L_out), input.dtype, input.device,
@@ -106,18 +103,22 @@ def _conv_transpose1d_cuda(
         L_out = out.shape[2]
 
         if input_requires_grad:
+            weight_f32 = weight.to(dtype=typing.float32) \
+                      if weight.dtype != typing.float32 else weight
             grad_input_ptr = cuda.conv.conv_transpose1d_backward_input(
-                out_grad, weight, B, C_in, L_in, C_out, K, L_out,
+                out_grad, weight_f32, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
             input.grad += Tensor._new(
-                grad_input_ptr, input.shape, float32, input.device)
+                grad_input_ptr, input.shape, typing.float32, input.device)
 
         if weight_requires_grad:
+            input_f32 = input.to(dtype=typing.float32) \
+                     if input.dtype != typing.float32 else input
             grad_weight_ptr = cuda.conv.conv_transpose1d_backward_weight(
-                out_grad, input, B, C_in, L_in, C_out, K, L_out,
+                out_grad, input_f32, B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation)
             weight.grad += Tensor._new(
-                grad_weight_ptr, weight.shape, float32, weight.device)
+                grad_weight_ptr, weight.shape, typing.float32, weight.device)
 
         if bias is not None and bias_requires_grad:
             bias.grad += out_grad.sum(dim=(0, 2))
@@ -138,6 +139,9 @@ def conv_transpose1d(
     groups:         int = 1,
     padding_mode:   Literal['zeros'] = 'zeros'
 ) -> Tensor:
+    assert input.ndim == 3, \
+        'conv_transpose1d only valid for 1D (B, C, L) input.'
+        
     B, C_in, L_in = input.shape
     C_in_w, C_out, K = weight.shape
     

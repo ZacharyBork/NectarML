@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-import threading
-from typing import Self
+from typing          import Self, Any
 from collections.abc import Callable
+from dataclasses     import dataclass
 
-_grad_state = threading.local()
+@dataclass
+class GradState:
+    enabled: bool
+    
+_GRAD_STATE = GradState(enabled=True)
 
-def is_grad_enabled() -> bool:
-    return getattr(_grad_state, 'enabled', True)
-
-def set_grad_enabled(enabled: bool) -> None:
-    _grad_state.enabled = enabled
+def is_grad_enabled() -> bool: return _GRAD_STATE.enabled
+def set_grad_enabled(enabled: bool) -> None: _GRAD_STATE.enabled = enabled
 
 class no_grad:
     def __enter__(self: no_grad) -> Self:
-        self._prev = is_grad_enabled()
-        set_grad_enabled(False)
+        self._prev = _GRAD_STATE.enabled
+        _GRAD_STATE.enabled = False
     
-    def __exit__(self: no_grad, *args) -> None:
-        set_grad_enabled(self._prev)
+    def __exit__(self: no_grad, *args: Any) -> None:
+        _GRAD_STATE.enabled = self._prev
         
     def __call__(self, func: Callable) -> Callable:
         import functools

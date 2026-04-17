@@ -7,7 +7,7 @@ from typing import Self
 
 import numpy as np
 
-from nectarml import typing, cpu, cuda
+from nectarml                import typing, cpu, cuda
 from nectarml.tensor._tensor import tensor
 from nectarml.cuda.memory    import CudaBuffer
    
@@ -79,6 +79,10 @@ class BoolTensor(tensor):
         Returns:
             tensor : The resulting tensor from the cast operation.
         '''
+        if dtype is None: 
+            assert isinstance(device, typing.DeviceLikeType), \
+                f'Unable to set tensor device to type [{type(device)}].'
+                
         device = device or self.device
         dtype  = dtype  or self.dtype
         if device == self.device and dtype == self.dtype: return self

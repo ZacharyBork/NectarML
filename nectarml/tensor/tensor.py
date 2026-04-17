@@ -12,8 +12,7 @@ from nectarml import typing, return_types, cpu, cuda
 from nectarml.constants      import FLOAT_MIN, FLOAT_MAX
 from nectarml.tensor._tensor import tensor
 from nectarml.cuda.memory    import CudaBuffer
-from nectarml.amp.precision  import run_cast_float16
-
+from nectarml.amp.autocast   import autocast_state
 
 class Tensor(tensor):
     def __init__(
@@ -147,7 +146,11 @@ class Tensor(tensor):
             
         Returns:
             tensor : The resulting tensor from the cast operation.
-        '''        
+        '''
+        if dtype is None: 
+            assert isinstance(device, typing.DeviceLikeType), \
+                f'Unable to set tensor device to type [{type(device)}].'
+                
         dtype  = dtype  or self.dtype
         device = device or self.device
         if dtype == typing.bool_:
@@ -228,10 +231,10 @@ class Tensor(tensor):
         '''
         if self.device == 'cuda':
             return self._from_buffer(
-                self._buffer, self.shape, self.dtype, self.requires_grad)
+                self._buffer, self.shape, self.dtype, False)
         else: 
             return self._from_data(
-                self.data.view(), self.shape, self.dtype, self.requires_grad)
+                self.data.view(), self.shape, self.dtype, False)
     
     def detach_(self: Tensor) -> None:
         '''In-place detach. Detaches given tensor from the computation graph. 
@@ -839,28 +842,37 @@ class Tensor(tensor):
         if self.ndim == 1 or other.ndim == 1:
             raise NotImplementedError('matmul not supported for 1D tensors.')
         
+        _autocast_state     = autocast_state()
         self_requires_grad  = self.requires_grad
         other_requires_grad = other.requires_grad
-        out_shape = typing.Size(self.shape[:-1] + other.shape[-1:])
+        input_dtype         = self.dtype
+        x                   = self
         
+        if _autocast_state.enabled and _autocast_state.context == 'cuda':
+            x      = x.to(dtype=typing.float16)
+            other  = other.to(dtype=typing.float16)
+                
         if self.device == 'cuda': 
-              out_data = run_cast_float16(cuda.matmul.matmul, self, other)
-        else: out_data = cpu.math.matmul(self, other)
-        out = Tensor._new(out_data, out_shape, self.dtype, self.device,
-            self_requires_grad or other_requires_grad, _children=(self, other))
+              out_data = cuda.matmul.matmul(x, other)
+        else: out_data = cpu.math.matmul(x, other)
+        
+        out_shape = typing.Size(self.shape[:-1] + other.shape[-1:])
+        out = Tensor._new(out_data, out_shape, x.dtype, self.device,
+            self_requires_grad or other_requires_grad, 
+            _children=(x, other))
         
         def _backward() -> None:
             if self_requires_grad:
-                other_f32 = other.to(dtype=typing.float32)
-                grad = out.grad @ other_f32.transpose(-2, -1)
+                other_f32  = other.to(dtype=typing.float32)
+                grad       = out.grad @ other_f32.transpose(-2, -1)
                 self.grad += self._broadcast_grad(grad, self.shape)
             if other_requires_grad:
-                self_f32  =  self.to(dtype=typing.float32)
-                grad = self_f32.transpose(-2, -1) @ out.grad
+                self_f32    = self.to(dtype=typing.float32)
+                grad        = self_f32.transpose(-2, -1) @ out.grad
                 other.grad += other._broadcast_grad(grad, other.shape)
                 
         out._backward = _backward
-        return out
+        return out.to(dtype=input_dtype)
     
     def __rmatmul__(self: Tensor, other: Tensor) -> Tensor: 
         '''Performs a matrix multiplication between the data of two tensors.

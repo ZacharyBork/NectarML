@@ -7,8 +7,9 @@ from   collections.abc import Callable
 
 import numpy as np
 
-from nectarml import typing, cpu, cuda
+from nectarml             import typing, cpu, cuda
 from nectarml.cuda.memory import CudaBuffer
+from nectarml.autograd    import is_grad_enabled
 
 class tensor:
     _class_type_nectar_tensor  = True
@@ -56,7 +57,7 @@ class tensor:
         self._buffer: CudaBuffer | None = None
         self.grad:        tensor | None = None
         
-        self._requires_grad      = requires_grad
+        self._requires_grad      = requires_grad and is_grad_enabled()
         self._backward: Callable = lambda : None
         self._prev:  set[tensor] = set(_children)
         
@@ -106,7 +107,7 @@ class tensor:
         
         out.shape          = shape if isinstance(shape, typing.Size) \
                                 else typing.Size(shape)
-        out._requires_grad = requires_grad
+        out._requires_grad = requires_grad and is_grad_enabled()
         out.grad           = None
         out._prev          = set(_children)
         out._backward      = lambda: None
@@ -151,7 +152,7 @@ class tensor:
         out.data           = data
         out._buffer        = None
         
-        out._requires_grad = requires_grad
+        out._requires_grad = requires_grad and is_grad_enabled()
         out.grad           = None
         out._prev          = set(_children)
         out._backward      = lambda: None
@@ -189,7 +190,7 @@ class tensor:
         out.data           = None
         out._buffer        = buffer.increment()
         
-        out._requires_grad = requires_grad
+        out._requires_grad = requires_grad and is_grad_enabled()
         out.grad           = None
         out._prev          = set(_children)
         out._backward      = lambda: None
@@ -371,7 +372,11 @@ class tensor:
             
         Returns:
             tensor : The resulting tensor from the cast operation.
-        '''        
+        '''
+        if dtype is None: 
+            assert isinstance(device, typing.DeviceLikeType), \
+                f'Unable to set tensor device to type [{type(device)}].'
+            
         device = device or self.device
         dtype  = dtype  or self.dtype
         if device == self.device and dtype == self.dtype: return self

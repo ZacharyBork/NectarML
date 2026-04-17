@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from typing import Any
+from typing          import Any
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses     import dataclass
 
 from nectarml.tensor import Tensor
 
 @dataclass
 class HookHandle:
     hook_list: list[Callable]
-    hook: Callable
+    hook:      Callable
     
     def remove(self: HookHandle) -> None:
         self.hook_list.remove(self.hook)
     
-class Optimizer():
+class Optimizer:
     def __init__(
         self: Optimizer,
         parameters: (
@@ -24,13 +24,13 @@ class Optimizer():
         ),
         defaults: dict[str, Any] | None = None
     ) -> None:
+        self.defaults = defaults or {}
+        
         self.state:   dict[int, dict[str, Any]] = {}
         self.param_groups: list[dict[str, Any]] = []
-        self.defaults = defaults or {}
-          
+        
         self._add_init_parameters(parameters)
-        for idx, param in enumerate(self._get_all_params()):
-            self.state[idx] = {}
+        for idx, _ in enumerate(self._get_all_params()): self.state[idx] = {}
         self._param_to_idx = {
             id(p): idx for idx, p in enumerate(self._get_all_params())}
         
@@ -38,14 +38,14 @@ class Optimizer():
             for key, value in self.defaults.items():
                 if key not in group: group[key] = value
                 
-        self.state_dict_pre_hooks:  list[Callable] = []
-        self.state_dict_post_hooks: list[Callable] = []
+        self.state_dict_pre_hooks:       list[Callable] = []
+        self.state_dict_post_hooks:      list[Callable] = []
         
         self.load_state_dict_pre_hooks:  list[Callable] = []
         self.load_state_dict_post_hooks: list[Callable] = []
         
-        self.step_pre_hooks:  list[Callable] = []
-        self.step_post_hooks: list[Callable] = []
+        self.step_pre_hooks:             list[Callable] = []
+        self.step_post_hooks:            list[Callable] = []
     
     ### PARAM GROUPS ###
     
@@ -144,8 +144,8 @@ class Optimizer():
     ### STATE DICT ###
     
     def register_state_dict_pre_hook(
-        self: Optimizer, 
-        hook: Callable,
+        self:    Optimizer, 
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.state_dict_pre_hooks
@@ -154,8 +154,8 @@ class Optimizer():
         return HookHandle(hooks, hook)
     
     def register_state_dict_post_hook(
-        self: Optimizer,
-        hook: Callable,
+        self:    Optimizer,
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.state_dict_post_hooks
@@ -189,8 +189,8 @@ class Optimizer():
     ### LOAD STATE DICT ###
     
     def register_load_state_dict_pre_hook(
-        self: Optimizer, 
-        hook: Callable,
+        self:    Optimizer, 
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.load_state_dict_pre_hooks
@@ -199,8 +199,8 @@ class Optimizer():
         return HookHandle(hooks, hook)
     
     def register_load_state_dict_post_hook(
-        self: Optimizer, 
-        hook: Callable,
+        self:    Optimizer, 
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.load_state_dict_post_hooks
@@ -246,8 +246,8 @@ class Optimizer():
     ### STEP ###
     
     def register_step_pre_hook(
-        self: Optimizer, 
-        hook: Callable,
+        self:    Optimizer, 
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.step_pre_hooks
@@ -256,8 +256,8 @@ class Optimizer():
         return HookHandle(hooks, hook)
     
     def register_step_post_hook(
-        self: Optimizer, 
-        hook: Callable,
+        self:    Optimizer, 
+        hook:    Callable,
         prepend: bool = False
     ) -> HookHandle:
         hooks = self.step_post_hooks
