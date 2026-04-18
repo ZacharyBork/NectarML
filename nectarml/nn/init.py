@@ -35,9 +35,9 @@ def calculate_gain(
 def _set_weights(weights: Tensor, data: np.ndarray) -> None:
     data = data.astype(weights.dtype.cpu)
     if weights.device == 'cuda':
-        data_ptr = cuda.data_to_cuda(data, weights.size, weights.dtype)
+        ptr = cuda.data_to_cuda(data, weights.size, weights.dtype)
         weights._buffer.decrement()
-        weights._buffer = cuda.memory.CudaBuffer(data_ptr, weights.dtype)
+        weights._buffer = cuda.memory.CudaBuffer(ptr, data.size, weights.dtype)
     else: weights.data = data
     weights.zero_grad()
 

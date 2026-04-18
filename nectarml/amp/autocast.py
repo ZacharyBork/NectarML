@@ -28,6 +28,7 @@ class autocast:
         if self.enabled:
             _STATE.enabled = True
             _STATE.context = self.context
+        return self
     
     def __exit__(self, *args: Any) -> None:
         global _STATE

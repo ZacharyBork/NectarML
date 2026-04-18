@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -25,8 +26,7 @@ namespace nectar {
 
         DISPATCH_DTYPE(dtype, T, {
             T* d_input = reinterpret_cast<T*>(in_ptr);
-            T* d_output;
-            cudaMalloc(&d_output, B * 3 * H * W * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc(B * 3 * H * W * sizeof(T)));
 
             launch_apply_lut<T>(
                 d_input, d_output, d_lut,

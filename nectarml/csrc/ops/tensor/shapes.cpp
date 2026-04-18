@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -47,8 +48,7 @@ namespace nectar {
         Permutation inv_perm = perm.inverse();
         
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_permute<T>(
                 reinterpret_cast<T*>(in_ptr), d_out, 
                 in_idx,out_idx, inv_perm, out_idx.n_elements);
@@ -66,8 +66,7 @@ namespace nectar {
         TensorIndex out_idx(target_shape.data(), target_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_expand<T>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, out_idx.n_elements);
@@ -85,8 +84,7 @@ namespace nectar {
     ) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_input  = reinterpret_cast<T*>(in_ptr);
-            T* d_output;
-            cudaMalloc(&d_output, total * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc(total * sizeof(T)));
             launch_flip<T>(d_input, d_output, outer, dim_size, inner);
             return reinterpret_cast<uintptr_t>(d_output);
         });

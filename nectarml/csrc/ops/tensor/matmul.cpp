@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ops/device.h"
+#include "allocator_pool/allocator_pool.h"
 #include <cublas_v2.h>
 
 namespace nectar {
@@ -19,8 +20,7 @@ namespace nectar {
         cublasHandle_t handle = get_cublas_handle();
 
         if (dtype == DType::Float32) {
-            float* d_out;
-            cudaMalloc(&d_out, batch * M * N * sizeof(float));
+            float* d_out = static_cast<float*>(g_pool.alloc(batch * M * N * sizeof(float)));
             float alpha = 1.0f, beta = 0.0f;
             for (int b = 0; b < batch; b++) {
                 float* A = reinterpret_cast<float*>(a_ptr) + b * M * K;
@@ -32,8 +32,7 @@ namespace nectar {
             return reinterpret_cast<uintptr_t>(d_out);
         } 
         else if (dtype == DType::Float16) {
-            half* d_out;
-            cudaMalloc(&d_out, batch * M * N * sizeof(half));
+            half* d_out = static_cast<half*>(g_pool.alloc(batch * M * N * sizeof(half)));
             half alpha = __float2half(1.0f), beta = __float2half(0.0f);
             for (int b = 0; b < batch; b++) {
                 half* A = reinterpret_cast<half*>(a_ptr) + b * M * K;

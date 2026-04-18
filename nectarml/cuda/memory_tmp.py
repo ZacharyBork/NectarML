@@ -1,5 +1,6 @@
 from __future__ import annotations
 import builtins
+import threading
 
 import numpy as np
 
@@ -26,20 +27,13 @@ def get_memory_statistics(precision: builtins.int = 2) -> str:
     total, free, used = mb
     return f'Total: {total} | Free: {free} | Used: {used}'
 
-### ALLOCATOR POOL ###
-
-def enable_memory_pool()  -> None: _nectarml.alloc_pool.pool_enable()
-def disable_memory_pool() -> None: _nectarml.alloc_pool.pool_disable()
-def release_memory_pool() -> None: _nectarml.alloc_pool.pool_release()
-
 ### ALLOCATION / DEALLOCATION
 
-def free_cuda(
-    device_ptr: builtins.int, 
-    n_elements: builtins.int, 
-    dtype:      typing.dtype
-) -> None:
-    _nectarml.free_cuda(device_ptr, n_elements, dtype.cuda)
+def free_cuda(device_ptr: builtins.int) -> None:
+    _nectarml.free_cuda(device_ptr)
+    
+def alloc_cuda_empty_raw(size_bytes: builtins.int) -> builtins.int:
+    return _nectarml.alloc_cuda_empty_raw(size_bytes)
 
 def memcpy_to_cuda(dst_ptr: builtins.int, data: np.ndarray) -> None:
     _nectarml.memcpy_to_cuda(dst_ptr, data.ctypes.data, data.nbytes)
@@ -61,31 +55,31 @@ def alloc_cuda_random(
     return _nectarml.alloc_cuda_random(
         n_elements, dtype.cuda, seed, min_value, max_value)
 
+def alloc_cuda_empty(
+    n_elements: builtins.int, 
+    dtype:      typing.dtype
+) -> builtins.int:
+    return _nectarml.alloc_cuda_empty(n_elements, dtype.cuda)
+
 ### BUFFER ###
 
 class CudaBuffer:
-    _n_bytes: builtins.int = 0
-    
     def __init__(
         self:        CudaBuffer, 
         ptr_or_data: builtins.int | np.ndarray, 
-        size:        builtins.int,
         dtype:       typing.dtype
     ) -> None:
-        super().__setattr__('_n_bytes', size * dtype.itemsize)
-        
-        self.size        = size
-        self.dtype       = dtype
-        self._ref_count  = 1
+        self.dtype      = dtype
+        self._ref_count = 1
         
         if not isinstance(ptr_or_data, builtins.int):
             ptr_or_data = CudaBuffer._from_data(ptr_or_data, dtype)
         self.ptr = ptr_or_data
-
+        
     @staticmethod
     def _from_data(data: np.ndarray, dtype: typing.dtype) -> builtins.int:
         return data_to_cuda(data, data.size, dtype)
-
+        
     def increment(self: CudaBuffer) -> CudaBuffer:
         self._ref_count += 1
         return self
@@ -94,6 +88,11 @@ class CudaBuffer:
         if self.ptr == 0: return
         self._ref_count -= 1
         if self._ref_count <= 0:
-            free_cuda(self.ptr, self.size, self.dtype)
+            free_cuda(self.ptr)
+            self.ptr = 0
+
+    def __del__(self: CudaBuffer) -> None:
+        if self.ptr != 0 and self._ref_count > 0:
+            free_cuda(self.ptr)
             self.ptr = 0
 

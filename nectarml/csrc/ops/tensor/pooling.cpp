@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -126,8 +127,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_output;
-            cudaMalloc(&d_output, B * C * L_out * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc(B * C * L_out * sizeof(T)));
             launch_avg_pool1d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output,
                 B, C, L, L_out, K, S, P, count_include_pad);
@@ -143,8 +143,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * L * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * L * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * L * sizeof(T));
             launch_avg_pool1d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr), d_grad_input,
@@ -164,8 +163,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_output;
-            cudaMalloc(&d_output, B * C * H_out * W_out * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc( B * C * H_out * W_out * sizeof(T)));
             launch_avg_pool2d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output,
                 B, C, H, W, H_out, W_out,
@@ -185,8 +183,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * H * W * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * H * W * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * H * W * sizeof(T));
             launch_avg_pool2d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr), d_grad_input,
@@ -207,8 +204,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_output;
-            cudaMalloc(&d_output, B * C * D_out * H_out * W_out * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc(B * C * D_out * H_out * W_out * sizeof(T)));
             launch_avg_pool3d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output,
                 B, C, D, H, W, D_out, H_out, W_out,
@@ -228,8 +224,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * D * H * W * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * D * H * W * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * D * H * W * sizeof(T));
             launch_avg_pool3d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr), d_grad_input,
@@ -248,10 +243,8 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T*       d_output;
-            int32_t* d_indices;
-            cudaMalloc(&d_output,  B * C * L_out * sizeof(T));
-            cudaMalloc(&d_indices, B * C * L_out * sizeof(int32_t));
+            T*       d_output  = static_cast<T*>(g_pool.alloc(B * C * L_out * sizeof(T)));
+            int32_t* d_indices = static_cast<int32_t*>(g_pool.alloc(B * C * L_out * sizeof(int32_t)));
             launch_max_pool1d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output, d_indices,
                 B, C, L, L_out, K, S, P, D);
@@ -267,8 +260,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * L * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * L * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * L * sizeof(T));
             launch_max_pool1d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr),
@@ -289,10 +281,8 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T*       d_output;
-            int32_t* d_indices;
-            cudaMalloc(&d_output,  B * C * H_out * W_out * sizeof(T));
-            cudaMalloc(&d_indices, B * C * H_out * W_out * sizeof(int32_t));
+            T*       d_output = static_cast<T*>(g_pool.alloc(B * C * H_out * W_out * sizeof(T)));
+            int32_t* d_indices = static_cast<int32_t*>(g_pool.alloc(B * C * H_out * W_out * sizeof(int32_t)));
             launch_max_pool2d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output, d_indices,
                 B, C, H, W, H_out, W_out,
@@ -310,8 +300,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * H * W * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * H * W * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * H * W * sizeof(T));
             launch_max_pool2d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr),
@@ -332,12 +321,8 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T*       d_output;
-            int32_t* d_indices;
-            cudaMalloc(&d_output,
-                B * C * D_out * H_out * W_out * sizeof(T));
-            cudaMalloc(&d_indices,
-                B * C * D_out * H_out * W_out * sizeof(int32_t));
+            T*       d_output = static_cast<T*>(g_pool.alloc(B * C * D_out * H_out * W_out * sizeof(T)));
+            int32_t* d_indices = static_cast<int32_t*>(g_pool.alloc(B * C * D_out * H_out * W_out * sizeof(int32_t)));
             launch_max_pool3d_forward<T>(
                 reinterpret_cast<T*>(input_ptr), d_output, d_indices,
                 B, C, D, H, W, D_out, H_out, W_out,
@@ -355,8 +340,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * D * H * W * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * D * H * W * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * D * H * W * sizeof(T));
             launch_max_pool3d_backward<T>(
                 reinterpret_cast<T*>(out_grad_ptr),

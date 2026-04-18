@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -55,8 +56,7 @@ namespace nectar {
         DISPATCH_DTYPE(dtype, T, {
             int L_out = (L + 2 * padding - dilation * (K - 1) - 1) / stride + 1;
 
-            T* d_col;
-            cudaMalloc(&d_col, C_in * K * B * L_out * sizeof(T));
+            T* d_col = static_cast<T*>(g_pool.alloc(C_in * K * B * L_out * sizeof(T)));
             
             launch_im2col_1d<T>(
                 reinterpret_cast<T*>(input_ptr), d_col,
@@ -80,8 +80,7 @@ namespace nectar {
             int spatial_in  = B * L;
             int kernel_size = C_out * K;
 
-            T* d_out;
-            cudaMalloc(&d_out, B * C_out * L_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C_out * L_out * sizeof(T)));
             cudaMemset(d_out, 0, B * C_out * L_out * sizeof(T));
 
             launch_col2im_1d<T>(
@@ -109,8 +108,7 @@ namespace nectar {
             int spatial_out = B * H_out * W_out;
             int kernel_size = C_in * KH * KW;
 
-            T* d_col;
-            cudaMalloc(&d_col, kernel_size * spatial_out * sizeof(T));
+            T* d_col = static_cast<T*>(g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
 
             launch_im2col_2d<T>(
                 reinterpret_cast<T*>(input_ptr), d_col,
@@ -138,8 +136,7 @@ namespace nectar {
             int spatial_in  = B * H * W;
             int kernel_size = C_out * KH * KW;
 
-            T* d_out;
-            cudaMalloc(&d_out, B * C_out * H_out * W_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C_out * H_out * W_out * sizeof(T)));
             cudaMemset(d_out, 0, B * C_out * H_out * W_out * sizeof(T));
 
             launch_col2im_2d<T>(

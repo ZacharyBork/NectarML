@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "ops/device.h"
+#include "allocator_pool/allocator_pool.h"
 #include <cublas_v2.h>
 
 /* KERNELS */
@@ -71,10 +72,8 @@ uintptr_t run_conv1d(
     // Compute output length
     int L_out = (L + 2 * padding - dilation * (K - 1) - 1) / stride + 1;
 
-    T* d_col;
-    T* d_out;
-    cudaMalloc(&d_col, C_in * K * B * L_out * sizeof(T));
-    cudaMalloc(&d_out, C_out * B * L_out * sizeof(T));
+    T* d_col = static_cast<T*>(g_pool.alloc(C_in * K * B * L_out * sizeof(T)));
+    T* d_out = static_cast<T*>(g_pool.alloc(C_out * B * L_out * sizeof(T)));
     
     // Reshape to columns
     launch_im2col_1d<T>(
@@ -107,7 +106,7 @@ uintptr_t run_conv1d(
     }
     else throw std::runtime_error("conv1d only supports float32 and float16");
 
-    cudaFree(d_col);
+    g_pool.free(d_col, C_in * K * B * L_out * sizeof(T));
     
     // Add bias is applicable
     if (bias_ptr != 0) {
@@ -116,10 +115,9 @@ uintptr_t run_conv1d(
             B, C_out, L_out);
     }
 
-    T* d_final;
-    cudaMalloc(&d_final, B * C_out * L_out * sizeof(T));
+    T* d_final = static_cast<T*>(g_pool.alloc(B * C_out * L_out * sizeof(T)));
     launch_transpose_output_1d<T>(d_out, d_final, B, C_out, L_out);
-    cudaFree(d_out);
+    g_pool.free(d_out, C_out * B * L_out * sizeof(T));
     return reinterpret_cast<uintptr_t>(d_final);
 }
 
@@ -137,14 +135,12 @@ uintptr_t run_conv_transpose1d(
     int spatial_in  = B * L_in;
     int kernel_size = C_out * K;
 
-    T* d_input;
-    cudaMalloc(&d_input, B * C_in * L_in * sizeof(T));
+    T* d_input = static_cast<T*>(g_pool.alloc(B * C_in * L_in * sizeof(T)));
     launch_transpose_input_1d<T>(
         reinterpret_cast<T*>(input_ptr), d_input,
         B, C_in, L_in);
 
-    T* d_col;
-    cudaMalloc(&d_col, kernel_size * spatial_in * sizeof(T));
+    T* d_col = static_cast<T*>(g_pool.alloc(kernel_size * spatial_in * sizeof(T)));
 
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -172,10 +168,9 @@ uintptr_t run_conv_transpose1d(
     else throw std::runtime_error(
         "conv_transpose1d only supports float32 and float16");
 
-    cudaFree(d_input);
+    g_pool.free(d_input, B * C_in * L_in * sizeof(T));
 
-    T* d_out;
-    cudaMalloc(&d_out, B * C_out * L_out * sizeof(T));
+    T* d_out = static_cast<T*>(g_pool.alloc(B * C_out * L_out * sizeof(T)));
     cudaMemset(d_out, 0, B * C_out * L_out * sizeof(T));
 
     launch_col2im_1d<T>(
@@ -183,7 +178,7 @@ uintptr_t run_conv_transpose1d(
         B, C_out, L_out, K, L_in,
         stride, padding, dilation);
 
-    cudaFree(d_col);
+    g_pool.free(d_col, kernel_size * spatial_in * sizeof(T));
 
     if (bias_ptr != 0) {
         launch_add_bias_1d_nchw<T>(
@@ -203,14 +198,12 @@ uintptr_t run_conv1d_backward_input(
     int stride, int padding, int dilation,
     int groups
 ) {
-    T* d_out_grad;
-    cudaMalloc(&d_out_grad, B * C_out * L_out * sizeof(T));
+    T* d_out_grad = static_cast<T*>(g_pool.alloc(B * C_out * L_out * sizeof(T)));
     launch_transpose_input_1d<T>(
         reinterpret_cast<T*>(out_grad_ptr), d_out_grad,
         B, C_out, L_out);
 
-    T* d_col_grad;
-    cudaMalloc(&d_col_grad, C_in * K * B * L_out * sizeof(T));
+    T* d_col_grad = static_cast<T*>(g_pool.alloc(C_in * K * B * L_out * sizeof(T)));
 
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -238,10 +231,9 @@ uintptr_t run_conv1d_backward_input(
     else throw std::runtime_error(
         "conv1d_backward_input only supports float32 and float16");
 
-    cudaFree(d_out_grad);
+    g_pool.free(d_out_grad, B * C_out * L_out * sizeof(T));
 
-    T* d_grad_input;
-    cudaMalloc(&d_grad_input, B * C_in * L * sizeof(T));
+    T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C_in * L * sizeof(T)));
     cudaMemset(d_grad_input, 0, B * C_in * L * sizeof(T));
 
     launch_col2im_1d<T>(
@@ -249,7 +241,7 @@ uintptr_t run_conv1d_backward_input(
         B, C_in, L, K, L_out,
         stride, padding, dilation);
 
-    cudaFree(d_col_grad);
+    g_pool.free(d_out_grad, C_in * K * B * L_out * sizeof(T));
     return reinterpret_cast<uintptr_t>(d_grad_input);
 }
 
@@ -261,15 +253,13 @@ uintptr_t run_conv1d_backward_weight(
     int C_out, int K, int L_out,
     int stride, int padding, int dilation
 ) {
-    T* d_col;
-    cudaMalloc(&d_col, C_in * K * B * L_out * sizeof(T));
+    T* d_col = static_cast<T*>(g_pool.alloc(C_in * K * B * L_out * sizeof(T)));
     launch_im2col_1d<T>(
         reinterpret_cast<T*>(input_ptr), d_col,
         B, C_in, L, K, L_out,
         stride, padding, dilation);
     
-    T* d_grad_weight;
-    cudaMalloc(&d_grad_weight, C_out * C_in * K * sizeof(T));
+    T* d_grad_weight = static_cast<T*>(g_pool.alloc(C_out * C_in * K * sizeof(T)));
     
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -297,7 +287,7 @@ uintptr_t run_conv1d_backward_weight(
     else throw std::runtime_error(
         "conv1d_backward_weight only supports float32 and float16");
     
-    cudaFree(d_col);
+    g_pool.free(d_col, C_in * K * B * L_out * sizeof(T));
     return reinterpret_cast<uintptr_t>(d_grad_weight);
 }
 
@@ -309,21 +299,18 @@ uintptr_t run_conv_transpose1d_backward_weight(
     int C_out, int K, int L_out,
     int stride, int padding, int dilation
 ) {
-    T* d_col;
-    cudaMalloc(&d_col, C_out * K * B * L_in * sizeof(T));
+    T* d_col = static_cast<T*>(g_pool.alloc(C_out * K * B * L_in * sizeof(T)));
     launch_im2col_1d<T>(
         reinterpret_cast<T*>(out_grad_ptr), d_col,
         B, C_out, L_out, K, L_in,
         stride, padding, dilation);
 
-    T* d_input_t;
-    cudaMalloc(&d_input_t, B * C_in * L_in * sizeof(T));
+    T* d_input_t = static_cast<T*>(g_pool.alloc(B * C_in * L_in * sizeof(T)));
     launch_transpose_input_1d<T>(
         reinterpret_cast<T*>(input_ptr), d_input_t,
         B, C_in, L_in);
 
-    T* d_grad_weight;
-    cudaMalloc(&d_grad_weight, C_in * C_out * K * sizeof(T));
+    T* d_grad_weight = static_cast<T*>(g_pool.alloc(C_in * C_out * K * sizeof(T)));
 
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -351,8 +338,8 @@ uintptr_t run_conv_transpose1d_backward_weight(
     else throw std::runtime_error(
         "conv_transpose1d_backward_weight only supports float32 and float16");
 
-    cudaFree(d_col);
-    cudaFree(d_input_t);
+    g_pool.free(d_col, C_out * K * B * L_in * sizeof(T));
+    g_pool.free(d_input_t, B * C_in * L_in * sizeof(T));
     return reinterpret_cast<uintptr_t>(d_grad_weight);
 }
 

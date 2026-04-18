@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ops/device.h"
+#include "allocator_pool/allocator_pool.h"
 
 namespace py = pybind11;
 
@@ -20,8 +21,7 @@ namespace nectar {
     ) {
         DISPATCH_DTYPE(src_dtype, SrcT, {
             DISPATCH_DTYPE(dst_dtype, DstT, {
-                DstT* d_ptr;
-                cudaMalloc(&d_ptr, n_elements * sizeof(DstT));
+                DstT* d_ptr = static_cast<DstT*>(g_pool.alloc(n_elements * sizeof(DstT)));
                 launch_cast_kernel<SrcT, DstT>(
                     reinterpret_cast<SrcT*>(device_ptr), d_ptr, n_elements);
                 return reinterpret_cast<uintptr_t>(d_ptr);
@@ -31,8 +31,7 @@ namespace nectar {
 
     uintptr_t to_cuda(uintptr_t host_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_ptr;
-            cudaMalloc(&d_ptr, n_elements * sizeof(T));
+            T* d_ptr = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             cudaMemcpy(d_ptr, reinterpret_cast<void*>(host_ptr), 
                 n_elements * sizeof(T), cudaMemcpyHostToDevice);
             return reinterpret_cast<uintptr_t>(d_ptr);
@@ -45,8 +44,7 @@ namespace nectar {
 
         DISPATCH_DTYPE(dtype, T, {
             if constexpr (std::is_same_v<T, half>) {
-                float* d_float;
-                cudaMalloc(&d_float, n_elements * sizeof(float));
+                float* d_float = static_cast<float*>(g_pool.alloc(n_elements * sizeof(float)));
                 launch_cast_kernel<half, float>(
                     reinterpret_cast<half*>(device_ptr), d_float, n_elements);
 
@@ -54,7 +52,7 @@ namespace nectar {
                 auto buf = result.request();
                 cudaMemcpy(buf.ptr, d_float, n_elements * sizeof(float), 
                     cudaMemcpyDeviceToHost);
-                cudaFree(d_float);
+                g_pool.free(d_float, n_elements * sizeof(float));
                 return result;
 
             } else {
@@ -69,8 +67,7 @@ namespace nectar {
 
     uintptr_t clone(uintptr_t device_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_ptr;
-            cudaMalloc(&d_ptr, n_elements * sizeof(T));
+            T* d_ptr = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             cudaMemcpy(d_ptr, reinterpret_cast<void*>(device_ptr), 
                 n_elements * sizeof(T), cudaMemcpyDeviceToDevice);
             return reinterpret_cast<uintptr_t>(d_ptr);

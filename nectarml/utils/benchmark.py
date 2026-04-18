@@ -1,46 +1,56 @@
 import os
 import time
 import psutil
-from contextlib import contextmanager
-from collections.abc import Iterator
+from   typing import Self, Any
 
-from nectarml.cuda.memory import get_cuda_meminfo, get_memory_statistics
+from nectarml import cuda
 
-@contextmanager
-def benchmark_time(
-    operation_name: str | None = None,
-    new_line: bool = False,
-    enabled: bool = True
-) -> Iterator[None]:
-    '''Context to track execution time of code blocks.
-    
-    Tracks execution time of code block in context and prints result to console
-    with optional tag for operation name.
-    
-    Args:
-        operation_name : (Optional) A tag assigned to the operation which will
-            be prepended in parentheses to the printed statement if present.
-        new_line : If True, a blank line will be printed after the time line
-            allowing you to automaticall break up printed statements when
-            executing context in loops.
-            
-    Returns:
-        Iterator[None] : An iterator of NoneType values. Default return for
-            contextmanager.
-    '''
-    start_time = None
-    try: 
-        if enabled: start_time = time.perf_counter()
-    finally:
-        yield operation_name, new_line
-        if not enabled: return 
-        if start_time is not None:
-            op_tag = '' if operation_name is None else f'({operation_name}) '
-            cr = '\n' if new_line else ''
-            total = time.perf_counter() - start_time
-            print(f'{op_tag}Execution time: {total:.4f} seconds{cr}')
-        else: print('Time benchmarking failed.')
+class benchmark_time:
+    def __init__(
+        self, 
+        operation_name:  str | None = None,
+        new_line:        bool = False,
+        enabled:         bool = True,
+        force_cuda_sync: bool = False
+    ) -> None:
+        '''Context to track execution time of code blocks.
         
+        Tracks execution time of code block in context and prints result to 
+        console with optional tag for operation name.
+        
+        Args:
+            operation_name : (Optional) A tag assigned to the operation which
+                will be prepended in parentheses to the printed statement if 
+                present.
+            new_line : If True, a blank line will be printed after the time 
+                line allowing you to automaticall break up printed statements 
+                when executing context in loops.
+                
+        Returns:
+            Iterator[None] : An iterator of NoneType values. Default return for
+                contextmanager.
+        '''
+        self.op_name     = operation_name
+        self.new_line    = new_line
+        self.enabled     = enabled
+        self._start_time = 0
+        self._sync = lambda : None if force_cuda_sync \
+                else cuda.utils.cuda_synchronize()
+    
+    def __enter__(self) -> Self:
+        self._sync()
+        if self.enabled: self._start_time = time.perf_counter()
+        return self
+    
+    def __exit__(self, *args: Any) -> None:
+        if not self.enabled: return 
+        self._sync()
+        
+        op_tag = '' if self.op_name is None else f'({self.op_name}) '
+        cr     = '\n' if self.new_line else ''
+        total  = time.perf_counter() - self._start_time
+        print(f'{op_tag}Execution time: {total:.4f} seconds{cr}')
+
 def benchmark_memory(
     operation_name: str | None = None,
     new_line: bool = False
@@ -65,7 +75,7 @@ def benchmark_memory(
         cpu_virtual.total, cpu_virtual.free, cpu_process.rss]]
     cpu_total, cpu_free, cpu_used = host_mem
   
-    cuda_process = get_cuda_meminfo()
+    cuda_process = cuda.memory.get_cuda_meminfo()
     device_mem = [round(i/1024**3, 2) for i in cuda_process]
     cuda_total, cuda_free, cuda_used = device_mem
     
@@ -119,4 +129,4 @@ def benchmark_device_memory(
     '''
     cr = '\n' if new_line else ''
     op_name = f'[{operation_name}] ' if operation_name is not None else ''
-    print(f'{op_name}{get_memory_statistics()}{cr}')
+    print(f'{op_name}{cuda.memory.get_memory_statistics()}{cr}')

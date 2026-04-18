@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 #include <iostream>
 #include <string>
 
@@ -60,8 +61,7 @@ namespace nectar {
         TensorIndex indices_idx(indices_shape.data(), indices_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, indices_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(indices_idx.n_elements * sizeof(T)));
             launch_gather<T>(
                 reinterpret_cast<T*>(data_ptr), in_idx,
                 reinterpret_cast<int32_t*>(indices_ptr), indices_idx, 
@@ -85,9 +85,8 @@ namespace nectar {
         TensorIndex indices_idx(indices_shape.data(), indices_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
             size_t memsize = in_idx.n_elements * sizeof(T);
-            cudaMalloc(&d_out, memsize);
+            T* d_out = static_cast<T*>(g_pool.alloc(memsize));
             cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
             launch_scatter<T>(
                 reinterpret_cast<T*>(source_ptr), source_idx,
@@ -112,9 +111,8 @@ namespace nectar {
         TensorIndex indices_idx(indices_shape.data(), indices_shape.size());
 
         if (dtype == DType::Float32) {
-            float* d_out;
             size_t memsize = in_idx.n_elements * sizeof(float);
-            cudaMalloc(&d_out, memsize);
+            float* d_out = static_cast<float*>(g_pool.alloc(memsize));
             cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
             launch_scatter_add<float>(
                 in_idx,
@@ -124,9 +122,8 @@ namespace nectar {
             return reinterpret_cast<uintptr_t>(d_out);
         }
         else if (dtype == DType::Float16) {
-            half* d_out;
             size_t memsize = in_idx.n_elements * sizeof(half);
-            cudaMalloc(&d_out, memsize);
+            half* d_out = static_cast<half*>(g_pool.alloc(memsize));
             cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
             launch_scatter_add<half>(
                 in_idx,
@@ -136,9 +133,8 @@ namespace nectar {
             return reinterpret_cast<uintptr_t>(d_out);
         }
         else if (dtype == DType::Int32) {
-            int32_t* d_out;
             size_t memsize = in_idx.n_elements * sizeof(int32_t);
-            cudaMalloc(&d_out, memsize);
+            int32_t* d_out = static_cast<int32_t*>(g_pool.alloc(memsize));
             cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), memsize, cudaMemcpyDeviceToDevice);
             launch_scatter_add<int32_t>(
                 in_idx,
@@ -168,8 +164,7 @@ namespace nectar {
         SliceIndex slice_idx(start.data(), step.data(), in_idx.ndim);
         
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_slice<T>(
                 reinterpret_cast<T*>(input_ptr), d_out,
                 in_idx, out_idx, slice_idx);
@@ -191,9 +186,8 @@ namespace nectar {
         SliceIndex slice_idx(start.data(), step.data(), in_idx.ndim);
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
             size_t memsize = in_idx.n_elements * sizeof(T);
-            cudaMalloc(&d_out, memsize);
+            T* d_out = static_cast<T*>(g_pool.alloc(memsize));
             cudaMemcpy(d_out, reinterpret_cast<void*>(input_ptr), 
                 memsize, cudaMemcpyDeviceToDevice);
             launch_index_put<T>(

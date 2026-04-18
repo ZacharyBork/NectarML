@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 namespace py = pybind11;
 
@@ -19,8 +20,7 @@ namespace nectar {
         for (int i : shape) { memsize *= i; }
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, memsize * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(memsize * sizeof(T)));
             cudaMemcpy(d_out, reinterpret_cast<T*>(in_ptr), 
                    memsize * sizeof(T), cudaMemcpyDeviceToDevice);
             launch_hsv_adjust<T>(

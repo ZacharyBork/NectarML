@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ops/policies/reductions.h"
+#include "allocator_pool/allocator_pool.h"
 
 namespace py = pybind11;
 
@@ -18,24 +19,22 @@ namespace nectar {
 
     float compute_tensor_min(uintptr_t device_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
             float result;
-            cudaMalloc(&d_out, sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(sizeof(T)));
             launch_reduce<T, MinOp>(reinterpret_cast<T*>(device_ptr), d_out, n_elements);
             cudaMemcpy(&result, d_out, sizeof(T), cudaMemcpyDeviceToHost);
-            cudaFree(d_out);
+            g_pool.free(d_out, sizeof(T));
             return static_cast<double>(result);
         });
     }
 
     float compute_tensor_max(uintptr_t device_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
             float result;
-            cudaMalloc(&d_out, sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(sizeof(T)));
             launch_reduce<T, MaxOp>(reinterpret_cast<T*>(device_ptr), d_out, n_elements);
             cudaMemcpy(&result, d_out, sizeof(T), cudaMemcpyDeviceToHost);
-            cudaFree(d_out);
+            g_pool.free(d_out, sizeof(T));
             return static_cast<double>(result);
         });
     }

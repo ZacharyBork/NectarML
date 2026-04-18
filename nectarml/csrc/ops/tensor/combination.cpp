@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 namespace py = pybind11;
 
@@ -16,9 +17,7 @@ namespace nectar {
         ConcatInputs inputs;
         inputs.n_inputs = count;
 
-        DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-        
+        DISPATCH_DTYPE(dtype, T, {        
             for(int i = 0; i < count; i++) {
                 inputs.ptrs[i] = py::cast<uintptr_t>(ptrs[i]);
                 std::vector<int> shape = shapes[i];
@@ -40,7 +39,7 @@ namespace nectar {
             for (int i = 0; i < count; i++) {
                 total_elements += inputs.indices[i].n_elements;
             }
-            cudaMalloc(&d_out, total_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(total_elements * sizeof(T)));
             launch_concatenate<T>(
                 inputs, out_idx, d_out,
                 dim, total_elements);

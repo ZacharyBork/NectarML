@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ops/policies/inspection.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -9,14 +10,13 @@ void launch_inspection(T* in_data, bool* out_data, size_t n_elements);
 template<template<typename> class Pred, class Op>
 bool run_inspect(uintptr_t in_ptr, size_t n_elements, DType dtype) {
     DISPATCH_DTYPE(dtype, T, {
-        bool* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(bool));
+        bool* d_out = static_cast<bool*>(g_pool.alloc(n_elements * sizeof(bool)));
         launch_inspection<T, Pred, Op>(
             reinterpret_cast<T*>(in_ptr), d_out, n_elements);
         
         bool result;
         cudaMemcpy(&result, d_out, sizeof(bool), cudaMemcpyDeviceToHost);
-        cudaFree(d_out);
+        g_pool.free(d_out, n_elements * sizeof(T));
         return result;
     });
 }

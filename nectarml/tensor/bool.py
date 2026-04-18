@@ -52,7 +52,7 @@ class BoolTensor(tensor):
             case 'cuda': 
                 ref = CudaBuffer(
                     cuda.data_to_cuda(data, shape.numel(), typing.bool_), 
-                    typing.bool_)
+                    shape.numel(), typing.bool_)
             case _: raise ValueError(f'Invalid device type: {device}')
         return ref
     

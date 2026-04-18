@@ -102,7 +102,8 @@ class Tensor(tensor):
             case 'cpu': ref = data
             case 'cuda': 
                 ref = CudaBuffer(
-                    cuda.data_to_cuda(data, shape.numel(), dtype), dtype)
+                    cuda.data_to_cuda(data, shape.numel(), dtype), 
+                    shape.numel(), dtype)
             case _: raise ValueError(f'Invalid device type: {device}')
         return ref
         
@@ -290,7 +291,7 @@ class Tensor(tensor):
             new_ptr = cuda.memory.alloc_cuda_full(
                 self.size, self.dtype, fill_value)
             old_buffer = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            self._buffer = CudaBuffer(new_ptr, self.size, self.dtype)
             old_buffer.decrement()
         else: self.data.fill(fill_value)
         return self
@@ -592,7 +593,7 @@ class Tensor(tensor):
         if self.device == 'cuda': 
             new_ptr      = cuda.math.add(self, other, self.shape)
             old_buffer   = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            self._buffer = CudaBuffer(new_ptr, self.size, self.dtype)
             old_buffer.decrement()
         else: self.data = cpu.math.add(self, other)
         return self
@@ -671,7 +672,7 @@ class Tensor(tensor):
         if self.device == 'cuda': 
             new_ptr      = cuda.math.subtract(self, other, self.shape)
             old_buffer   = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            self._buffer = CudaBuffer(new_ptr, self.size, self.dtype)
             old_buffer.decrement()
         else: self.data = cpu.math.subtract(self, other)
         return self
@@ -765,7 +766,7 @@ class Tensor(tensor):
         if self.device == 'cuda': 
             new_ptr      = cuda.math.multiply(self, other, self.shape)
             old_buffer   = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype)
+            self._buffer = CudaBuffer(new_ptr, self.size, self.dtype)
             old_buffer.decrement()
         else: self.data = cpu.math.multiply(self, other)
         return self

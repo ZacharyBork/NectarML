@@ -113,7 +113,7 @@ class tensor:
         out._backward      = lambda: None
         
         if device == 'cuda': 
-            out._buffer = CudaBuffer(data, dtype)
+            out._buffer = CudaBuffer(data, out.shape.numel(), dtype)
             out.data = None
         elif device == 'cpu':
             out._buffer = None
@@ -213,7 +213,7 @@ class tensor:
 
         tmp._dtype         = target_dtype
         tmp.shape          = input.shape
-        tmp._buffer        = CudaBuffer(data_ptr, target_dtype)
+        tmp._buffer        = CudaBuffer(data_ptr, input.size, target_dtype)
         tmp._requires_grad = False
         tmp.grad           = None
         tmp._prev          = set()
@@ -388,7 +388,7 @@ class tensor:
                 if dtype != self.dtype:
                     data = cuda.cast_tensor_by_reference(
                         tmp_ptr, self.size, self.dtype, dtype)
-                    cuda.free_cuda(tmp_ptr)
+                    cuda.free_cuda(tmp_ptr, self.size, self.dtype)
                 else: data = tmp_ptr
             else: data = cuda.cast_tensor(self, dtype)
                     
@@ -660,7 +660,7 @@ class tensor:
             else: copy_ptr = cuda.data_to_cuda(
                 other.data, other.size, other.dtype)
             old_buffer = self._buffer
-            self._buffer = CudaBuffer(copy_ptr, self.dtype)
+            self._buffer = CudaBuffer(copy_ptr, self.size, self.dtype)
             old_buffer.decrement()
         else: np.copyto(self.data, other.numpy())
         return self
@@ -836,7 +836,7 @@ class tensor:
             new_ptr = cuda.indexing.index_put(
                 self, starts, counts, steps, value)
             old_buffer = self._buffer
-            self._buffer = CudaBuffer(new_ptr, self.dtype.cpu)
+            self._buffer = CudaBuffer(new_ptr, np.prod(counts), self.dtype)
             old_buffer.decrement()
         else:
             if isinstance(value, tensor): value = value.data

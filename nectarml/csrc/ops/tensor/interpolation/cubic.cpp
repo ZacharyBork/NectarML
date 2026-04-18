@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -31,8 +32,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, B * C * H_out * W_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C * H_out * W_out * sizeof(T)));
             if (align_corners) {
                 launch_upsample_bicubic<T, true>(
                     reinterpret_cast<T*>(input_ptr), d_out,
@@ -56,8 +56,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * H_in * W_in * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc( B * C * H_in * W_in * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * H_in * W_in * sizeof(T));
             if (align_corners) {
                 launch_upsample_bicubic_backward<T, true>(

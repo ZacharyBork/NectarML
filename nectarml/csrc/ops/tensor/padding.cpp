@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -38,18 +39,16 @@ namespace nectar {
         int total_out = B * C;
         for (int s : out_sizes) total_out *= s;
 
-        int *d_in_sizes, *d_out_sizes, *d_pad_before;
         int memsize = n_dims * sizeof(int);
-        cudaMalloc(&d_in_sizes,   n_dims * sizeof(int));
-        cudaMalloc(&d_out_sizes,  n_dims * sizeof(int));
-        cudaMalloc(&d_pad_before, n_dims * sizeof(int));
+        int *d_in_sizes = static_cast<int*>(g_pool.alloc(memsize));
+        int *d_out_sizes = static_cast<int*>(g_pool.alloc(memsize));
+        int *d_pad_before = static_cast<int*>(g_pool.alloc(memsize));
         cudaMemcpy(d_in_sizes,   in_sizes.data(),   memsize, cudaMemcpyHostToDevice);
         cudaMemcpy(d_out_sizes,  out_sizes.data(),  memsize, cudaMemcpyHostToDevice);
         cudaMemcpy(d_pad_before, pad_before.data(), memsize, cudaMemcpyHostToDevice);
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, total_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(total_out * sizeof(T)));
 
             launch_pad<T>(
                 reinterpret_cast<T*>(input_ptr), d_out,
@@ -57,9 +56,9 @@ namespace nectar {
                 d_in_sizes, d_out_sizes, d_pad_before,
                 n_dims, constant_value, total_out, mode);
 
-            cudaFree(d_in_sizes);
-            cudaFree(d_out_sizes);
-            cudaFree(d_pad_before);
+            g_pool.free(d_in_sizes, memsize);
+            g_pool.free(d_out_sizes, memsize);
+            g_pool.free(d_pad_before, memsize);
 
             return reinterpret_cast<uintptr_t>(d_out);
         });

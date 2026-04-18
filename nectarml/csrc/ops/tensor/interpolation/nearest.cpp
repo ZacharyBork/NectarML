@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* Kernels */
 
@@ -50,8 +51,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, B * C * L_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C * L_out * sizeof(T)));
             launch_upsample_nearest_1d<T>(
                 reinterpret_cast<T*>(input_ptr), d_out,
                 B, C, L_in, L_out);
@@ -65,8 +65,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * L_in * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * L_in * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * L_in * sizeof(T));
             launch_upsample_nearest_1d_backward<T>(
                 reinterpret_cast<T*>(grad_ptr), d_grad_input,
@@ -81,8 +80,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, B * C * H_out * W_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C * H_out * W_out * sizeof(T)));
             launch_upsample_nearest_2d<T>(
                 reinterpret_cast<T*>(input_ptr), d_out,
                 B, C, H_in, W_in, H_out, W_out);
@@ -96,8 +94,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * H_in * W_in * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * H_in * W_in * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * H_in * W_in * sizeof(T));
             launch_upsample_nearest_2d_backward<T>(
                 reinterpret_cast<T*>(grad_ptr), d_grad_input,
@@ -114,8 +111,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, B * C * D_out * H_out * W_out * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(B * C * D_out * H_out * W_out * sizeof(T)));
             launch_upsample_nearest_3d<T>(
                 reinterpret_cast<T*>(input_ptr), d_out,
                 B, C, D_in, H_in, W_in, D_out, H_out, W_out);
@@ -131,8 +127,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_grad_input;
-            cudaMalloc(&d_grad_input, B * C * D_in * H_in * W_in * sizeof(T));
+            T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C * D_in * H_in * W_in * sizeof(T)));
             cudaMemset(d_grad_input, 0, B * C * D_in * H_in * W_in * sizeof(T));
             launch_upsample_nearest_3d_backward<T>(
                 reinterpret_cast<T*>(grad_ptr), d_grad_input,

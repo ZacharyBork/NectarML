@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include "allocator_pool/bindings.h"
+
 #include "bindings/combination.h"
 #include "bindings/conv.h"
 #include "bindings/device.h"
@@ -34,6 +36,8 @@ PYBIND11_MODULE(_nectarml, m) {
 
     m.def("destroy_cublas_handle", &destroy_cublas_handle, 
         "Destroys cuBLAS handle. Registered atexit for Python module.");
+
+    register_allocator_pool(m);
 
     auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");
     register_combination(m_tensor);

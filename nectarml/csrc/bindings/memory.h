@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common.h"
 
 namespace py = pybind11;
@@ -5,7 +7,7 @@ namespace py = pybind11;
 py::tuple get_cuda_meminfo();
 
 void cuda_synchronize();
-void free_cuda(uintptr_t ptr);
+void free_cuda(uintptr_t ptr, size_t n_elements, DType dtype);
 void memcpy_to_cuda(uintptr_t dst, uintptr_t src, size_t size_bytes);
 uintptr_t alloc_cuda_empty_raw(size_t size_bytes);
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value);
@@ -17,7 +19,7 @@ void register_memory(py::module_& m) {
         "Blocks CUDA tasks until the device has finished the current task.");
 
     m.def("free_cuda", &free_cuda, 
-        py::arg("ptr"),
+        py::arg("ptr"), py::arg("n_elements"), py::arg("dtype"),
         "Frees GPU memory of object at at given pointer.");
 
     m.def("memcpy_to_cuda", &memcpy_to_cuda, 

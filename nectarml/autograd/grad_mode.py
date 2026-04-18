@@ -17,6 +17,7 @@ class no_grad:
     def __enter__(self: no_grad) -> Self:
         self._prev = _GRAD_STATE.enabled
         _GRAD_STATE.enabled = False
+        return self
     
     def __exit__(self: no_grad, *args: Any) -> None:
         _GRAD_STATE.enabled = self._prev

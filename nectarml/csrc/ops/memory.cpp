@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 #include <curand.h>
 #include <curand_kernel.h>
@@ -33,10 +34,12 @@ py::tuple get_cuda_meminfo() {
 
 void cuda_synchronize() { cudaDeviceSynchronize(); }
 
-void free_cuda(uintptr_t ptr) { 
-    if (ptr == 0) return;
-    cudaDeviceSynchronize();
-    cudaFree(reinterpret_cast<void*>(ptr));
+void free_cuda(uintptr_t ptr, size_t n_elements, DType dtype) { 
+    if (ptr == 0) return;    
+    DISPATCH_DTYPE(dtype, T, {
+        T* d_ptr = reinterpret_cast<T*>(ptr);
+        g_pool.free(d_ptr, n_elements * sizeof(T));
+    });
 }
 
 void memcpy_to_cuda(uintptr_t dst, uintptr_t host_ptr, size_t size_bytes) {
@@ -47,16 +50,14 @@ void memcpy_to_cuda(uintptr_t dst, uintptr_t host_ptr, size_t size_bytes) {
 }
 
 uintptr_t alloc_cuda_empty_raw(size_t size_bytes) {
-    void* ptr;
-    cudaMalloc(&ptr, size_bytes);
+    void* ptr = static_cast<void*>(g_pool.alloc(size_bytes));
     return reinterpret_cast<uintptr_t>(ptr);
 }
 
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value) {
     DISPATCH_DTYPE(dtype, T, {
-        T* d_ptr;
         size_t nbytes = n_elements * sizeof(T);
-        cudaMalloc(&d_ptr, nbytes);
+        T* d_ptr = static_cast<T*>(g_pool.alloc(nbytes));
         launch_alloc_cuda_full<T>(d_ptr, n_elements, static_cast<T>(fill_value));
         return reinterpret_cast<uintptr_t>(d_ptr);
     });
@@ -70,10 +71,8 @@ uintptr_t alloc_cuda_random(
     float max_value
 ) {
     DISPATCH_DTYPE(dtype, T, {
-        T* d_ptr;
         curandState* d_state;
-
-        cudaMalloc(&d_ptr, n_elements * sizeof(T));
+        T* d_ptr = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
         launch_alloc_cuda_random<T>(
             d_ptr, n_elements, d_state, seed,
             static_cast<T>(min_value), static_cast<T>(max_value));
@@ -83,8 +82,7 @@ uintptr_t alloc_cuda_random(
 
 uintptr_t alloc_cuda_empty(size_t n_elements, DType dtype) {
     DISPATCH_DTYPE(dtype, T, {
-        T* d_ptr;
-        cudaMalloc(&d_ptr, n_elements * sizeof(T));
+        T* d_ptr = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
         return reinterpret_cast<uintptr_t>(d_ptr);
     });
 }

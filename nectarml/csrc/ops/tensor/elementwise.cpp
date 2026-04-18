@@ -1,5 +1,6 @@
 #include "common.h"
 #include "ops/policies/elementwise.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -71,8 +72,7 @@ uintptr_t call_elemwise_compare(
     for (int i = 0; i < ndim; i++) out_shape_arr.dims[i] = out_shape[i];
 
     DISPATCH_DTYPE(dtype, T, {
-        bool* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(bool));
+        bool* d_out = static_cast<bool*>(g_pool.alloc(n_elements * sizeof(bool)));
         launch_elementwise_compare<T, Op>(
             reinterpret_cast<T*>(a_ptr),
             reinterpret_cast<T*>(b_ptr),
@@ -89,8 +89,7 @@ uintptr_t call_elemwise_compare_ts(
     DType dtype
 ) {
     DISPATCH_DTYPE(dtype, T, {
-        bool* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(bool));
+        bool* d_out = static_cast<bool*>(g_pool.alloc(n_elements * sizeof(bool)));
         launch_elementwise_compare_ts<T, Op>(
             reinterpret_cast<T*>(a_ptr), value, d_out, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
@@ -104,8 +103,7 @@ uintptr_t call_elemwise_1tensor(
     DType dtype
 ) {
     DISPATCH_DTYPE(dtype, T, {
-        T* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(T));
+        T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
         launch_elementwise_math_1tensor<T, Op>(
             reinterpret_cast<T*>(x_ptr), d_out, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
@@ -153,8 +151,7 @@ uintptr_t call_elemwise_2tensor(
     for (int i = 0; i < ndim; i++) out_shape_arr.dims[i] = out_shape[i];
 
     DISPATCH_DTYPE(dtype, T, {
-        T* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(T));
+        T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
         launch_elementwise_math_2tensor<T, Op>(
             reinterpret_cast<T*>(a_ptr),
             reinterpret_cast<T*>(b_ptr),
@@ -171,8 +168,7 @@ uintptr_t call_elemwise_tensorscalar(
     DType dtype
 ) {
     DISPATCH_DTYPE(dtype, T, {
-        T* d_out;
-        cudaMalloc(&d_out, n_elements * sizeof(T));
+        T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
         launch_elementwise_math_tensorscalar<T, Op>(
             reinterpret_cast<T*>(base_ptr), d_out, value, n_elements);
         return reinterpret_cast<uintptr_t>(d_out);
@@ -589,8 +585,7 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarMaxOp>(
                 reinterpret_cast<T*>(base_ptr), d_out, min_value, n_elements);
             launch_elementwise_math_tensorscalar<T, ElemWiseScalarMinOp>(

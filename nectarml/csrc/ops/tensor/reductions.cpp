@@ -1,6 +1,7 @@
 #include "common.h"
 #include "ops/policies/reductions.h"
 #include "ops/policies/elementwise.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -32,8 +33,7 @@ namespace nectar {
 
     uintptr_t reduce_min(uintptr_t in_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_reduce<T, MinOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
@@ -53,8 +53,7 @@ namespace nectar {
         TensorIndex out_idx(out_shape.data(), out_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_reduce_dim<T, MinOp>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim);
@@ -66,8 +65,7 @@ namespace nectar {
 
     uintptr_t reduce_max(uintptr_t in_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_reduce<T, MaxOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
             return reinterpret_cast<uintptr_t>(d_out);
         });
@@ -87,8 +85,7 @@ namespace nectar {
         TensorIndex out_idx(out_shape.data(), out_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_reduce_dim<T, MaxOp>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim);
@@ -100,8 +97,7 @@ namespace nectar {
 
     uintptr_t reduce_sum(uintptr_t in_ptr, size_t n_elements, float initial, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements, initial);
             return reinterpret_cast<uintptr_t>(d_out);
         });
@@ -122,8 +118,7 @@ namespace nectar {
         TensorIndex out_idx(out_shape.data(), out_shape.size());
 
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_reduce_dim<T, SumOp>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim, initial);
@@ -135,8 +130,7 @@ namespace nectar {
 
     uintptr_t reduce_mean(uintptr_t in_ptr, size_t n_elements, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_reduce<T, SumOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements);
             launch_elementwise_math_tensorscalar<T, ElemWiseDivTSOp>(
                 d_out, d_out, static_cast<float>(n_elements), 1);
@@ -172,8 +166,7 @@ namespace nectar {
 
     uintptr_t reduce_prod(uintptr_t in_ptr, size_t n_elements, float initial, DType dtype) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(n_elements * sizeof(T)));
             launch_reduce<T, ProdOp>(reinterpret_cast<T*>(in_ptr), d_out, n_elements, initial);
             return reinterpret_cast<uintptr_t>(d_out);
         });
@@ -194,8 +187,7 @@ namespace nectar {
         TensorIndex out_idx(out_shape.data(), out_shape.size());
         
         DISPATCH_DTYPE(dtype, T, {
-            T* d_out;
-            cudaMalloc(&d_out, out_idx.n_elements * sizeof(T));
+            T* d_out = static_cast<T*>(g_pool.alloc(out_idx.n_elements * sizeof(T)));
             launch_reduce_dim<T, ProdOp>(
                 reinterpret_cast<T*>(in_ptr), d_out,
                 in_idx, out_idx, reduce_dim, initial);
@@ -213,8 +205,7 @@ namespace nectar {
     ) {
         DISPATCH_DTYPE(dtype, T, {
             T* d_input  = reinterpret_cast<T*>(in_ptr);
-            T* d_output;
-            cudaMalloc(&d_output, total * sizeof(T));
+            T* d_output = static_cast<T*>(g_pool.alloc(total * sizeof(T)));
             launch_cumsum<T>(d_input, d_output, outer, dim_size, inner);
             return reinterpret_cast<uintptr_t>(d_output);
         });

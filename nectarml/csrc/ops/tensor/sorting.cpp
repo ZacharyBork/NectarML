@@ -1,4 +1,5 @@
 #include "common.h"
+#include "allocator_pool/allocator_pool.h"
 
 /* KERNELS */
 
@@ -23,11 +24,8 @@ namespace nectar {
         DType dtype
     ) {
         DISPATCH_DTYPE(dtype, T, {
-            T* d_values;
-            int32_t* d_indices;
-
-            cudaMalloc(&d_values, total * sizeof(T));
-            cudaMalloc(&d_indices, total * sizeof(int32_t));
+            T* d_values = static_cast<T*>(g_pool.alloc(total * sizeof(T)));
+            int32_t* d_indices = static_cast<int32_t*>(g_pool.alloc(total * sizeof(int32_t)));
             cudaMemcpy(d_values, reinterpret_cast<T*>(input_ptr), 
                 total * sizeof(T), cudaMemcpyDeviceToDevice);
 
