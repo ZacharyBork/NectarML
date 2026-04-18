@@ -1,4 +1,5 @@
-#include "common.h"
+#include "kernels/common.h"
+#include "common/functions.h"
 #include "ops/policies/inspection.h"
 
 template<unsigned int blockSize, class Op>

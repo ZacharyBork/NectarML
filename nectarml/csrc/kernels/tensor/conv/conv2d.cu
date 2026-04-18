@@ -1,4 +1,4 @@
-#include "common.h"
+#include "kernels/common.h"
 
 /* BIAS */
 

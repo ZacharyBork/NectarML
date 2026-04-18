@@ -1,4 +1,5 @@
-#include "common.h"
+#include "kernels/common.h"
+#include "common/functions.h"
 
 /* AVERAGE POOL */
 

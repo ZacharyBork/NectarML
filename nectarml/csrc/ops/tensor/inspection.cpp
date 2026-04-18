@@ -1,4 +1,4 @@
-#include "common.h"
+#include "common/dtype.h"
 #include "ops/policies/inspection.h"
 #include "allocator_pool/allocator_pool.h"
 

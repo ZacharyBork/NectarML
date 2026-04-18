@@ -1,5 +1,7 @@
+#pragma once
+
+#include "common/dtype.h"
 #include <pybind11/pybind11.h>
-#include "common.h"
 
 namespace py = pybind11;
 

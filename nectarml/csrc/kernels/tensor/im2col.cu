@@ -7,7 +7,7 @@
 //      Characterizing and demystifying the implicit convolution algorithm on commercial matrix-multiplication accelerators.
 //      https://arxiv.org/abs/2110.03901
 
-#include "common.h"
+#include "kernels/common.h"
 
 /* 1-Dimensional */
 

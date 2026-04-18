@@ -1,4 +1,3 @@
-#include "common.h"
 #include "allocator_pool/allocator_pool.h"
 #include <cuda_runtime.h>
 
@@ -49,4 +48,3 @@ void CudaMemoryPool::release() {
             cudaFree(ptr);
     pool.clear();
 }
-

@@ -20,7 +20,6 @@ public:
     void* alloc(size_t bytes);
     void free(void* ptr, size_t bytes);
     void release();
-
 };
 
 static CudaMemoryPool g_pool;

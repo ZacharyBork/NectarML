@@ -1,6 +1,4 @@
-#include "common.h"
-#include <curand.h>
-#include <curand_kernel.h>
+#include "kernels/common.h"
 
 template<typename T>
 __global__ void alloc_cuda_full_kernel(T* dst, size_t n, T fill_value) {

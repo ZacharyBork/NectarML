@@ -1,5 +1,5 @@
-#include "common.h"
 #include "allocator_pool/allocator_pool.h"
+#include "common/dtype.h"
 
 /* KERNELS */
 

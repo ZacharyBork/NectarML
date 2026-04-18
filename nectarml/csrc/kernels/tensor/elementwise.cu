@@ -1,4 +1,5 @@
-#include "common.h"
+#include "kernels/common.h"
+#include "common/data_structures.h"
 #include "ops/policies/elementwise.h"
 
 /* COMPARISON TENSOR-TENSOR */

@@ -1,23 +1,8 @@
-#include "common.h"
+#include "common/dtype.h"
 
 #include "allocator_pool/bindings.h"
-
-#include "bindings/combination.h"
-#include "bindings/conv.h"
-#include "bindings/device.h"
-#include "bindings/elementwise.h"
-#include "bindings/im2col.h"
-#include "bindings/indexing.h"
-#include "bindings/inspection.h"
-#include "bindings/interpolation.h"
-#include "bindings/matmul.h"
-#include "bindings/memory.h"
-#include "bindings/padding.h"
-#include "bindings/pooling.h"
-#include "bindings/reductions.h"
-#include "bindings/shapes.h"
-#include "bindings/sorting.h"
-#include "bindings/utils.h"
+#include "bindings/system.h"
+#include "bindings/tensor.h"
 #include "bindings/vision.h"
 
 namespace py = pybind11;

@@ -1,5 +1,5 @@
-#include "common.h"
-
+#include "kernels/common.h"
+#include "common/data_structures.h"
 
 template<typename T>
 __global__ void concatenate_kernel(

@@ -1,6 +1,8 @@
 // REFERENCE: https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
 
-#include "common.h"
+#include "kernels/common.h"
+#include "common/functions.h"
+#include "common/data_structures.h"
 #include "ops/policies/reductions.h"
 
 template<typename T, unsigned int blockSize, template<typename> class Op>

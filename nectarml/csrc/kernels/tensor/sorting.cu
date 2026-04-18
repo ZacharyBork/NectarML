@@ -1,4 +1,4 @@
-#include "common.h"
+#include "kernels/common.h"
 
 template<typename T>
 __global__ void sort_slices_kernel(

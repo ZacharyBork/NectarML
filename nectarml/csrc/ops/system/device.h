@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common.h"
+#include "common/dtype.h"
+#include <pybind11/numpy.h>
 #include <cublas_v2.h>
 
 namespace py = pybind11;

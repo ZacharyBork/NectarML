@@ -1,4 +1,5 @@
-#include "common.h"
+#include "common/dtype.h"
+#include "common/data_structures.h"
 #include "allocator_pool/allocator_pool.h"
 
 namespace py = pybind11;

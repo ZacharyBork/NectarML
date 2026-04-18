@@ -1,4 +1,4 @@
-#include "common.h"
+#include "kernels/common.h"
 
 __device__ void rgb_to_hsv(
     float r, float g, float b, 
