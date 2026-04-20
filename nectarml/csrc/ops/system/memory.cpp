@@ -1,10 +1,6 @@
+#include "ops/common.h"
 #include "common/dtype.h"
 #include "allocator_pool/allocator_pool.h"
-
-#include <curand.h>
-#include <curand_kernel.h>
-
-namespace py = pybind11;
 
 /* KERNELS */
 
@@ -35,7 +31,7 @@ py::tuple get_cuda_meminfo() {
 void cuda_synchronize() { cudaDeviceSynchronize(); }
 
 void free_cuda(uintptr_t ptr, size_t n_elements, DType dtype) { 
-    if (ptr == 0) return;    
+    if (ptr == 0) return;
     DISPATCH_DTYPE(dtype, T, {
         T* d_ptr = reinterpret_cast<T*>(ptr);
         g_pool.free(d_ptr, n_elements * sizeof(T));
@@ -61,6 +57,12 @@ uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value) {
         launch_alloc_cuda_full<T>(d_ptr, n_elements, static_cast<T>(fill_value));
         return reinterpret_cast<uintptr_t>(d_ptr);
     });
+}
+
+void fill(uintptr_t ptr, int fill_value, size_t n_elements, DType dtype) { 
+    if (ptr == 0) return;
+    size_t bytes = n_elements * dtype_itemsize(dtype);
+    cudaMemset(reinterpret_cast<void*>(ptr), 0, bytes); 
 }
 
 uintptr_t alloc_cuda_random(

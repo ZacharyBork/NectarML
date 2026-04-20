@@ -1,7 +1,7 @@
+#include "ops/common.h"
 #include "common/dtype.h"
-#include "ops/system/device.h"
+#include "ops/system/device/device.h"
 #include "allocator_pool/allocator_pool.h"
-#include <cublas_v2.h>
 
 namespace nectar {
 

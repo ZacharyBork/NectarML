@@ -1,7 +1,7 @@
 from typing import Literal
 
 from nectarml.tensor import Tensor
-from nectarml import cuda, cpu
+from nectarml import cuda, cpu, typing
 
 ### UTILS ###
 
@@ -86,7 +86,7 @@ def upsample_nearest(
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
             input.grad += Tensor._new(
-                grad_ptr, input.shape, input.dtype, input.device)
+                grad_ptr, input.shape, typing.float32, input.device)
     
     out._backward = _backward
     return out
@@ -127,7 +127,7 @@ def upsample_linear(
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
             input.grad += Tensor._new(
-                grad_ptr, input.shape, input.dtype, input.device)
+                grad_ptr, input.shape, typing.float32, input.device)
     
     out._backward = _backward
     return out
@@ -166,7 +166,7 @@ def upsample_bilinear(
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
             input.grad += Tensor._new(
-                grad_ptr, input.shape, input.dtype, input.device)
+                grad_ptr, input.shape, typing.float32, input.device)
     
     out._backward = _backward
     return out
@@ -207,7 +207,7 @@ def upsample_trilinear(
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
             input.grad += Tensor._new(
-                grad_ptr, input.shape, input.dtype, input.device)
+                grad_ptr, input.shape, typing.float32, input.device)
     
     out._backward = _backward
     return out
@@ -249,7 +249,7 @@ def upsample_bicubic(
         if input_requires_grad:
             grad_ptr = _backward_fn(out.grad)
             input.grad += Tensor._new(
-                grad_ptr, input.shape, input.dtype, input.device)
+                grad_ptr, input.shape, typing.float32, input.device)
     
     out._backward = _backward
     return out

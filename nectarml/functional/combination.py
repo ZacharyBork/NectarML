@@ -1,6 +1,8 @@
 from nectarml.tensor import Tensor
 from nectarml.cuda import combination as cuda
 from nectarml.cpu  import combination as cpu
+from nectarml.amp.autocast import autocast_state
+from nectarml.amp.utils import get_promotion_dtype
 
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])
@@ -9,10 +11,16 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
         f'but found multiple devices: {list(_devices)}')
     
     _dtypes = set([x.dtype for x in tensors])
-    assert len(_dtypes) == 1, (
-        f'nectarml.concatenate requires all Tensors have the same dtype, '
-        f'but found multiple dtypes: {list(_dtypes)}')
-    
+    state   = autocast_state()
+    if state.enabled and state.context == 'cuda':
+        if len(_dtypes) != 1:
+            promote_type = get_promotion_dtype(_dtypes)
+            tensors = [i.to(dtype=promote_type) for i in tensors]
+    else:        
+        assert len(_dtypes) == 1, (
+            f'nectarml.concatenate requires all Tensors have the same dtype, '
+            f'but found multiple dtypes: {list(_dtypes)}')
+        
     device = _devices.pop()
     dtype  = _dtypes.pop()
     shape  = list(tensors[0].shape)

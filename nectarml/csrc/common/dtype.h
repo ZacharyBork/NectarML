@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <cuda_fp16.h>
+#include <stdexcept>
 
 enum class DType {
     Float32,
@@ -10,6 +11,7 @@ enum class DType {
     Int32,
     Bool
 };
+
 
 #define DISPATCH_DTYPE(dtype, T, ...) \
 switch (dtype) { \
@@ -21,3 +23,6 @@ switch (dtype) { \
     default: throw std::runtime_error("Unsupported dtype"); \
 }
 
+constexpr size_t dtype_itemsize(DType dtype) {
+    DISPATCH_DTYPE(dtype, T, { return sizeof(T); });
+}

@@ -12,6 +12,7 @@ void free_cuda(uintptr_t ptr, size_t n_elements, DType dtype);
 void memcpy_to_cuda(uintptr_t dst, uintptr_t src, size_t size_bytes);
 uintptr_t alloc_cuda_empty_raw(size_t size_bytes);
 uintptr_t alloc_cuda_full(size_t n_elements, DType dtype, double fill_value);
+void fill(uintptr_t ptr, int fill_value, size_t n_elements, DType dtype);
 uintptr_t alloc_cuda_random(size_t n_elements, DType dtype, unsigned long long seed, float min_value, float max_value);
 uintptr_t alloc_cuda_empty(size_t n_elements, DType dtype);
 
@@ -39,6 +40,13 @@ void register_memory(py::module_& m) {
         py::arg("dtype"),
         py::arg("fill_value"),
         "Allocates CUDA memory for tensor data of n_elements, and fills with fill_value.");
+
+    m.def("fill", &fill, 
+        py::arg("ptr"),
+        py::arg("fill_value"),
+        py::arg("n_elements"),
+        py::arg("dtype"),
+        "");
 
     m.def("alloc_cuda_random", &alloc_cuda_random, 
         py::arg("n_elements"),

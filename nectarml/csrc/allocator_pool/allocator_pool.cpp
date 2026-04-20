@@ -1,5 +1,4 @@
 #include "allocator_pool/allocator_pool.h"
-#include <cuda_runtime.h>
 
 size_t CudaMemoryPool::bucket(size_t bytes) {
     size_t p = 1;
@@ -48,3 +47,6 @@ void CudaMemoryPool::release() {
             cudaFree(ptr);
     pool.clear();
 }
+
+
+

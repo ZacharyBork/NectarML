@@ -3,6 +3,7 @@ from typing import Literal
 from nectarml                    import cpu, cuda, typing
 from nectarml.tensor             import Tensor
 from nectarml.functional.padding import pad
+from nectarml.amp.autocast       import autocast_state
 
 ### CPU ###
 
@@ -84,30 +85,30 @@ def _conv2d_cuda(
     bias_requires_grad   = bias.requires_grad if bias is not None else False
     
     _requires_grad = input.requires_grad or weight.requires_grad
-    _children = [input, weight]
+    _children      = [input, weight]
     if bias is not None: 
         _children.append(bias)
         _requires_grad = _requires_grad or bias.requires_grad
         
+    output_size    = typing.Size([B, C_out, H_out, W_out])
+    state          = autocast_state()
+    half_precision = state.enabled and state.context == 'cuda'
     out_data = cuda.conv.conv2d(
-        input, weight, bias, 
+        input, weight, bias, output_size.numel(),
         B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w, 
-        dilation_h, dilation_w, groups)
-    out = Tensor._new(out_data, (B, C_out, H_out, W_out), input.dtype, 
+        dilation_h, dilation_w, groups, half_precision)
+    out = Tensor._new(out_data, output_size, input.dtype, 
         input.device, requires_grad=_requires_grad, _children=tuple(_children))
     
     def _backward() -> None:
-        out_grad = out.grad.contiguous()
-        
-        B, C_in, H, W = input.shape
+        out_grad         = out.grad.contiguous()
+        B, C_in, H, W    = input.shape
         C_out, _, KH, KW = weight.shape
 
         if input_requires_grad:
-            weight_f32 = weight.to(dtype=typing.float32) \
-                      if weight.dtype != typing.float32 else weight
             grad_input_ptr = cuda.conv.conv2d_backward_input(
-                out_grad, weight_f32, 
+                out_grad, weight._as_fp32(), 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
@@ -115,10 +116,8 @@ def _conv2d_cuda(
                 grad_input_ptr, input.shape, typing.float32, input.device)
         
         if weight_requires_grad:
-            input_f32 = input.to(dtype=typing.float32) \
-                     if input.dtype != typing.float32 else input
             grad_weight_ptr = cuda.conv.conv2d_backward_weight(
-                out_grad, input_f32, 
+                out_grad, input._as_fp32(), 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w)

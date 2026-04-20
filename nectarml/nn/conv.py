@@ -187,26 +187,14 @@ class Conv2d(Module):
         else: self.bias = None
 
     def forward(self, x: Tensor) -> Tensor:
-        state       = autocast_state()
-        input_dtype = x.dtype
-        if state.enabled and state.context == 'cuda':
-            x      = x.to(dtype=typing.float16)
-            weight = self.weight.to(dtype=typing.float16)
-            bias   = self.bias.to(dtype=typing.float16) \
-                  if self.bias is not None else None
-        else:
-            weight = self.weight
-            bias   = self.bias
-        out = F.conv2d(
-            x, weight, bias,
+        return F.conv2d(
+            x, self.weight, self.bias,
             stride=self.stride,
             padding=self.padding,
             dilation=self.dilation,
             groups=self.groups,
             padding_mode=self.padding_mode)
-        return out.to(dtype=input_dtype)
-
-    
+        
 class ConvTranspose2d(Module):
     def __init__(
         self: ConvTranspose2d,
@@ -252,25 +240,14 @@ class ConvTranspose2d(Module):
         else: self.bias = None
 
     def forward(self, x: Tensor) -> Tensor:
-        state       = autocast_state()
-        input_dtype = x.dtype
-        if state.enabled and state.context == 'cuda':
-            x      = x.to(dtype=typing.float16)
-            weight = self.weight.to(dtype=typing.float16)
-            bias   = self.bias.to(dtype=typing.float16) \
-                  if self.bias is not None else None
-        else:
-            weight = self.weight
-            bias   = self.bias
-        out = F.conv_transpose2d(
-            x, weight, bias,
+        return F.conv_transpose2d(
+            x, self.weight, self.bias,
             stride=self.stride,
             padding=self.padding,
             output_padding=self.output_padding,
             dilation=self.dilation,
             groups=self.groups,
             padding_mode='zeros')
-        return out.to(dtype=input_dtype)
 
 ### 3-Dimensional ###
     

@@ -1,4 +1,4 @@
-#include "ops/system/device.h"
+#include "ops/system/device/device.h"
 
 static cublasHandle_t cublas_handle = nullptr;
 

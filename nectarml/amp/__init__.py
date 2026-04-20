@@ -1,3 +1,4 @@
+from .         import utils
 from .grad     import GradScaler
 from .autocast import (
     AutocastState, 

@@ -1,5 +1,6 @@
-#include <limits>
-#include <pybind11/stl.h>
+#pragma once
+
+#include "ops/common.h"
 
 /* PREDICATES */
 

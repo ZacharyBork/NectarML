@@ -1,7 +1,7 @@
 import numpy as np
 
 from nectarml.tensor import Tensor
-from nectarml.typing import int32
+from nectarml.typing import int32, float32
 from nectarml.cpu import pooling as cpu_pool
 from nectarml.cuda import pooling as cuda_pool
 
@@ -42,12 +42,12 @@ def avg_pool1d(
                 grad_ptr = cuda_pool.avg_pool1d_backward(
                     out_grad, B, C, L, L_out, K, S, P, count_include_pad)
                 input.grad += Tensor._new(
-                    grad_ptr, input.shape, input.dtype, 'cuda')
+                    grad_ptr, input.shape, float32, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool1d_backward(
                     out_grad, B, C, L, L_out, K, S, P, count_include_pad)
                 input.grad += Tensor._new(
-                    grad_data, input.shape, input.dtype, 'cpu')
+                    grad_data, input.shape, float32, 'cpu')
     
     out._backward = _backward
     return out
@@ -97,14 +97,14 @@ def avg_pool2d(
                     out_grad, B, C, H, W, H_out, W_out,
                     KH, KW, SH, SW, PH, PW, count_include_pad)
                 input.grad += Tensor._new(
-                    grad_ptr, input.shape, input.dtype, 'cuda')
+                    grad_ptr, input.shape, float32, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool2d_backward(
                     out_grad, B, C, H, W, H_out, W_out,
                     KH, KW, SH, SW, PH, PW, 
                     count_include_pad, divisor_override)
                 input.grad += Tensor._new(
-                    grad_data, input.shape, input.dtype, 'cpu')
+                    grad_data, input.shape, float32, 'cpu')
         
     out._backward = _backward
     return out
@@ -159,14 +159,14 @@ def avg_pool3d(
                     out_grad, B, C, D, H, W, D_out, H_out, W_out,
                     KD, KH, KW, SD, SH, SW, PD, PH, PW, count_include_pad)
                 input.grad += Tensor._new(
-                    grad_ptr, input.shape, input.dtype, 'cuda')
+                    grad_ptr, input.shape, float32, 'cuda')
             else:
                 grad_data = cpu_pool.avg_pool3d_backward(
                     out_grad, B, C, D, H, W, D_out, H_out, W_out,
                     KD, KH, KW, SD, SH, SW, PD, PH, PW,
                     count_include_pad, divisor_override)
                 input.grad += Tensor._new(
-                    grad_data, input.shape, input.dtype, 'cpu')
+                    grad_data, input.shape, float32, 'cpu')
                 
     out._backward = _backward
     return out
@@ -215,7 +215,7 @@ def max_pool1d(
                 grad_data = cpu_pool.max_pool1d_backward(
                     out_grad, indices, B, C, L, L_out)
             input.grad += Tensor._new(
-                grad_data, input.shape, input.dtype, input.grad.device)
+                grad_data, input.shape, float32, input.grad.device)
 
     out._backward = _backward
     if return_indices:
@@ -271,7 +271,7 @@ def max_pool2d(
             else:
                 grad_data = cpu_pool.max_pool2d_backward(
                     out_grad, indices, B, C, H, W, H_out, W_out)
-            input.grad += Tensor._new(grad_data, input.shape, input.dtype, 
+            input.grad += Tensor._new(grad_data, input.shape, float32, 
                 input.grad.device)
 
     out._backward = _backward
@@ -331,7 +331,7 @@ def max_pool3d(
                 grad_data = cpu_pool.max_pool3d_backward(
                     out_grad, indices, B, C, Dp, H, W, D_out, H_out, W_out)
 
-            input.grad += Tensor._new(grad_data, input.shape, input.dtype, 
+            input.grad += Tensor._new(grad_data, input.shape, float32, 
                 input.grad.device, input_requires_grad, _children=(input,))
 
     out._backward = _backward

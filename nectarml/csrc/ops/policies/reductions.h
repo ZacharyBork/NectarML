@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common/functions.h"
 
 /* OP POLICIES */

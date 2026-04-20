@@ -7,10 +7,10 @@
 //      Characterizing and demystifying the implicit convolution algorithm on commercial matrix-multiplication accelerators.
 //      https://arxiv.org/abs/2110.03901
 
+#include "ops/common.h"
 #include "common/dtype.h"
-#include "ops/system/device.h"
+#include "ops/system/device/device.h"
 #include "allocator_pool/allocator_pool.h"
-#include <cublas_v2.h>
 
 /* KERNELS */
 
@@ -385,31 +385,57 @@ uintptr_t run_conv_transpose2d_backward_weight(
 namespace nectar {
 
     uintptr_t conv2d(
-        uintptr_t input_ptr,
-        uintptr_t weight_ptr,
-        uintptr_t bias_ptr,
+        uintptr_t input_ptr,  size_t input_size,
+        uintptr_t weight_ptr, size_t weight_size,
+        uintptr_t bias_ptr,   size_t bias_size,
+        size_t output_size,
         int B, int C_in, int H, int W,
         int C_out, int KH, int KW,
         int stride_h, int stride_w,
         int padding_h, int padding_w,
         int dilation_h, int dilation_w,
         int groups,
-        DType dtype
+        DType dtype,
+        bool half_precision
     ) {
-        DISPATCH_DTYPE(dtype, T, {
-            return run_conv2d<T>(
-                input_ptr, weight_ptr, bias_ptr,
+        if (half_precision) {
+            uintptr_t input_f16  = cast_tensor(input_ptr,  input_size,  dtype, DType::Float16);
+            uintptr_t weight_f16 = cast_tensor(weight_ptr, weight_size, dtype, DType::Float16);
+            uintptr_t bias_f16   = bias_ptr ? 
+                cast_tensor(bias_ptr, bias_size, dtype, DType::Float16) : 0;
+            
+            uintptr_t out_f16 = run_conv2d<half>(
+                input_f16, weight_f16, bias_f16,
                 B, C_in, H, W, C_out, KH, KW,
                 stride_h, stride_w, padding_h, padding_w,
                 dilation_h, dilation_w, groups
             );
-        });
+            
+            uintptr_t out_f32 = cast_tensor(out_f16, output_size, DType::Float16, DType::Float32);
+            
+            g_pool.free(reinterpret_cast<void*>(input_f16), input_size * sizeof(half));
+            g_pool.free(reinterpret_cast<void*>(weight_f16), weight_size * sizeof(half));
+            if (bias_f16) g_pool.free(reinterpret_cast<void*>(bias_f16), bias_size * sizeof(half));
+            g_pool.free(reinterpret_cast<void*>(out_f16), output_size * sizeof(half));            
+            return out_f32;
+        }
+        else {
+            DISPATCH_DTYPE(dtype, T, {
+                return run_conv2d<T>(
+                    input_ptr, weight_ptr, bias_ptr,
+                    B, C_in, H, W, C_out, KH, KW,
+                    stride_h, stride_w, padding_h, padding_w,
+                    dilation_h, dilation_w, groups
+                );
+            });
+        }
     }
 
     uintptr_t conv_transpose2d(
-        uintptr_t input_ptr,
-        uintptr_t weight_ptr,
-        uintptr_t bias_ptr,
+        uintptr_t input_ptr,  size_t input_size,
+        uintptr_t weight_ptr, size_t weight_size,
+        uintptr_t bias_ptr,   size_t bias_size,
+        size_t output_size,
         int B, int C_in, int H, int W,
         int C_out, int KH, int KW,
         int stride_h, int stride_w,
@@ -417,17 +443,43 @@ namespace nectar {
         int dilation_h, int dilation_w,
         int output_padding_h, int output_padding_w,
         int groups,
-        DType dtype
+        DType dtype,
+        bool half_precision
     ) {
-        DISPATCH_DTYPE(dtype, T, {
-            return run_conv_transpose2d<T>(
-                input_ptr, weight_ptr, bias_ptr,
+        if (half_precision) {
+            uintptr_t input_f16  = cast_tensor(input_ptr,  input_size,  dtype, DType::Float16);
+            uintptr_t weight_f16 = cast_tensor(weight_ptr, weight_size, dtype, DType::Float16);
+            uintptr_t bias_f16   = bias_ptr ? 
+                cast_tensor(bias_ptr, bias_size, dtype, DType::Float16) : 0;
+            
+            uintptr_t out_f16 = run_conv_transpose2d<half>(
+                input_f16, weight_f16, bias_f16,
                 B, C_in, H, W, C_out, KH, KW,
                 stride_h, stride_w, padding_h, padding_w,
                 dilation_h, dilation_w, output_padding_h, output_padding_w,
                 groups
             );
-        });
+            
+            uintptr_t out_f32 = cast_tensor(out_f16, output_size, DType::Float16, DType::Float32);
+            
+            g_pool.free(reinterpret_cast<void*>(input_f16), input_size * sizeof(half));
+            g_pool.free(reinterpret_cast<void*>(weight_f16), weight_size * sizeof(half));
+            if (bias_f16) g_pool.free(reinterpret_cast<void*>(bias_f16), bias_size * sizeof(half));
+            g_pool.free(reinterpret_cast<void*>(out_f16), output_size * sizeof(half));            
+            return out_f32;
+        }
+        else {
+            DISPATCH_DTYPE(dtype, T, {
+                return run_conv_transpose2d<T>(
+                    input_ptr, weight_ptr, bias_ptr,
+                    B, C_in, H, W, C_out, KH, KW,
+                    stride_h, stride_w, padding_h, padding_w,
+                    dilation_h, dilation_w, output_padding_h, output_padding_w,
+                    groups
+                );
+            });
+        }
+        
     }
 
     uintptr_t conv2d_backward_input(

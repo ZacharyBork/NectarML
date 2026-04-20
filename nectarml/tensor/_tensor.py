@@ -115,7 +115,7 @@ class tensor:
         if device == 'cuda': 
             out._buffer = CudaBuffer(data, out.shape.numel(), dtype)
             out.data = None
-        elif device == 'cpu':
+        else:
             out._buffer = None
             out.data = data
 
@@ -402,12 +402,12 @@ class tensor:
 
         if self.requires_grad:
             original_device = self.device
-            
+
             def _backward() -> None:
                 if new.grad is None: return
-                grad_f32 = new.grad.to(original_device, typing.float32)
-                if self.grad is None: self.grad = grad_f32
-                else: self.grad += grad_f32
+                grad_fp32 = new.grad.to(original_device, typing.float32)
+                if self.grad is None: self.grad = grad_fp32
+                else: self.grad += grad_fp32
 
             new._prev     = {self}
             new._backward = _backward
@@ -503,7 +503,41 @@ class tensor:
             tensor : The resulting int tensor from the cast operation.
         '''
         return self.int()
-            
+        
+    ### AUTOGRAD UTILITIES ###
+          
+    def _as_dtype(
+        self:  tensor,
+        dtype: typing.dtype
+    ) -> Self:
+        if self.dtype == dtype: return self
+        
+        out = object.__new__(self._subclasses['Tensor'])
+        out.__setattr__('_device', self._device)
+        out.__setattr__('_dtype',  dtype)
+        
+        out.shape          = self.shape
+        out._requires_grad = False
+        out.grad           = None
+        out._prev          = set()
+        out._backward      = lambda: None
+
+        if self._device.type == 'cuda':
+            ptr = cuda.utils.cast_tensor_by_reference(
+                self._data_ptr, self.size, self.dtype, dtype)
+            out._buffer = CudaBuffer(ptr, self.size, dtype)
+            out.data = None
+        else:
+            out._buffer = None
+            out.data = self.data.astype(dtype.numpy)
+
+        return out
+        
+    def _as_fp32 (self: tensor) -> Self: return self._as_dtype(typing.float32)
+    def _as_fp16 (self: tensor) -> Self: return self._as_dtype(typing.float16)
+    def _as_int32(self: tensor) -> Self: return self._as_dtype(typing.int32)
+    def _as_uint8(self: tensor) -> Self: return self._as_dtype(typing.uint8)
+
     ### DATA UTILS ###
     
     def numpy(self: tensor) -> np.ndarray:

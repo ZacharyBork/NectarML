@@ -108,46 +108,55 @@ def conv2d(
     input: Tensor,
     weight: Tensor,
     bias: Tensor | None,
+    output_size: int,
     B: int, C_in: int, H: int, W: int,
     C_out: int, KH: int, KW: int,
     stride_h: int, stride_w: int, 
     padding_h: int, padding_w: int, 
     dilation_h: int, dilation_w: int,
-    groups: int
+    groups: int,
+    half_precision: bool
 ) -> int:
     assert groups == 1, \
         'Grouped convolution is not currently supported for CUDA Tensors.'
         
     return _nectarml.tensor.conv.conv2d(
-        input._data_ptr, weight._data_ptr,
+        input._data_ptr,  input.size, 
+        weight._data_ptr, weight.size,
         bias._data_ptr if bias is not None else 0,
-        B, C_in, H, W, C_out, KH, KW,
+        bias.size      if bias is not None else 0,
+        output_size, B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w,
-        dilation_h, dilation_w, groups, input.dtype.cuda)
+        dilation_h, dilation_w, groups, input.dtype.cuda,
+        half_precision)
    
 def conv_transpose2d(
     input: Tensor,
     weight: Tensor,
     bias: Tensor | None,
+    output_size: int,
     B: int, C_in: int, H: int, W: int,
     C_out: int, KH: int, KW: int,
     stride_h: int, stride_w: int, 
     padding_h: int, padding_w: int, 
     dilation_h: int, dilation_w: int,
     output_padding_h: int, output_padding_w: int,
-    groups: int
+    groups: int,
+    half_precision: bool
 ) -> int:
     assert groups == 1, \
         'Grouped convolution is not currently supported for CUDA Tensors.'
         
     return _nectarml.tensor.conv.conv_transpose2d(
-        input._data_ptr, weight._data_ptr,
+        input._data_ptr,  input.size, 
+        weight._data_ptr, weight.size,
         bias._data_ptr if bias is not None else 0,
-        B, C_in, H, W, C_out, KH, KW,
+        bias.size      if bias is not None else 0,
+        output_size, B, C_in, H, W, C_out, KH, KW,
         stride_h, stride_w, padding_h, padding_w,
         dilation_h, dilation_w, 
         output_padding_h, output_padding_w,
-        groups, input.dtype.cuda)
+        groups, input.dtype.cuda, half_precision)
     
 def conv2d_backward_input(
     out_grad: Tensor,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda_fp16.h>
+#include <pybind11/stl.h>
 #include <limits>
 
 /* GLOBAL FUNCTIONS */

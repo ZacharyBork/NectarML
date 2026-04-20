@@ -7,10 +7,10 @@
 //      Characterizing and demystifying the implicit convolution algorithm on commercial matrix-multiplication accelerators.
 //      https://arxiv.org/abs/2110.03901
 
+#include "ops/common.h"
 #include "common/dtype.h"
-#include "ops/system/device.h"
+#include "ops/system/device/device.h"
 #include "allocator_pool/allocator_pool.h"
-#include <cublas_v2.h>
 
 /* KERNELS */
 

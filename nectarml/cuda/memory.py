@@ -44,12 +44,26 @@ def free_cuda(
 def memcpy_to_cuda(dst_ptr: builtins.int, data: np.ndarray) -> None:
     _nectarml.memcpy_to_cuda(dst_ptr, data.ctypes.data, data.nbytes)
 
+def alloc_cuda_empty(
+    n_elements: builtins.int, 
+    dtype:      typing.dtype,
+) -> builtins.int:
+    return _nectarml.alloc_cuda_empty(n_elements, dtype.cuda)
+
 def alloc_cuda_full(
     n_elements: builtins.int, 
     dtype:      typing.dtype, 
     fill_value: builtins.float
 ) -> builtins.int:
     return _nectarml.alloc_cuda_full(n_elements, dtype.cuda, fill_value)
+
+def fill(
+    device_ptr: builtins.int,
+    fill_value: builtins.int,
+    n_elements: builtins.int, 
+    dtype:      typing.dtype
+) -> None:
+    _nectarml.fill(device_ptr, fill_value, n_elements, dtype.cuda)
 
 def alloc_cuda_random(
     n_elements: builtins.int, 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/dtype.h"
 #include "allocator_pool/allocator_pool.h"
 #include <pybind11/pybind11.h>
 

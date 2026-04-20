@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bindings/tensor/combination.h"
 #include "bindings/tensor/conv.h"
 #include "bindings/tensor/elementwise.h"
@@ -6,6 +8,7 @@
 #include "bindings/tensor/inspection.h"
 #include "bindings/tensor/interpolation.h"
 #include "bindings/tensor/matmul.h"
+#include "bindings/tensor/norm.h"
 #include "bindings/tensor/padding.h"
 #include "bindings/tensor/pooling.h"
 #include "bindings/tensor/reductions.h"

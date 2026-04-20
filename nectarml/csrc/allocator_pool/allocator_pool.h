@@ -1,11 +1,10 @@
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include "common/dtype.h"
 #include <unordered_map>
 #include <vector>
 #include <mutex>
-
-namespace py = pybind11;
+#include <cuda_runtime.h>
 
 class CudaMemoryPool {
     std::unordered_map<size_t, std::vector<void*>> pool;

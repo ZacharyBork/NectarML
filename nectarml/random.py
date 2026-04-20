@@ -34,7 +34,9 @@ class Random:
         size:  tuple[builtins.int, ...] | typing.Size | None = None, 
         dtype: typing.dtype = typing.float32,
     ) -> float | NDArray[np.float64]:
-        return self._rng.random(size=size, dtype=dtype.cpu)
+        out = self._rng.random(size=size, dtype=typing.float32.numpy)
+        if isinstance(out, np.ndarray): out = out.astype(dtype.numpy)
+        return out
     
     def uniform(
         self: Random,

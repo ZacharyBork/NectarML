@@ -1,9 +1,9 @@
 #include "common/dtype.h"
 
-#include "allocator_pool/bindings.h"
 #include "bindings/system.h"
 #include "bindings/tensor.h"
 #include "bindings/vision.h"
+#include "allocator_pool/bindings.h"
 
 namespace py = pybind11;
 
@@ -23,6 +23,12 @@ PYBIND11_MODULE(_nectarml, m) {
         "Destroys cuBLAS handle. Registered atexit for Python module.");
 
     register_allocator_pool(m);
+    register_im2col(m);
+    register_memory(m);
+    register_device(m);
+    register_utils(m);
+    register_vision(m);
+    register_inspection(m);
 
     auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");
     register_combination(m_tensor);
@@ -31,17 +37,11 @@ PYBIND11_MODULE(_nectarml, m) {
     register_indexing(m_tensor);
     register_interpolation(m_tensor);
     register_matmul(m_tensor);
+    register_norm(m_tensor);
     register_padding(m_tensor);
     register_pooling(m_tensor);
     register_reductions(m_tensor);
     register_shapes(m_tensor);
     register_sorting(m_tensor);
-
-    register_im2col(m);
-    register_memory(m);
-    register_device(m);
-    register_utils(m);
-    register_vision(m);
-    register_inspection(m);
 
 }
