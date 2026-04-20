@@ -43,7 +43,8 @@ struct IsNanPred {
 
 struct AllOp {
     __device__ static bool combine(volatile bool& a, volatile bool b) { 
-        return a = a && b; }
+        return a = a && b; 
+    }
     __device__ static bool identity() { return true; }
 };
 

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from nectarml.tensor import Tensor
-from nectarml.creation import zeros_like
+import _nectarml
+from nectarml.tensor          import Tensor
+from nectarml.creation        import zeros_like
 from nectarml.optim.optimizer import Optimizer
 
 class Adam(Optimizer):
@@ -23,7 +24,7 @@ class Adam(Optimizer):
         maximize:               bool = False,
         foreach:                bool = None,  # NOT YET IMPLEMENTED
         capturable:             bool = False, # NOT YET IMPLEMENTED
-        fused:                  bool = False  # NOT YET IMPLEMENTED
+        fused:                  bool = True
     ) -> None:
         super().__init__(
             parameters, 
@@ -36,16 +37,16 @@ class Adam(Optimizer):
                 'amsgrad': False
             }
         )
-        self.lr = lr
-        self.beta1, self.beta2 = betas
-        self.eps = eps
-        self.weight_decay = weight_decay
+        self.lr                     = lr
+        self.beta1, self.beta2      = betas
+        self.eps                    = eps
+        self.weight_decay           = weight_decay
         self.decoupled_weight_decay = decoupled_weight_decay
-        self.amsgrad = amsgrad
-        self.maximize = maximize
-        self.foreach = foreach
-        self.capturable = capturable
-        self.fused = fused
+        self.amsgrad                = amsgrad
+        self.maximize               = maximize
+        self.foreach                = foreach
+        self.capturable             = capturable
+        self.fused                  = fused
               
     def _build_state(self: Adam, param_index: int, param: Tensor) -> None:
         if param_index not in self.state: self.state[param_index] = {}
@@ -58,47 +59,69 @@ class Adam(Optimizer):
         if self.amsgrad:
             if 'max_exp_avg_sq' not in self.state[param_index]:
                 self.state[param_index]['max_exp_avg_sq'] = zeros_like(param)
+      
+    def _run_update(
+        self:  Adam,
+        param: Tensor,
+        idx:   int,
+        lr:    float,
+        bc1:   float,
+        bc2:   float
+    ) -> None:
+        grad = param.grad.detach().clone()
         
+        if self.maximize: grad = -grad
+        if self.weight_decay: 
+            if self.decoupled_weight_decay:
+                  param -=   lr * self.weight_decay * param.detach()
+            else: grad   = grad + self.weight_decay * param.detach()
+            
+        exp_avg = self.state[idx]['exp_avg']
+        exp_avg = self.beta1 * exp_avg + (1 - self.beta1) * grad
+        self.state[idx]['exp_avg'] = exp_avg.detach()
+        
+        exp_avg_sq = self.state[idx]['exp_avg_sq']
+        exp_avg_sq = self.beta2 * exp_avg_sq + (1-self.beta2) * grad**2
+        self.state[idx]['exp_avg_sq'] = exp_avg_sq.detach()
+        
+        exp_avg_corr    = exp_avg    / bc1
+        exp_avg_sq_corr = exp_avg_sq / bc2
+        
+        if self.amsgrad:
+            max_exp_avg_sq = self.state[idx]['max_exp_avg_sq'].detach()
+            max_exp_avg_sq = max_exp_avg_sq.maximum(exp_avg_sq_corr)
+            self.state[idx]['max_exp_avg_sq'] = max_exp_avg_sq.detach()
+            denom = max_exp_avg_sq.sqrt() + self.eps
+        else: denom = exp_avg_sq_corr.sqrt() + self.eps
+        
+        param -= (lr * exp_avg_corr / denom).detach()
+
     def _update(self: Adam) -> None:
         for group in self.param_groups:
             _lr = group.get('lr', self.lr)
-                        
             for param in group['params']:
                 if param.grad is None: continue
                 idx = self._get_parameter_state_index(param)
                 self._build_state(idx, param)
                 
-                grad = param.grad.detach().clone()
-                
-                if self.maximize: grad = -grad
-                if self.weight_decay: 
-                    if self.decoupled_weight_decay:
-                        param -= _lr * self.weight_decay * param.detach()
-                    else: grad = grad + self.weight_decay * param.detach()
-                    
                 self.state[idx]['step'] += 1
                 step = self.state[idx]['step']
                 
-                exp_avg = self.state[idx]['exp_avg']
-                exp_avg = self.beta1 * exp_avg + (1 - self.beta1) * grad
-                self.state[idx]['exp_avg'] = exp_avg.detach()
+                bias_correction1 = 1.0 - self.beta1 ** step
+                bias_correction2 = 1.0 - self.beta2 ** step
                 
-                exp_avg_sq = self.state[idx]['exp_avg_sq']
-                exp_avg_sq = self.beta2 * exp_avg_sq + (1-self.beta2) * grad**2
-                self.state[idx]['exp_avg_sq'] = exp_avg_sq.detach()
-                
-                exp_avg_corrected = exp_avg / (1 - self.beta1**step)
-                exp_avg_sq_corrected = exp_avg_sq / (1 - self.beta2**step) 
-                
-                if self.amsgrad:
-                    max_exp_avg_sq = self.state[idx]['max_exp_avg_sq'].detach()
-                    max_exp_avg_sq = max_exp_avg_sq.maximum(
-                        exp_avg_sq_corrected)
-                    self.state[idx]['max_exp_avg_sq'] = max_exp_avg_sq.detach()
-                    denom = max_exp_avg_sq.sqrt() + self.eps
-                else: denom = exp_avg_sq_corrected.sqrt() + self.eps
-                
-                param -= (_lr * exp_avg_corrected / denom).detach()
+                if self.fused and param.device == 'cuda':
+                    _nectarml.optim.adam_update(
+                        param._data_ptr, param.grad._data_ptr,
+                        self.state[idx]['exp_avg']._data_ptr,
+                        self.state[idx]['exp_avg_sq']._data_ptr,
+                        _lr, self.beta1, self.beta2, self.eps, 
+                        bias_correction1, bias_correction2,
+                        self.weight_decay, self.decoupled_weight_decay,
+                        self.maximize, param.size)
+                else:
+                    self._run_update(
+                        param, idx, _lr, bias_correction1, bias_correction2)
 
 class AdamW(Optimizer):
     def __init__(

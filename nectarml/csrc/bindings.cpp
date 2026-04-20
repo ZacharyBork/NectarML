@@ -2,6 +2,7 @@
 
 #include "bindings/system.h"
 #include "bindings/tensor.h"
+#include "bindings/optim.h"
 #include "bindings/vision.h"
 #include "allocator_pool/bindings.h"
 
@@ -29,6 +30,8 @@ PYBIND11_MODULE(_nectarml, m) {
     register_utils(m);
     register_vision(m);
     register_inspection(m);
+
+    register_optim(m);
 
     auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");
     register_combination(m_tensor);
