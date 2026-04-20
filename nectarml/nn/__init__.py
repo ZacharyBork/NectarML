@@ -12,7 +12,8 @@ from . import (
     norm,
     padding,
     pooling,
-    upsample
+    upsample,
+    utils
 )
 
 from .module      import Module
