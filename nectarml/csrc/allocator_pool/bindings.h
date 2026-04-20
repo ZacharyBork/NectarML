@@ -8,12 +8,15 @@ namespace py = pybind11;
 
 void register_allocator_pool(py::module_& m) {
     
-    auto alloc_pool = m.def_submodule(
-        "alloc_pool", "Allocator pool submodule.");
+    auto allocator_pool = m.def_submodule(
+        "allocator_pool", "Allocator pool submodule.");
 
-    alloc_pool.def("pool_enable",  []() { g_pool.enable();  });
-    alloc_pool.def("pool_disable", []() { g_pool.disable(); });
-    alloc_pool.def("pool_release", []() { g_pool.release(); });
+    allocator_pool.def("enable",  []() { g_pool.enable();  });
+    allocator_pool.def(
+        "disable", [](const bool release_pool = true) { 
+            g_pool.disable(release_pool); 
+        });
+    allocator_pool.def("release", []() { g_pool.release(); });
 
 }
 

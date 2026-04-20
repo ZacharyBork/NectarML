@@ -21,7 +21,7 @@ from .utils import (
     has_inf, has_nan)
 
 from .memory import (
-    enable_memory_pool, disable_memory_pool, release_memory_pool,    
-    free_cuda, alloc_cuda_full,  alloc_cuda_random, 
+    enable_allocator_pool, disable_allocator_pool, release_allocator_pool,    
+    free_cuda, alloc_cuda_full, alloc_cuda_random, 
     get_cuda_meminfo, memory_allocated, get_memory_statistics)
 

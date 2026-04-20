@@ -1,15 +1,29 @@
 #include "allocator_pool/allocator_pool.h"
 
+void CudaMemoryPool::initialize_pool() {
+    size_t free, total;
+    cudaMemGetInfo(&free, &total);
+    max_pool_bytes = (size_t)((float)total * max_pool_vram_percent);
+    initialized    = true;
+}
+
 size_t CudaMemoryPool::bucket(size_t bytes) {
     size_t p = 1;
     while (p < bytes) p <<= 1;
     return p;
 }
 
-void CudaMemoryPool::enable()  { enabled = true; }
-void CudaMemoryPool::disable() { enabled = false; }
+void CudaMemoryPool::enable()  { 
+    if (!initialized) initialize_pool();
+    enabled = true;
+}
+void CudaMemoryPool::disable(const bool release_pool) { 
+    enabled = false;
+    if (release_pool) release();
+}
 
 void* CudaMemoryPool::alloc(size_t bytes) {
+    if (!initialized) initialize_pool();
     if (!enabled) {
         void* ptr;
         cudaMalloc(&ptr, bytes);
@@ -22,30 +36,68 @@ void* CudaMemoryPool::alloc(size_t bytes) {
         if (it != pool.end() && !it->second.empty()) {
             void* ptr = it->second.back();
             it->second.pop_back();
+            pool_bytes -= b;
             return ptr;
         }
     }
-    void* ptr;
-    cudaMalloc(&ptr, b);
+    void* ptr = nullptr;
+    cudaError_t err = cudaMalloc(&ptr, b);
+    
+    if (err == cudaErrorMemoryAllocation) {
+        if (evict_on_oom) {
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                release_unlocked();
+            }
+            err = cudaMalloc(&ptr, b);
+            if (err != cudaSuccess)
+                throw std::runtime_error("CUDA out of memory after pool release");
+        }  else throw std::runtime_error("CUDA out of memory");
+    }
+    
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        pool_allocated.insert(reinterpret_cast<uintptr_t>(ptr));
+    }
+    
     return ptr;
 }
 
 void CudaMemoryPool::free(void* ptr, size_t bytes) {
-    if (!enabled || ptr == nullptr) {
-        cudaFree(ptr);
-        return;
-    }
+    if (!ptr) return;
+    uintptr_t uptr = reinterpret_cast<uintptr_t>(ptr);
+    
+    bool should_hard_free = false;
     size_t b = bucket(bytes);
-    std::lock_guard<std::mutex> lock(mtx);
-    pool[b].push_back(ptr);
+    
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (pool_allocated.count(uptr) == 0) {
+            should_hard_free = true;
+        } else if (!enabled || pool_bytes + b > max_pool_bytes) {
+            pool_allocated.erase(uptr);
+            should_hard_free = true;
+        } else {
+            pool_bytes += b;
+            pool[b].push_back(ptr);
+        }
+    }
+    
+    if (should_hard_free) cudaFree(ptr);
 }
 
-void CudaMemoryPool::release() {
-    std::lock_guard<std::mutex> lock(mtx);
+void CudaMemoryPool::release_unlocked() {
     for (auto& [b, ptrs] : pool)
         for (void* ptr : ptrs)
             cudaFree(ptr);
     pool.clear();
+    pool_allocated.clear();
+    pool_bytes = 0;
+}
+
+void CudaMemoryPool::release() {
+    std::lock_guard<std::mutex> lock(mtx);
+    release_unlocked();
 }
 
 

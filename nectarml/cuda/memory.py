@@ -28,9 +28,10 @@ def get_memory_statistics(precision: builtins.int = 2) -> str:
 
 ### ALLOCATOR POOL ###
 
-def enable_memory_pool()  -> None: _nectarml.alloc_pool.pool_enable()
-def disable_memory_pool() -> None: _nectarml.alloc_pool.pool_disable()
-def release_memory_pool() -> None: _nectarml.alloc_pool.pool_release()
+def enable_allocator_pool()  -> None: _nectarml.allocator_pool.enable()
+def disable_allocator_pool(release: bool = True) -> None: 
+    _nectarml.allocator_pool.disable(release)
+def release_allocator_pool() -> None: _nectarml.allocator_pool.release()
 
 ### ALLOCATION / DEALLOCATION
 

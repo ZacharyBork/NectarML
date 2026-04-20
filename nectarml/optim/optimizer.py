@@ -30,9 +30,9 @@ class Optimizer:
         self.param_groups: list[dict[str, Any]] = []
         
         self._add_init_parameters(parameters)
-        for idx, _ in enumerate(self._get_all_params()): self.state[idx] = {}
+        for idx, _ in enumerate(self.parameters()): self.state[idx] = {}
         self._param_to_idx = {
-            id(p): idx for idx, p in enumerate(self._get_all_params())}
+            id(p): idx for idx, p in enumerate(self.parameters())}
         
         for group in self.param_groups:
             for key, value in self.defaults.items():
@@ -92,7 +92,7 @@ class Optimizer:
             self.state[idx] = {}
             self._param_to_idx[id(param)] = idx
         
-    def _get_all_params(self: Optimizer) -> list[Tensor]:
+    def parameters(self: Optimizer) -> list[Tensor]:
         return [
             p for group in self.param_groups 
             for p in group['params']]
@@ -232,7 +232,7 @@ class Optimizer:
                     f'Found unmatched key in loaded parameter group: {key}'
                 group[key] = value
         
-        for idx, _ in enumerate(self._get_all_params()):
+        for idx, _ in enumerate(self.parameters()):
             if idx in load_states: self.state[idx] = load_states[idx]
         
         for hook in self.load_state_dict_post_hooks: hook(self)
@@ -240,7 +240,7 @@ class Optimizer:
     ### GRADIENTS ###
 
     def zero_grad(self: Optimizer) -> None:
-        params = [p for p in self._get_all_params() if p.grad is not None]
+        params = [p for p in self.parameters() if p.grad is not None]
         for param in params: param.zero_grad()
     
     ### STEP ###

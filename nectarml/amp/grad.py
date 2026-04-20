@@ -22,12 +22,12 @@ class GradScaler():
         self._unscaled       = False
         self._skipped        = False
     
-    def scale(self, loss: Tensor) -> Tensor:
+    def scale(self: GradScaler, loss: Tensor) -> Tensor:
         return loss * self.scale_factor
 
-    def unscale_(self, optimizer):
+    def unscale_(self: GradScaler, optimizer: Optimizer) -> None:
         if self._unscaled: return
-        for param in optimizer._get_all_params():
+        for param in optimizer.parameters():
             if param.grad is None: continue
             param.grad = param.grad.to(dtype=typing.float32) \
                        / self.scale_factor
@@ -37,7 +37,7 @@ class GradScaler():
         if not self._unscaled: self.unscale_(optimizer)
         
         self._skipped = False
-        for param in optimizer._get_all_params():
+        for param in optimizer.parameters():
             if param.grad is None: continue
             if inspection.has_inf(param.grad) \
             or inspection.has_nan(param.grad):

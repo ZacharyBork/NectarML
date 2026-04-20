@@ -1,7 +1,12 @@
+### INITIALIZE CUDA BACKEND ###
+
 import atexit
 import _nectarml
 
 atexit.register(_nectarml.destroy_cublas_handle)
+_nectarml.allocator_pool.enable()
+
+### RAISE TOP-LEVEL IMPORTS ###
 
 from . import (
     constants,
@@ -17,8 +22,8 @@ from . import (
     vision
 
 )
-from .tensor import tensor, Tensor, BoolTensor
-from .random import manual_seed, fork_rng
+from .tensor   import tensor, Tensor, BoolTensor
+from .random   import manual_seed, fork_rng
 from .autograd import no_grad
 
 from .creation import (

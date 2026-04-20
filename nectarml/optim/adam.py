@@ -123,7 +123,7 @@ class Adam(Optimizer):
                     self._run_update(
                         param, idx, _lr, bias_correction1, bias_correction2)
 
-class AdamW(Optimizer):
+class AdamW(Adam):
     def __init__(
         self: AdamW,
         parameters: (
@@ -139,31 +139,12 @@ class AdamW(Optimizer):
         maximize:             bool = False,
         foreach:              bool = None,  # NOT YET IMPLEMENTED
         capturable:           bool = False, # NOT YET IMPLEMENTED
-        fused:                bool = False  # NOT YET IMPLEMENTED
+        fused:                bool = True
     ) -> None:
         super().__init__(
-            parameters, 
-            defaults={
-                'lr': 0.003,
-                'betas': (0.9, 0.999),
-                'eps': 1e-8,
-                'weight_decay': 0.0,
-                'amsgrad': False
-            }
-        )
-        self.lr = lr
-        self.beta1, self.beta2 = betas
-        self.eps = eps
-        self.weight_decay = weight_decay
-        self.amsgrad = amsgrad
-        self.maximize = maximize
-        self.foreach = foreach
-        self.capturable = capturable
-        self.fused = fused
-        
-    def _update(self: AdamW) -> None:
-        pass
-    
+            parameters, lr, betas, eps, weight_decay, True, 
+            amsgrad, maximize, foreach, capturable, fused)
+
 class NAdam(Optimizer):
     def __init__(
         self: NAdam,
