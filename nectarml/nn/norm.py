@@ -20,15 +20,17 @@ class _BatchNorm(Module):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(dtype)
         self.norm_dims = norm_dims
         self.norm_func = norm_func
         
-        self.eps = eps
-        self.momentum = momentum
+        self.eps                 = eps
+        self.momentum            = momentum
         self.track_running_stats = track_running_stats
+        self.fused               = fused
                 
         if affine:
             self.gamma = ones(parameter_shape, dtype=dtype, requires_grad=True)
@@ -46,7 +48,7 @@ class _BatchNorm(Module):
     def forward(self: _BatchNorm, x: Tensor) -> Tensor:
         if self.training:
             x_norm, (mean, var) = self.norm_func(
-                x, self.gamma, self.beta, self.eps)
+                x, self.gamma, self.beta, self.eps, self.fused)
             
             if self.track_running_stats:
                 M        = self.momentum
@@ -77,11 +79,12 @@ class BatchNorm1d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1), (0,), F.batch_norm1d, eps, momentum, affine, 
-            track_running_stats, dtype)
+            track_running_stats, dtype, fused)
 
 class BatchNorm2d(_BatchNorm):
     def __init__(
@@ -91,11 +94,12 @@ class BatchNorm2d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (0, 2, 3), F.batch_norm2d, eps, momentum, 
-            affine, track_running_stats, dtype)
+            affine, track_running_stats, dtype, fused)
 
 class BatchNorm3d(_BatchNorm):
     def __init__(
@@ -105,11 +109,12 @@ class BatchNorm3d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.batch_norm3d, eps, 
-            momentum, affine, track_running_stats, dtype)
+            momentum, affine, track_running_stats, dtype, fused)
 
 ### INSTANCE ###
 
@@ -121,11 +126,12 @@ class InstanceNorm1d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1), (2,), F.instance_norm1d, eps, 
-            momentum, affine, track_running_stats, dtype)
+            momentum, affine, track_running_stats, dtype, fused)
         
 class InstanceNorm2d(_BatchNorm):
     def __init__(
@@ -135,11 +141,12 @@ class InstanceNorm2d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1), (2, 3), F.instance_norm2d, eps, 
-            momentum, affine, track_running_stats, dtype)
+            momentum, affine, track_running_stats, dtype, fused)
         
 class InstanceNorm3d(_BatchNorm):
     def __init__(
@@ -149,11 +156,12 @@ class InstanceNorm3d(_BatchNorm):
         momentum:            float = 0.1,
         affine:              bool  = True,
         track_running_stats: bool  = True,
-        dtype:       typing.dtype  = typing.float32
+        dtype:       typing.dtype  = typing.float32,
+        fused:               bool  = True
     ) -> None:
         super().__init__(
             (1, num_features, 1, 1, 1), (2, 3, 4), F.instance_norm3d, eps, 
-            momentum, affine, track_running_stats, dtype)
+            momentum, affine, track_running_stats, dtype, fused)
         
 ### GROUP ###
         
