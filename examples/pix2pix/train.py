@@ -50,6 +50,7 @@ def train_fn(
     L1_LOSS:      nn.L1Loss, 
     BCE:          nn.BCELoss
 ) -> None:
+    loss_totals = { 'd_real': 0, 'd_fake': 0, 'g_gan': 0, 'g_l1': 0 }
     for idx, (x, y) in enumerate(train_loader): 
         iteration = idx + 1
                 
@@ -101,13 +102,22 @@ def train_fn(
         # ### POST-ITER ###
 
         if iteration != 0 and iteration % CONSOLE_UPDATE_FREQ == 0: 
-            print('='*CONSOLE_WIDTH)
-            print(f'Iteration: {iteration}')
-            print(f'Loss:')
-            print(f'    D_real: {round(D_real_loss.mean().item(), 3)}')
-            print(f'    D_fake: {round(D_fake_loss.mean().item(), 3)}')
-            print(f'    G_GAN:  {round(G_fake_loss.mean().item(), 3)}')
-            print(f'    G_L1:   {round(L1.mean().item(),          3)}\n')
+            for loss in loss_totals:
+                loss_totals[loss] /= CONSOLE_UPDATE_FREQ
+                loss_totals[loss] = round(loss_totals[loss], 3)
+            print(f'{'='*CONSOLE_WIDTH}\n'
+                  f'Iteration: {iteration}\n'
+                  f'Loss:\n'
+                  f'    D_real: {loss_totals['d_real']}\n'
+                  f'    D_fake: {loss_totals['d_fake']}\n'
+                  f'    G_GAN:  {loss_totals['g_gan']}\n'
+                  f'    G_L1:   {loss_totals['g_l1']}\n')
+            for loss in loss_totals: loss_totals[loss] = 0
+        else:
+            loss_totals['d_real'] += D_real_loss.mean().item()
+            loss_totals['d_fake'] += D_fake_loss.mean().item()
+            loss_totals['g_gan']  += G_fake_loss.mean().item()
+            loss_totals['g_l1']   += L1.mean().item()
 
 ###############################################################################
 # OUTPUT STRUCTURE
@@ -145,6 +155,29 @@ def build_examples_directory(output_path: Path) -> Path:
     examples_directory = Path(output_path, 'examples').resolve()
     examples_directory.mkdir()
     return examples_directory
+
+###############################################################################
+# UTILITIES
+###############################################################################
+
+def save_examples(
+    gen:         Generator, 
+    dataset:     utils.data.Dataset,
+    output_path: Path,
+    epoch:       int
+) -> None:
+    gen.eval()
+
+    idx    = nectarml.random.RNG.randint(0, len(dataset)-1)
+    x, y   = dataset[idx]
+    x, y   = x.unsqueeze(0).to(DEVICE), y.unsqueeze(0).to(DEVICE)
+    y_fake = gen(x)
+    
+    for item in [(x, 'A_real'), (y, 'B_real'), (y_fake, 'B_fake')]:
+        image_path = Path(output_path, f'epoch{epoch}_{item[1]}.jpg')
+        nectarml.vision.utils.save_image(item[0], image_path, normalize=True)
+    
+    gen.train()
 
 ###############################################################################
 # TRAINING LOOP FUNCTION
@@ -200,15 +233,13 @@ def train() -> None:
         
         utils.load_checkpoint(path_g, model=disc, optimizer=opt_disc)
     
-    ### BUILD DATALOADERS ###
+    ### BUILD DATASETS / DATALOADERS ###
     
     train_dataset = Pix2pixDataset(TRAIN_SET_PATH)
     train_loader  = utils.data.Dataloader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     
-    val_dataset = Pix2pixDataset(VAL_SET_PATH)
-    val_loader  = utils.data.Dataloader(
-        val_dataset, batch_size=1, shuffle=True)
+    val_dataset   = Pix2pixDataset(VAL_SET_PATH)
     
     ### RUN TRAINING LOOP ###
 
@@ -228,19 +259,7 @@ def train() -> None:
         ### SAVE EXAMPLE IMAGES ###
         
         if epoch % EXAMPLE_SAVE_RATE == 0:
-            gen.eval()
-    
-            idx = nectarml.random.RNG.randint(0, len(val_loader)-1)
-            x, y = val_dataset[idx]
-            x, y = x.to(DEVICE), y.to(DEVICE)
-            y_fake = gen(x)
-            
-            for item in [(x, 'A_real'), (y, 'B_real'), (y_fake, 'B_fake')]:
-                image_path = Path(examples_path, f'epoch{epoch}_{item[1]}.jpg')
-                nectarml.vision.utils.save_image(
-                    item[0], image_path, normalize=True)
-            
-            gen.train()
+            save_examples(gen, val_dataset, examples_path, epoch)
             
         ### SAVE MODEL CHECKPOINTS ###
         
