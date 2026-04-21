@@ -54,9 +54,9 @@ def train_fn(
         iteration = idx + 1
                 
         ### DATALOADING ###
-                
-        x: nectarml.Tensor = x[0].to(DEVICE)
-        y: nectarml.Tensor = y[0].to(DEVICE)
+
+        x: nectarml.Tensor = x.to(DEVICE)
+        y: nectarml.Tensor = y.to(DEVICE)
                                             
         ### GENERATOR INFERENCE ###
                         

@@ -18,7 +18,6 @@ class Pix2pixDataset(utils.data.Dataset):
             vision.transforms.Resize(size=(286, 286), mode='bilinear'),
             vision.transforms.RandomHorizontalFlip(p=0.5),
             vision.transforms.RandomCrop(size=(256, 256))
-            
         ])
         
     def __len__(self) -> int:
@@ -37,10 +36,14 @@ class Pix2pixDataset(utils.data.Dataset):
         input_image  = image[:, :, :, width:]
         target_image = image[:, :, :, :width]
 
-        # Next we run our transforms on input and target.
+        # Run our transforms on input and target.
         input_image, target_image = self.transforms(
             image=input_image, image2=target_image)
+        
+        # Squeeze the two tensors to remove the batch dimension.
+        input_image  = input_image.squeeze(0)
+        target_image = target_image.squeeze(0)
 
-        # And finally, return the two Tensors as a tuple.
-        return input_image, target_image
+        # And finally, return them as a tuple.
+        return input_image.squeeze(0), target_image.squeeze(0)
 
