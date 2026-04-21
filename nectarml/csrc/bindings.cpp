@@ -1,5 +1,6 @@
 #include "common/dtype.h"
 
+#include "bindings/amp.h"
 #include "bindings/system.h"
 #include "bindings/tensor.h"
 #include "bindings/optim.h"
@@ -31,6 +32,7 @@ PYBIND11_MODULE(_nectarml, m) {
     register_vision(m);
     register_inspection(m);
 
+    register_amp(m);
     register_optim(m);
 
     auto m_tensor = m.def_submodule("tensor", "Tensor submodule.");

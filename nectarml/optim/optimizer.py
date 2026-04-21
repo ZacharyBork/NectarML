@@ -12,6 +12,7 @@ class HookHandle:
     hook:      Callable
     
     def remove(self: HookHandle) -> None:
+        '''Removes the hook from the optimizer it is registered with.'''
         self.hook_list.remove(self.hook)
     
 class Optimizer:
@@ -30,9 +31,9 @@ class Optimizer:
         self.param_groups: list[dict[str, Any]] = []
         
         self._add_init_parameters(parameters)
-        for idx, _ in enumerate(self.parameters()): self.state[idx] = {}
+        for idx, _ in enumerate(self.params()): self.state[idx] = {}
         self._param_to_idx = {
-            id(p): idx for idx, p in enumerate(self.parameters())}
+            id(p): idx for idx, p in enumerate(self.params())}
         
         for group in self.param_groups:
             for key, value in self.defaults.items():
@@ -78,6 +79,9 @@ class Optimizer:
                 'Optimizer parameters must be either list[nectarml.Tensor], '
                 'list[tuple[str, Tensor]], or list[dict[str, Any]].')
     
+    def _get_parameter_state_index(self: Optimizer, parameter: Tensor) -> int:
+        return self._param_to_idx[id(parameter)]
+    
     def add_param_group(self: Optimizer, param_group: dict[str, Any]) -> None:
         assert 'params' in param_group, \
             'param_group must contain "params" key.'
@@ -92,22 +96,14 @@ class Optimizer:
             self.state[idx] = {}
             self._param_to_idx[id(param)] = idx
         
-    def parameters(self: Optimizer) -> list[Tensor]:
+    def params(self: Optimizer) -> list[Tensor]:
+        '''Returns a flat list of all parameters managed by the optimizer.'''
         return [
             p for group in self.param_groups 
             for p in group['params']]
-        
-    def _get_parameter_state_index(self: Optimizer, parameter: Tensor) -> int:
-        return self._param_to_idx[id(parameter)]
     
-    def named_parameters(self: Optimizer) -> list[tuple[str, Tensor]]:
-        result = []
-        for group in self.param_groups:
-            for name, param in zip(group['param_names'], group['params']):
-                result.append((name, param))
-        return result
-
     def print_param_stats(self: Optimizer) -> None:
+        '''Prints debug information about optimizer's parameters.'''
         for group in self.param_groups:
             for name, param in zip(group['param_names'], group['params']):
                 if param.grad is not None:
@@ -125,7 +121,13 @@ class Optimizer:
     
     ### HOOKS ###
     
-    def hooks(self: Optimizer) -> dict[str, Any]:
+    def hooks(self: Optimizer) -> dict[str, list[Callable]]:
+        '''Returns a dict of all hooks registered to the optimizer.
+        
+        Returns:
+            dict[str, list[Callable]] : All of the hooks registered to the
+                optimizer, broken down by category.
+        '''
         return {
             'state_dict': {
                 'pre_hooks':  self.state_dict_pre_hooks,
@@ -232,7 +234,7 @@ class Optimizer:
                     f'Found unmatched key in loaded parameter group: {key}'
                 group[key] = value
         
-        for idx, _ in enumerate(self.parameters()):
+        for idx, _ in enumerate(self.params()):
             if idx in load_states: self.state[idx] = load_states[idx]
         
         for hook in self.load_state_dict_post_hooks: hook(self)
@@ -240,7 +242,7 @@ class Optimizer:
     ### GRADIENTS ###
 
     def zero_grad(self: Optimizer) -> None:
-        params = [p for p in self.parameters() if p.grad is not None]
+        params = [p for p in self.params() if p.grad is not None]
         for param in params: param.zero_grad()
     
     ### STEP ###

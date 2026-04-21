@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, Literal, Self
-from collections.abc import Iterable, Callable
+import random as default_random
+from   typing          import Any, Literal, Self
+from   collections.abc import Iterable, Callable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -15,6 +16,7 @@ class Random:
     def __init__(self: Random, seed: builtins.int | None = None) -> None:
         self._seed = seed
         self._rng  = np.random.default_rng(seed=self.seed)
+        default_random.seed(self.seed)
         
     ### PROPERTIES ###
     

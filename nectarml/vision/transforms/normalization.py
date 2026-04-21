@@ -1,5 +1,3 @@
-from typing import Literal
-
 import numpy as np
 
 from nectarml.tensor import Tensor
@@ -16,9 +14,9 @@ class Normalize(Transform):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.mean = mean
-        self.std = std
-        self.eps = eps
+        self.mean    = mean
+        self.std     = std
+        self.eps     = eps
         self.inplace = inplace
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -35,7 +33,7 @@ class Normalize(Transform):
         std  = Tensor(np.array(self.std,  dtype=np.float32))
         std  = std.reshape(broadcast_shape).to(input.device, input.dtype)
         
-        out = (input - mean) / (std + self.eps)
+        out = (input / input.max().item() - mean) / (std + self.eps)
         if self.inplace: return input.copy_(out)
         return out
         

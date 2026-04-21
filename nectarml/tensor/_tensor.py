@@ -11,6 +11,20 @@ from nectarml             import typing, cpu, cuda
 from nectarml.cuda.memory import CudaBuffer
 from nectarml.autograd    import is_grad_enabled
 
+def _reconstruct_tensor(
+    data:  np.ndarray, 
+    shape: list[int], 
+    dtype: typing.dtype
+) -> tensor:
+    import nectarml
+    return nectarml.Tensor(
+        data=data, 
+        shape=shape,
+        dtype=dtype, 
+        device='cpu',
+        requires_grad=False
+    )
+
 class tensor:
     _class_type_nectar_tensor  = True
     _subclasses: builtins.dict = {}
@@ -929,6 +943,16 @@ class tensor:
             int : Address in system memory of the tensor.
         '''
         return id(self)
+    
+    def __reduce__(self: tensor) -> tuple[Callable, tuple[Any, ...]]:
+        return (
+            _reconstruct_tensor,
+            (
+                self.cpu().numpy(),
+                list(self.shape),
+                self.dtype
+            )
+        )
     
     ### GARBAGE COLLECTION ###
     
