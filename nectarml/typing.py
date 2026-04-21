@@ -8,26 +8,7 @@ import numpy as np
 
 import _nectarml
 
-### DTYPE CLASSES ###
-
-@dataclass(frozen=True)
-class DTypeMap:
-    mappings = {
-        np.float32: _nectarml.DType.Float32,
-        np.float16: _nectarml.DType.Float16,
-        np.half:    _nectarml.DType.Float16,
-        np.int32:   _nectarml.DType.Int32,
-        np.uint8:   _nectarml.DType.UInt8,
-        np.bool_:   _nectarml.DType.Bool,
-    }
-    
-    def map_dtype(
-        self:  DTypeMap,
-        dtype: np.typing.DTypeLike
-    ) -> _nectarml.DType:
-        return self.mappings[dtype]
-        
-DTYPE_MAP = DTypeMap()
+### DATA INFO ###
 
 @dataclass
 class iinfo:
@@ -66,8 +47,38 @@ class finfo:
             f'DType:           {self.dtype.__str__()}'
         )
 
+### DTYPE CLASSES ###
+
+@dataclass(frozen=True)
+class DTypeMap:
+    mappings = {
+        np.float32: _nectarml.DType.Float32,
+        np.float16: _nectarml.DType.Float16,
+        np.half:    _nectarml.DType.Float16,
+        np.int32:   _nectarml.DType.Int32,
+        np.uint8:   _nectarml.DType.UInt8,
+        np.bool_:   _nectarml.DType.Bool,
+    }
+    
+    def map_dtype(
+        self:  DTypeMap,
+        dtype: np.typing.DTypeLike
+    ) -> _nectarml.DType:
+        return self.mappings[dtype]
+        
+_DTYPE_MAP  = DTypeMap()
+_DTYPE_CACHE: dict[np.dtype, dtype] = {}
+
 class dtype:  
-    _map = DTYPE_MAP
+    _map = _DTYPE_MAP
+    
+    def __new__(cls: type[Self], type_cpu: DTypeLike = None) -> Self:
+        if type_cpu is None:         return object.__new__(cls)
+        if type_cpu in _DTYPE_CACHE: return _DTYPE_CACHE[type_cpu]
+        
+        obj = object.__new__(cls)
+        _DTYPE_CACHE[type_cpu] = obj
+        return obj
     
     def __init__(self: dtype, type_cpu: DTypeLike) -> None:
         self._type_cpu         = type_cpu
@@ -112,20 +123,23 @@ class dtype:
 
     ### COMPARISON ###
     
-    def __hash__(self: dtype) -> builtins.int: return id(self)
-    def __eq__(self: dtype, other: dtype) -> builtins.bool:
-        if not isinstance(other, dtype):
-            raise ValueError(
-                f'Unable to compare dtype object to type [{type(other)}]')
-        return self.name == other.name
+    def __hash__(self): return hash(self._type_cpu)
+
+    def __eq__(self, other):
+        if isinstance(other, dtype):
+            return self._type_cpu == other._type_cpu
+        return NotImplemented
     
     def __ne__(self: dtype, other: dtype) -> builtins.bool:
-        return self.name != other.name
-    
+        if isinstance(other, dtype):
+            return self._type_cpu != other._type_cpu
+        return NotImplemented
+
     ### INSPECTION ###
     
     def __str__ (self: dtype) -> str: return f'nectarml.{self.name}'
     def __repr__(self: dtype) -> str: return self.__str__()
+    def __reduce__(self): return (dtype, (self._type_cpu,))
 
 float   = dtype(np.float32)
 float16 = dtype(np.float16)

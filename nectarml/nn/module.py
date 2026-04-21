@@ -178,7 +178,7 @@ class Module:
     
     def parameters(self: Module) -> dict[str, Any]:
         output = []
-        seen = set()
+        seen   = set()
 
         for module_name, module in self._walk_module_tree():
             params = { 'params': [], 'param_names': [] }

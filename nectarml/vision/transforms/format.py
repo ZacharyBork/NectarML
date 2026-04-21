@@ -30,8 +30,7 @@ class ToTensor(Transform):
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         
         output = Tensor(data.astype(np.float32), dtype=float32, device='cpu')
-        if self.normalize:
-            output = output / np.maximum(data.max().astype(np.float32), 1.0)
+        if self.normalize: output = output / max(output.max().item(), 1.0)
         return output
     
     def forward(self, input: TransformInput) -> TransformInput:

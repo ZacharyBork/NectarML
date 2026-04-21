@@ -1,8 +1,8 @@
-from nectarml.tensor import Tensor
-from nectarml.cuda import combination as cuda
-from nectarml.cpu  import combination as cpu
+from nectarml.tensor       import Tensor
+from nectarml.cuda         import combination as cuda
+from nectarml.cpu          import combination as cpu
 from nectarml.amp.autocast import autocast_state
-from nectarml.amp.utils import get_promotion_dtype
+from nectarml.amp.utils    import get_promotion_dtype
 
 def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     _devices = set([x.device for x in tensors])
@@ -25,7 +25,7 @@ def concatenate(tensors: list[Tensor], dim: int = 0) -> Tensor:
     dtype  = _dtypes.pop()
     shape  = list(tensors[0].shape)
     dim    = Tensor._normalize_dim(dim, tensors[0].ndim)
-    _grad = tensors[0].requires_grad
+    _grad  = tensors[0].requires_grad
     for i in tensors[1:]: 
         shape[dim] += list(i.shape)[dim]
         if i.requires_grad: _grad = True

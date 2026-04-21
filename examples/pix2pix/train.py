@@ -12,28 +12,36 @@ from dataset       import Pix2pixDataset
 # CONFIGURATION
 ###############################################################################
 
+### MODEL SETTINGS ###
+
 DEVICE            = 'cuda'
 LR                = 0.0002
 BATCH_SIZE        = 1
 NUM_EPOCHS        = 200
-MODEL_SAVE_RATE   = 10
-EXAMPLE_SAVE_RATE = 1
 L1_LAMBDA         = 100.0
 AUTOCAST_ENABLED  = True
-GRADIENT_SCALING  = True
-SYNC_CUDA         = True
 
-OUTPUT_DIRECTORY = ''
+### OUTPUT SETTINGS ###
+
+OUTPUT_DIRECTORY  = ''
+ALLOW_EXISTING    = True
+MODEL_SAVE_RATE   = 10
+EXAMPLE_SAVE_RATE = 1
+
+### CHECKPOINT LOADING ###
 
 CHECKPOINT_G = ''
 CHECKPOINT_D = ''
+
+### DATASET SETTINGS ###
 
 TRAIN_SET_PATH = ''
 VAL_SET_PATH   = ''
 TEST_SET_PATH  = ''
 
+### CONSOLE SETTINGS ###
+
 CONSOLE_UPDATE_FREQ = 5
-CONSOLE_WIDTH       = os.get_terminal_size()[0]
 
 ###############################################################################
 # TRAIN LOOP FUNCTION
@@ -105,7 +113,7 @@ def train_fn(
             for loss in loss_totals:
                 loss_totals[loss] /= CONSOLE_UPDATE_FREQ
                 loss_totals[loss] = round(loss_totals[loss], 3)
-            print(f'{'='*CONSOLE_WIDTH}\n'
+            print(f'{'='*os.get_terminal_size()[0]}\n'
                   f'Iteration: {iteration}\n'
                   f'Loss:\n'
                   f'    D_real: {loss_totals['d_real']}\n'
@@ -131,16 +139,14 @@ def build_output_directory() -> Path:
     '''
     assert OUTPUT_DIRECTORY != '', \
         'Please set OUTPUT_DIRECTORY to begin training.'
+    
     path = Path(OUTPUT_DIRECTORY).resolve()
     if not path.parent.exists():
         raise FileNotFoundError(
             f'Unable to build output directory at path: {path.as_posix()}\n'
             f'Parent directory does not exist.')
-    if path.exists():        
-        raise FileExistsError(
-            f'Output directory already exists at {path.as_posix()}')
     
-    path.mkdir()
+    path.mkdir(exist_ok=ALLOW_EXISTING)
     return path
 
 def build_examples_directory(output_path: Path) -> Path:
@@ -153,7 +159,7 @@ def build_examples_directory(output_path: Path) -> Path:
         Path : The path to the newly created example directory.
     '''
     examples_directory = Path(output_path, 'examples').resolve()
-    examples_directory.mkdir()
+    examples_directory.mkdir(exist_ok=ALLOW_EXISTING)
     return examples_directory
 
 ###############################################################################
@@ -210,10 +216,10 @@ def train() -> None:
     BCE     = nn.BCEWithLogitsLoss()
     L1_LOSS = nn.L1Loss()
 
-    ### LOAD CHECKPOINTS ###
+    ### INITIALIZE CHECKPOINTS ###
     
     start_epoch = 0
-        
+
     if not CHECKPOINT_G == '':
         path_g = Path(CHECKPOINT_G).resolve()
         if not path_g.exists():
@@ -221,17 +227,17 @@ def train() -> None:
                 f'Unable to locate generator checkpoint at: '
                 f'{path_g.as_posix()}')
         
-        info = utils.load_checkpoint(path_g, model=gen, optimizer=opt_gen)
+        info = nn.utils.checkpoint(model=gen, optimizer=opt_gen).load(path_g)
         start_epoch = info['epoch']
     
     if not CHECKPOINT_D == '':
-        path_g = Path(CHECKPOINT_D).resolve()
-        if not path_g.exists():
+        path_d = Path(CHECKPOINT_D).resolve()
+        if not path_d.exists():
             raise FileNotFoundError(
                 f'Unable to locate discriminator checkpoint at: '
-                f'{path_g.as_posix()}')
+                f'{path_d.as_posix()}')
         
-        utils.load_checkpoint(path_g, model=disc, optimizer=opt_disc)
+        nn.utils.checkpoint(model=disc, optimizer=opt_disc).load(path_d)
     
     ### BUILD DATASETS / DATALOADERS ###
     
@@ -239,7 +245,7 @@ def train() -> None:
     train_loader  = utils.data.Dataloader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     
-    val_dataset   = Pix2pixDataset(VAL_SET_PATH)
+    val_dataset = Pix2pixDataset(VAL_SET_PATH)
     
     ### RUN TRAINING LOOP ###
 
@@ -265,10 +271,10 @@ def train() -> None:
         
         if epoch % MODEL_SAVE_RATE == 0:
             path_g = Path(output_path, f'epoch{epoch}_netG.pth.tar')
-            utils.save_checkpoint(path_g, gen, opt_gen, epoch=epoch)
+            nn.utils.checkpoint(gen, opt_gen).save(path_g, epoch=epoch)
             
             path_d = Path(output_path, f'epoch{epoch}_netD.pth.tar')
-            utils.save_checkpoint(path_d, disc, opt_disc, epoch=epoch)
+            nn.utils.checkpoint(disc, opt_disc).save(path_d, epoch=epoch)
         
 if __name__ == '__main__':
     train()
