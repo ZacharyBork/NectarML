@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import _nectarml
 from nectarml.tensor import Tensor
 from nectarml.creation import zeros_like
 from nectarml.optim.optimizer import Optimizer
@@ -21,7 +22,7 @@ class SGD(Optimizer):
         nesterov:      bool = False,
         maximize:      bool = False,
         foreach:       bool = None, # NOT YET IMPLEMENTED
-        fused:         bool = None  # NOT YET IMPLEMENTED
+        fused:         bool = True
     ) -> None:
         super().__init__(
             parameters, 
@@ -33,20 +34,42 @@ class SGD(Optimizer):
                 'nesterov': False
             }
         )
-        self.lr = lr
-        self.momentum = momentum
-        self.dampening = dampening
+        self.lr           = lr
+        self.momentum     = momentum
+        self.dampening    = dampening
         self.weight_decay = weight_decay
-        self.nesterov = nesterov and momentum > 0.0
-        self.maximize = maximize
-        self.foreach = foreach
-        self.fused = fused
+        self.nesterov     = nesterov and momentum > 0.0
+        self.maximize     = maximize
+        self.foreach      = foreach
+        self.fused        = fused
         
     def _build_state(self: SGD, param_index: int, param: Tensor) -> None:
         if param_index not in self.state: self.state[param_index] = {}
         if self.momentum > 0.0:
             if 'velocity' not in self.state[param_index]:
                 self.state[param_index]['velocity'] = zeros_like(param)
+                
+    def _run_update(
+        self:  SGD, 
+        param: Tensor,
+        idx:   int,
+        lr:    float
+    ) -> None:
+        grad = param.grad.detach().clone()
+                    
+        if self.maximize: grad = -grad
+        if self.weight_decay: 
+            grad = grad + self.weight_decay * param.detach()
+        
+        if self.momentum > 0.0:
+            v = self.state[idx]['velocity']
+            v = self.momentum * v + (1 - self.dampening) * grad
+            self.state[idx]['velocity'] = v.detach()
+            
+            if self.nesterov: grad = grad + self.momentum * v
+            else: grad = v
+        
+        param -= (lr * grad).detach()
                 
     def _update(self: SGD) -> None:
         for group in self.param_groups:
@@ -57,21 +80,11 @@ class SGD(Optimizer):
                 idx = self._get_parameter_state_index(param)
                 self._build_state(idx, param)
                 
-                grad = param.grad.detach().clone()
+                if self.fused and param.device == 'cuda':
+                    _nectarml.optim.sgd_update(
+                        param._data_ptr, param.grad._data_ptr,
+                        self.state[idx]['velocity']._data_ptr,
+                        _lr, self.momentum, self.dampening, self.weight_decay, 
+                        self.nesterov, self.maximize, param.size)
+                else: self._run_update(param, idx, _lr)
                 
-                if self.maximize: grad = -grad
-                if self.weight_decay: 
-                    grad = grad + self.weight_decay * param.detach()
-                
-                if self.momentum > 0.0:
-                    v = self.state[idx]['velocity']
-                    v = self.momentum * v + (1 - self.dampening) * grad
-                    self.state[idx]['velocity'] = v.detach()
-                    
-                    if self.nesterov: grad = grad + self.momentum * v
-                    else: grad = v
-                
-                param -= (_lr * grad).detach()
-                
-            
-

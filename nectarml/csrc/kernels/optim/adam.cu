@@ -82,13 +82,13 @@ void launch_adam_update(
     int threads = 256;
     int blocks  = (n_elements + threads - 1) / threads;
     if (decoupled_weight_decay) {
-        adamw_update_kernel<<<threads, blocks>>>(
+        adamw_update_kernel<<<blocks, threads>>>(
             param, grad, exp_avg, exp_avg_sq, lr, beta1, beta2, eps,
             bias_correction1, bias_correction2, weight_decay, n_elements
         );
     }
     else {
-        adam_update_kernel<<<threads, blocks>>>(
+        adam_update_kernel<<<blocks, threads>>>(
             param, grad, exp_avg, exp_avg_sq, lr, beta1, beta2, eps,
             bias_correction1, bias_correction2, weight_decay, n_elements
         );
