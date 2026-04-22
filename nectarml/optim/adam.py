@@ -111,14 +111,17 @@ class Adam(Optimizer):
                 bias_correction2 = 1.0 - self.beta2 ** step
                 
                 if self.fused and param.device == 'cuda':
+                    max_exp_avg_sqrt = (
+                        self.state[idx]['max_exp_avg_sq']._data_ptr
+                        if self.amsgrad else 0)
                     _nectarml.optim.adam_update(
                         param._data_ptr, param.grad._data_ptr,
                         self.state[idx]['exp_avg']._data_ptr,
                         self.state[idx]['exp_avg_sq']._data_ptr,
-                        _lr, self.beta1, self.beta2, self.eps, 
-                        bias_correction1, bias_correction2,
+                        max_exp_avg_sqrt, _lr, self.beta1, self.beta2, 
+                        self.eps, bias_correction1, bias_correction2,
                         self.weight_decay, self.decoupled_weight_decay,
-                        self.maximize, param.size)
+                        self.amsgrad, self.maximize, param.size)
                 else:
                     self._run_update(
                         param, idx, _lr, bias_correction1, bias_correction2)
@@ -174,15 +177,15 @@ class NAdam(Optimizer):
                 'decoupled_weight_decay': False
             }
         )
-        self.lr = lr
-        self.beta1, self.beta2 = betas
-        self.eps = eps
-        self.weight_decay = weight_decay
-        self.momentum_decay = momentum_decay
+        self.lr                     = lr
+        self.beta1, self.beta2      = betas
+        self.eps                    = eps
+        self.weight_decay           = weight_decay
+        self.momentum_decay         = momentum_decay
         self.decoupled_weight_decay = decoupled_weight_decay
-        self.maximize = maximize
-        self.foreach = foreach
-        self.capturable = capturable
+        self.maximize               = maximize
+        self.foreach                = foreach
+        self.capturable             = capturable
         
     def _update(self: NAdam) -> None:
         pass
