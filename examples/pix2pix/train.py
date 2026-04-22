@@ -23,7 +23,7 @@ AUTOCAST_ENABLED  = True
 
 ### OUTPUT SETTINGS ###
 
-OUTPUT_DIRECTORY  = '/media/zach/UE/ML/NectarML/tmp/examples_output/pix2pix1'
+OUTPUT_DIRECTORY  = ''
 ALLOW_EXISTING    = True
 MODEL_SAVE_RATE   = 10
 EXAMPLE_SAVE_RATE = 1
@@ -35,8 +35,8 @@ CHECKPOINT_D = ''
 
 ### DATASET SETTINGS ###
 
-TRAIN_SET_PATH = '/media/zach/UE/ML/test_data/pix2pix/datasets/facades/train'
-VAL_SET_PATH   = '/media/zach/UE/ML/test_data/pix2pix/datasets/facades/val'
+TRAIN_SET_PATH = ''
+VAL_SET_PATH   = ''
 
 ### CONSOLE SETTINGS ###
 
