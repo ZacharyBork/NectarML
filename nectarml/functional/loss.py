@@ -2,7 +2,7 @@ import builtins
 from typing import Literal
 
 from nectarml.tensor              import Tensor
-from nectarml.typing              import float32
+from nectarml.typing              import float32, int32
 from nectarml.functional          import math
 from nectarml.functional.indexing import where, gather
 
@@ -159,9 +159,15 @@ def cross_entropy_loss(
     reduction: Literal['none', 'mean', 'sum'] = 'mean'
 ) -> Tensor: 
     input_dtype = input.dtype
-    x, y        = input.to(dtype=float32), target.to(dtype=float32)
-    out         = _reduce_loss(-sum(y * x.log()), reduction)
-    return out.to(dtype=input_dtype)
+    x = input.to(dtype=float32)
+    
+    x           = x - x.max(dim=1, keepdim=True).values
+    log_softmax = x - x.exp().sum(dim=1, keepdim=True).log()
+
+    B = x.shape[0]    
+    target_int = target.to(dtype=int32)
+    nll        = -log_softmax.gather(dim=1, index=target_int.reshape(B, 1))    
+    return _reduce_loss(nll.reshape(B), reduction).to(dtype=input_dtype)
 
 def nll_loss(
     input:     Tensor, 

@@ -45,5 +45,5 @@ class Pix2pixDataset(utils.data.Dataset):
         target_image = target_image.squeeze(0)
 
         # And finally, return them as a tuple.
-        return input_image.squeeze(0), target_image.squeeze(0)
+        return input_image, target_image
 

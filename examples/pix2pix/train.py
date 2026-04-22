@@ -23,7 +23,7 @@ AUTOCAST_ENABLED  = True
 
 ### OUTPUT SETTINGS ###
 
-OUTPUT_DIRECTORY  = ''
+OUTPUT_DIRECTORY  = '/media/zach/UE/ML/NectarML/tmp/examples_output/pix2pix1'
 ALLOW_EXISTING    = True
 MODEL_SAVE_RATE   = 10
 EXAMPLE_SAVE_RATE = 1
@@ -35,13 +35,12 @@ CHECKPOINT_D = ''
 
 ### DATASET SETTINGS ###
 
-TRAIN_SET_PATH = ''
-VAL_SET_PATH   = ''
-TEST_SET_PATH  = ''
+TRAIN_SET_PATH = '/media/zach/UE/ML/test_data/pix2pix/datasets/facades/train'
+VAL_SET_PATH   = '/media/zach/UE/ML/test_data/pix2pix/datasets/facades/val'
 
 ### CONSOLE SETTINGS ###
 
-CONSOLE_UPDATE_FREQ = 5
+CONSOLE_UPDATE_FREQ = 10
 
 ###############################################################################
 # TRAIN LOOP FUNCTION
@@ -64,8 +63,7 @@ def train_fn(
                 
         ### DATALOADING ###
 
-        x: nectarml.Tensor = x.to(DEVICE)
-        y: nectarml.Tensor = y.to(DEVICE)
+        x, y = x.to(DEVICE), y.to(DEVICE)
                                             
         ### GENERATOR INFERENCE ###
                         
@@ -112,14 +110,13 @@ def train_fn(
         if iteration != 0 and iteration % CONSOLE_UPDATE_FREQ == 0: 
             for loss in loss_totals:
                 loss_totals[loss] /= CONSOLE_UPDATE_FREQ
-                loss_totals[loss] = round(loss_totals[loss], 3)
             print(f'{'='*os.get_terminal_size()[0]}\n'
                   f'Iteration: {iteration}\n'
                   f'Loss:\n'
-                  f'    D_real: {loss_totals['d_real']}\n'
-                  f'    D_fake: {loss_totals['d_fake']}\n'
-                  f'    G_GAN:  {loss_totals['g_gan']}\n'
-                  f'    G_L1:   {loss_totals['g_l1']}\n')
+                  f'    D_real: {loss_totals['d_real']:.4f}\n'
+                  f'    D_fake: {loss_totals['d_fake']:.4f}\n'
+                  f'    G_GAN:  {loss_totals['g_gan']:.4f}\n'
+                  f'    G_L1:   {loss_totals['g_l1']:.4f}\n')
             for loss in loss_totals: loss_totals[loss] = 0
         else:
             loss_totals['d_real'] += D_real_loss.mean().item()
@@ -216,7 +213,7 @@ def train() -> None:
     BCE     = nn.BCEWithLogitsLoss()
     L1_LOSS = nn.L1Loss()
 
-    ### INITIALIZE CHECKPOINTS ###
+    ### LOAD CHECKPOINTS ###
     
     start_epoch = 0
 
