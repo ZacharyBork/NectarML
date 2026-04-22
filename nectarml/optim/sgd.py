@@ -8,6 +8,14 @@ from nectarml.creation import zeros_like
 from nectarml.optim.optimizer import Optimizer
 
 class SGD(Optimizer):
+    _defaults={
+        'lr':           0.003,
+        'momentum':     0.0,
+        'dampening':    0.0,
+        'weight_decay': 0.0,
+        'nesterov':     False
+    }
+    
     def __init__(
         self: SGD,
         parameters: (
@@ -24,16 +32,7 @@ class SGD(Optimizer):
         foreach:       bool = None, # NOT YET IMPLEMENTED
         fused:         bool = True
     ) -> None:
-        super().__init__(
-            parameters, 
-            defaults={
-                'lr': 0.003,
-                'momentum': 0.0,
-                'dampening': 0.0,
-                'weight_decay': 0.0,
-                'nesterov': False
-            }
-        )
+        super().__init__(parameters)
         self.lr           = lr
         self.momentum     = momentum
         self.dampening    = dampening

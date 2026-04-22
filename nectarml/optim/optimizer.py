@@ -16,17 +16,16 @@ class HookHandle:
         self.hook_list.remove(self.hook)
     
 class Optimizer:
+    _defaults: dict[str, Any] = {}
+    
     def __init__(
         self: Optimizer,
         parameters: (
             list[Tensor] 
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
-        ),
-        defaults: dict[str, Any] | None = None
+        )
     ) -> None:
-        self.defaults = defaults or {}
-        
         self.state:   dict[int, dict[str, Any]] = {}
         self.param_groups: list[dict[str, Any]] = []
         
@@ -36,7 +35,7 @@ class Optimizer:
             id(p): idx for idx, p in enumerate(self.params())}
         
         for group in self.param_groups:
-            for key, value in self.defaults.items():
+            for key, value in self._defaults.items():
                 if key not in group: group[key] = value
                 
         self.state_dict_pre_hooks:       list[Callable] = []
@@ -86,9 +85,10 @@ class Optimizer:
         assert 'params' in param_group, \
             'param_group must contain "params" key.'
         
-        for key, value in self.defaults.items():
-            if key not in param_group: param_group[key] = value
-        
+        if self._defaults is not None:
+            for key, value in self._defaults.items():
+                if key not in param_group: param_group[key] = value
+            
         self.param_groups.append(param_group)
         start_idx = len(self._param_to_idx)
         for i, param in enumerate(param_group['params']):
