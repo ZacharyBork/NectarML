@@ -31,7 +31,11 @@ namespace nectar {
         bool      maximize,
         int       n_elements
     ) {
-        if (maximize) grad_ptr = negate(grad_ptr, n_elements, DType::Float32);
+        uintptr_t negated_ptr = 0;
+        if (maximize) {
+            negated_ptr = negate(grad_ptr, n_elements, DType::Float32);
+            grad_ptr    = negated_ptr;
+        }
 
         float* param    = reinterpret_cast<float*>(param_ptr);
         float* grad     = reinterpret_cast<float*>(grad_ptr);

@@ -47,6 +47,9 @@ struct AMSGradOn {
         return sqrtf(m) + eps;
     }
 };
+
+/* Adam / AdamW */
+
 template<class Decay, class AMSGrad>
 __global__ void adam_kernel(
     float* param,
@@ -134,5 +137,85 @@ void launch_adam_update(
         if (amsgrad) launch.operator()<AdamVanilla, AMSGradOn>();
         else         launch.operator()<AdamVanilla, AMSGradOff>();
     }
+}
+
+/* NAdam */
+
+template<class Decay>
+__global__ void nadam_kernel(
+    float* param,
+    float* grad,
+    float* exp_avg,
+    float* exp_avg_sq,
+    float  lr,
+    float  beta1,
+    float  beta2,
+    float  eps,
+    float  mu_t,
+    float  mu_t1,
+    float  mu_product,
+    float  bias_correction,
+    float  weight_decay,
+    int    n_elements
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n_elements) return;
+    
+    float g = grad[idx];
+    if (weight_decay != 0.0f) Decay::apply(g, param, lr, weight_decay, idx);
+
+    float ea    = beta1 * exp_avg[idx]    + (1.0f - beta1) * g;
+    float ea_sq = beta2 * exp_avg_sq[idx] + (1.0f - beta2) * g * g;
+    
+    exp_avg[idx]    = ea;
+    exp_avg_sq[idx] = ea_sq;
+
+    float denom        = sqrtf(ea_sq / bias_correction) + eps;
+    float mu_prod_next = mu_product * mu_t1;
+
+    float grad_scale    = -lr * (1.0f - mu_t) / (1.0f - mu_product);
+    float exp_avg_scale = -lr * mu_t1 / (1.0f - mu_prod_next);
+
+    param[idx] += (g * grad_scale + ea * exp_avg_scale) / denom;
+}
+
+template __global__ void nadam_kernel<AdamVanilla>(
+    float*, float*, float*, float*,
+    float, float, float, float, float, float, float, float, float, int
+);
+template __global__ void nadam_kernel<AdamW>(
+    float*, float*, float*, float*,
+    float, float, float, float, float, float, float, float, float, int
+);
+
+void launch_nadam_update(
+    float* param,
+    float* grad,
+    float* exp_avg,
+    float* exp_avg_sq,
+    float  lr,
+    float  beta1,
+    float  beta2,
+    float  eps,
+    float  mu_t,
+    float  mu_t1,
+    float  mu_product,
+    float  bias_correction,
+    float  weight_decay,
+    bool   decoupled_weight_decay,
+    int    n_elements
+) {
+    int threads = 256;
+    int blocks  = (n_elements + threads - 1) / threads;
+
+    auto launch = [&]<typename DecayPolicy>() {
+        nadam_kernel<DecayPolicy><<<blocks, threads>>>(
+            param, grad, exp_avg, exp_avg_sq, lr, beta1, beta2, 
+            eps, mu_t, mu_t1, mu_product, bias_correction, 
+            weight_decay, n_elements);
+    };
+
+    if (decoupled_weight_decay) launch.operator()<AdamW>();
+    else launch.operator()<AdamVanilla>();
 }
 

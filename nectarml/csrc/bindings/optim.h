@@ -39,6 +39,25 @@ namespace nectar {
         int       n_elements
     );
 
+    uintptr_t nadam_update(
+        uintptr_t param_ptr,
+        uintptr_t grad_ptr,
+        uintptr_t exp_avg_ptr,
+        uintptr_t exp_avg_sq_ptr,
+        float     lr,
+        float     beta1,
+        float     beta2,
+        float     eps,
+        float     mu_t,
+        float     mu_t1,
+        float     mu_product,
+        float     bias_correction,
+        float     weight_decay,
+        bool      decoupled_weight_decay,
+        bool      maximize,
+        int       n_elements
+    );
+
 }
 
 void register_optim(py::module_& m) {
@@ -61,6 +80,16 @@ void register_optim(py::module_& m) {
         py::arg("weight_decay"), py::arg("decoupled_weight_decay"), 
         py::arg("amsgrad"), py::arg("maximize"), py::arg("n_elements"),
         "Fused update function for Adam optimizer.");
+    
+    m_optim.def("nadam_update", &nectar::nadam_update, 
+        py::arg("param_ptr"), py::arg("grad_ptr"), 
+        py::arg("exp_avg_ptr"), py::arg("exp_avg_sq_ptr"), 
+        py::arg("lr"), py::arg("beta1"), py::arg("beta2"), py::arg("eps"), 
+        py::arg("mu_t"), py::arg("mu_t1"), py::arg("mu_product"), 
+        py::arg("bias_correction"), py::arg("weight_decay"), 
+        py::arg("decoupled_weight_decay"), py::arg("maximize"), 
+        py::arg("n_elements"),
+        "Fused update function for NAdam optimizer.");
 
 }
 

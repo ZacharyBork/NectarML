@@ -199,7 +199,7 @@ class NAdam(Adam):
         maximize:               bool = False,
         foreach:                bool = None,  # NOT YET IMPLEMENTED
         capturable:             bool = False, # NOT YET IMPLEMENTED
-        fused:                  bool = False  # NOT YET IMPLEMENTED
+        fused:                  bool = True
     ) -> None:
         super().__init__(
             parameters, lr, betas, eps, weight_decay, decoupled_weight_decay,
@@ -213,10 +213,10 @@ class NAdam(Adam):
             self.state[param_index]['mu_product'] = 1.0
     
     def _compute_momentum_decay(self, step: int, param_index: int) -> None:
-        self.mu_t  = self.beta1 \
-                   * (1.0 - 0.5 * (0.96**(step * self.momentum_decay)))
-        self.mu_t1 = self.beta1 \
-                   * (1.0 - 0.5 * (0.96**((step+1) * self.momentum_decay)))
+        self.mu_t   = self.beta1 \
+                    * (1.0 - 0.5 * (0.96**(step * self.momentum_decay)))
+        self.mu_t1  = self.beta1 \
+                    * (1.0 - 0.5 * (0.96**((step+1) * self.momentum_decay)))
         
         mu_product  = self.state[param_index].get('mu_product', 1.0)
         mu_product *= self.mu_t
@@ -257,7 +257,17 @@ class NAdam(Adam):
                 bias_correction = 1.0 - self.beta2**step
                 self._compute_momentum_decay(step, idx)
                 
-                self._run_update(param, idx, _lr, bias_correction)
+                if self.fused and param.device == 'cuda':
+                    _nectarml.optim.nadam_update(
+                        param._data_ptr, param.grad._data_ptr,
+                        self.state[idx]['exp_avg']._data_ptr,
+                        self.state[idx]['exp_avg_sq']._data_ptr,
+                        _lr, self.beta1, self.beta2, 
+                        self.eps, self.mu_t, self.mu_t1, 
+                        self.state[idx]['mu_product'], bias_correction, 
+                        self.weight_decay, self.decoupled_weight_decay, 
+                        self.maximize, param.size)
+                else: self._run_update(param, idx, _lr, bias_correction)
 
 class RAdam(Optimizer):
     def __init__(
