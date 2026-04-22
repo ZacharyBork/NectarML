@@ -6,6 +6,7 @@ import tarfile
 from os      import PathLike
 from pathlib import Path
 from typing  import Any
+from collections.abc import Callable
 
 from nectarml.tensor          import Tensor
 from nectarml.nn.module       import Module
@@ -28,16 +29,34 @@ def clip_grad_norm(params: list[Tensor], max_norm: float = 1.0) -> float:
     
     return total_norm
 
+### Utility Modules ###
+
+class Lambda(Module):
+    def __init__(
+        self: Lambda,
+        func: Callable[[Any], Any]
+    ) -> None:
+        super().__init__()
+        self.func = func
+        
+    def forward(
+        self:     Lambda, 
+        *args:    list[Any], 
+        **kwargs: dict[str, Any]
+    ) -> Tensor:
+        return self.func(*args, **kwargs)
+    
+
 ### CHECKPOINTING ###
 
 class checkpoint:
     def __init__(
-        self:            checkpoint, 
-        model:           Module,
-        optimizer:       Optimizer | None = None
+        self:      checkpoint, 
+        model:     Module,
+        optimizer: Optimizer | None = None
     ) -> None:
-        self.model           = model
-        self.optimizer       = optimizer
+        self.model     = model
+        self.optimizer = optimizer
     
     ### SAVING ###
     
@@ -85,12 +104,12 @@ class checkpoint:
                     else: self._optimizer_state['state'][idx][k] = v
     
     def save(
-        self:        checkpoint,
-        path:        PathLike,
-        epoch:       int  = 0,
-        iteration:   int  = 0,
-        metadata:    dict = None,
-        overwrite:   bool = False
+        self:      checkpoint,
+        path:      PathLike,
+        epoch:     int  = 0,
+        iteration: int  = 0,
+        metadata:  dict = None,
+        overwrite: bool = False
     ) -> None:
         self.checkpoint_path = Path(path).resolve()
         if not overwrite and self.checkpoint_path.exists():

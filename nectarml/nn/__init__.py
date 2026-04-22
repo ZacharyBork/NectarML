@@ -17,6 +17,7 @@ from . import (
 )
 
 from .module      import Module
+from .utils       import Lambda, checkpoint
 from .linear      import Linear
 from .upsample    import Upsample
 from .identity    import Identity
