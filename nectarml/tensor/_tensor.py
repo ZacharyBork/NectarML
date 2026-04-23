@@ -115,6 +115,35 @@ class tensor:
         requires_grad: bool  = False,
         _children:     tuple = ()
     ) -> Self:
+        '''Builds a new tensor object.
+        
+        This is primarily used to build output tensors for functions which
+        return a new tensor object. 
+        
+        Where the tensor.__init__() only takes tensor-like data, this function 
+        can instead wrap either tensor-like data, or a uintptr to tensor data 
+        in CUDA memory. This allows the function to process the return types 
+        for both CUDA and CPU operations automatically.
+        
+        Args:
+            cls : The class type this method is called from. This will
+                determine the output class type (i.e. Tensor, BoolTensor).
+            data : The data to build the new tensor from. Can be either a numpy
+                np.ndarray or a uintptr to tensor data in CUDA memory.
+            shape : The shape of the new tensor. Can be either tuple[int, ...]
+                or nectarml.typing.Size.
+            dtype : The DType for the new tensor.
+            device : The device of the new tensor.
+            requires_grad : Whether the new tensor should be attached to the
+                computation graph.
+            _children : The backpropagation children for the new tensor, if
+                applicable.
+            
+        Returns:
+            Self : The newly created tensor. The type of the return tensor is
+                determined by the class type this method was called from.
+        
+        '''
         out = cls.__new__(cls)
         out.__setattr__('_device', typing.device(device, device_id=None))
         out.__setattr__('_dtype',  dtype)
@@ -210,31 +239,7 @@ class tensor:
         out._backward      = lambda: None
         
         return out
-    
-    @classmethod
-    def _temporary(
-        cls:          type[Self],
-        input:        Self,
-        data_ptr:     builtins.int,
-        target_dtype: typing.dtype
-    ) -> Self:
-        assert input.device == 'cuda', \
-            'tensor._reference is only valid for CUDA tensors.'
-        
-        tmp = cls.__new__(cls)
-        tmp.__setattr__('_device', typing.device('cuda', input._device_id))
-        tmp.__setattr__('_dtype',  input.dtype)
 
-        tmp._dtype         = target_dtype
-        tmp.shape          = input.shape
-        tmp._buffer        = CudaBuffer(data_ptr, input.size, target_dtype)
-        tmp._requires_grad = False
-        tmp.grad           = None
-        tmp._prev          = set()
-        tmp._backward      = lambda: None
-
-        return tmp
-    
     ### PROPERTIES ###
       
     @property
@@ -361,6 +366,7 @@ class tensor:
         csl:    type[Self],
         *shape: typing.ShapeType
     ) -> typing.Size:
+        '''Normalizes ShapeType objects into typing.Size() objects.'''
         if len(shape) == 1 \
         and isinstance(shape[0], (tuple, list, typing.Size)):
               return typing.Size(list(shape[0]))
@@ -524,6 +530,25 @@ class tensor:
         self:  tensor,
         dtype: typing.dtype
     ) -> Self:
+        '''Creates a detached copy of a tensor, cast to a new dtype.
+        
+        While this works for CPU tensors, it is primarily used to speed up 
+        autograd for CUDA tensors. It bypasses a lot of the wiring in 
+        tensor.to(), and casts the dtype using the given tensor's device ptr
+        directly.
+        
+        NOTE: If the given tensor's dtype already matches the input dtype, a 
+        reference to the original tensor is returned instead (since there's
+        nothing to be gained from casting). If not, the returned tensor will
+        be completely detached from the computation graph.
+        
+        Args:
+            dtype : The typing.dtype for the new tensor.
+            
+        Returns:
+            Self : The new tensor. The type of the return tensor is determined
+                by the type of the tensor this method was called from.
+        '''
         if self.dtype == dtype: return self
         
         out = object.__new__(self._subclasses['Tensor'])
@@ -547,10 +572,18 @@ class tensor:
 
         return out
         
-    def _as_fp32 (self: tensor) -> Self: return self._as_dtype(typing.float32)
-    def _as_fp16 (self: tensor) -> Self: return self._as_dtype(typing.float16)
-    def _as_int32(self: tensor) -> Self: return self._as_dtype(typing.int32)
-    def _as_uint8(self: tensor) -> Self: return self._as_dtype(typing.uint8)
+    def _as_fp32 (self: tensor) -> Self: 
+        '''Convenience wrapper. See tensor._as_dtype().'''
+        return self._as_dtype(typing.float32)
+    def _as_fp16 (self: tensor) -> Self: 
+        '''Convenience wrapper. See tensor._as_dtype().'''
+        return self._as_dtype(typing.float16)
+    def _as_int32(self: tensor) -> Self: 
+        '''Convenience wrapper. See tensor._as_dtype().'''
+        return self._as_dtype(typing.int32)
+    def _as_uint8(self: tensor) -> Self: 
+        '''Convenience wrapper. See tensor._as_dtype().'''
+        return self._as_dtype(typing.uint8)
 
     ### DATA UTILS ###
     

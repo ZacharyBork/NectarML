@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Literal
+from typing          import Any, Literal
 from collections.abc import Callable
 
 from nectarml.optim.optimizer import Optimizer
+from nectarml.constants       import PI
 
-class Scheduler():
+### ABSTRACT PARENT ###
+
+class Scheduler:
     def __init__(
-        self: Scheduler, 
-        optimizer: Optimizer, 
+        self:       Scheduler, 
+        optimizer:  Optimizer, 
         last_epoch: int = -1
     ) -> None:
-        self.optimizer = optimizer
+        self.optimizer  = optimizer
         self.last_epoch = last_epoch
-        self.base_lrs = [group['lr'] for group in optimizer.param_groups]
-        self._last_lr = self.base_lrs.copy()
+        self.base_lrs   = [group['lr'] for group in optimizer.param_groups]
+        self._last_lr   = self.base_lrs.copy()
         self.step()
         
     def get_lr(self: Scheduler) -> list[float]:
@@ -40,16 +43,81 @@ class Scheduler():
     def load_state_dict(self: Scheduler, state_dict: dict[str, Any]) -> None:
         self.__dict__.update(state_dict)
 
+### COMPOSITION ###
+
+class SequentialLR(Scheduler):
+    def __init__(
+        self:       SequentialLR,
+        optimizer:  Optimizer,
+        schedulers: list[Scheduler],
+        milestones: list[int],
+        last_epoch: int | None = None
+    ) -> None:
+        self.optimizer  = optimizer
+        self.schedulers = schedulers
+        self.milestones = milestones
+        self.last_epoch = last_epoch or 0
+        self._idx       = 0
+        
+        self._init_schedule()
+
+    def _init_schedule(self: SequentialLR) -> None:
+        if self.last_epoch is not None:
+            for i, milestone in enumerate(self.milestones):
+                if self.last_epoch >= milestone:
+                      self._idx = i + 1
+                else: break
+            self._idx = min(self._idx, len(self.schedulers) - 1)
+            
+            elapsed = self.last_epoch
+            for i in range(self._idx):
+                elapsed -= self.milestones[i] \
+                        - (self.milestones[i-1] if i > 0 else 0)
+            
+            active = self.schedulers[self._idx]
+            if hasattr(active, 'last_epoch'):
+                active.last_epoch = elapsed
+    
+    def get_lr(self: SequentialLR) -> float:
+        if self._idx < len(self.schedulers):
+            return self.schedulers[self._idx].get_lr()[0]
+        return self.optimizer.lr
+    
+    def get_last_lr(self: SequentialLR) -> list[float]:
+        if self._idx < len(self.schedulers):
+            return self.schedulers[self._idx].get_last_lr()[0]
+        return self.optimizer.lr
+    
+    def step(self: SequentialLR) -> None:
+        self.last_epoch += 1
+        
+        if  self._idx < len(self.milestones) \
+        and self.last_epoch > self.milestones[self._idx]:
+            self._idx += 1
+        
+        if self._idx < len(self.schedulers):
+            self.schedulers[self._idx].step()
+            
+    def clone(self: SequentialLR, new_optimizer: Optimizer) -> SequentialLR:
+        return SequentialLR(
+            optimizer  = new_optimizer, 
+            schedulers = self.schedulers.copy(), 
+            milestones = self.milestones.copy(),
+            last_epoch = self.last_epoch
+        )
+
+### DEFAULT SCHEDULERS ###
+
 class StepLR(Scheduler):
     def __init__(
-        self: StepLR, 
-        optimizer: Optimizer, 
-        step_size: int,
-        gamma: float = 0.01,
-        last_epoch: int = -1
+        self:       StepLR, 
+        optimizer:  Optimizer, 
+        step_size:  int,
+        gamma:      float = 0.01,
+        last_epoch: int   = -1
     ) -> None:
         self.step_size = step_size
-        self.gamma = gamma
+        self.gamma     = gamma
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: StepLR) -> list[float]:
@@ -60,14 +128,14 @@ class StepLR(Scheduler):
 
 class MultiStepLR(Scheduler):
     def __init__(
-        self: MultiStepLR, 
-        optimizer: Optimizer, 
+        self:       MultiStepLR, 
+        optimizer:  Optimizer, 
         milestones: list[int],
-        gamma: float = 0.01,
-        last_epoch: int = -1
+        gamma:      float = 0.01,
+        last_epoch: int   = -1
     ) -> None:
         self.milestones = milestones
-        self.gamma = gamma
+        self.gamma      = gamma
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: MultiStepLR) -> list[float]:
@@ -78,13 +146,13 @@ class MultiStepLR(Scheduler):
 
 class ConstantLR(Scheduler):
     def __init__(
-        self: ConstantLR, 
-        optimizer: Optimizer, 
-        factor: float = 0.3333333333333333,
-        total_iters: int = 5,
-        last_epoch: int = -1
+        self:        ConstantLR, 
+        optimizer:   Optimizer, 
+        factor:      float = 0.3333333333333333,
+        total_iters: int   = 5,
+        last_epoch:  int   = -1
     ) -> None:
-        self.factor = factor
+        self.factor      = factor
         self.total_iters = total_iters
         super().__init__(optimizer, last_epoch)
         
@@ -98,16 +166,16 @@ class ConstantLR(Scheduler):
 
 class LinearLR(Scheduler):
     def __init__(
-        self: LinearLR, 
-        optimizer: Optimizer, 
+        self:         LinearLR, 
+        optimizer:    Optimizer, 
         start_factor: float = 0.3333333333333333,
-        end_factor: float = 1.0,
-        total_iters: int = 5,
-        last_epoch: int = -1
+        end_factor:   float = 1.0,
+        total_iters:  int   = 5,
+        last_epoch:   int   = -1
     ) -> None:
         self.start_factor = start_factor
-        self.end_factor = end_factor
-        self.total_iters = total_iters
+        self.end_factor   = end_factor
+        self.total_iters  = total_iters
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: LinearLR) -> list[float]:
@@ -120,9 +188,9 @@ class LinearLR(Scheduler):
         
 class ExponentialLR(Scheduler):
     def __init__(
-        self: ExponentialLR, 
-        optimizer: Optimizer, 
-        gamma: float,
+        self:       ExponentialLR, 
+        optimizer:  Optimizer, 
+        gamma:      float,
         last_epoch: int = -1
     ) -> None:
         self.gamma = gamma
@@ -136,14 +204,14 @@ class ExponentialLR(Scheduler):
         
 class PolynomialLR(Scheduler):
     def __init__(
-        self: PolynomialLR, 
-        optimizer: Optimizer, 
-        total_iters: int = 5,
-        power: float = 1.0,
-        last_epoch: int = -1
+        self:        PolynomialLR, 
+        optimizer:   Optimizer, 
+        total_iters: int   = 5,
+        power:       float = 1.0,
+        last_epoch:  int   = -1
     ) -> None:
         self.total_iters = total_iters
-        self.power = power
+        self.power       = power
         super().__init__(optimizer, last_epoch)
         
     def get_lr(self: PolynomialLR) -> list[float]:
@@ -154,13 +222,13 @@ class PolynomialLR(Scheduler):
         
 class CosineAnnealingLR(Scheduler):
     def __init__(
-        self: CosineAnnealingLR, 
-        optimizer: Optimizer, 
-        T_max: int,
-        eta_min: float = 0.0,
-        last_epoch: int = -1
+        self:       CosineAnnealingLR, 
+        optimizer:  Optimizer, 
+        T_max:      int,
+        eta_min:    float = 0.0,
+        last_epoch: int   = -1
     ) -> None:
-        self.T_max = T_max
+        self.T_max   = T_max
         self.eta_min = eta_min
         super().__init__(optimizer, last_epoch)
         
@@ -168,22 +236,22 @@ class CosineAnnealingLR(Scheduler):
         if self.last_epoch == 0: return [base_lr for base_lr in self.base_lrs]
         t = min(self.last_epoch, self.T_max)
         schedule = lambda x: self.eta_min + 0.5 * (x - self.eta_min) \
-            * (1 + math.cos(math.pi * t / self.T_max))
+            * (1 + math.cos(PI * t / self.T_max))
         return [schedule(base_lr) for base_lr in self.base_lrs]
         
 class CosineAnnealingWarmRestarts(Scheduler):
     def __init__(
-        self: CosineAnnealingWarmRestarts, 
-        optimizer: Optimizer, 
-        T_0: int,
-        T_mult: int = 1,
-        eta_min: float = 0.0,
-        last_epoch: int = -1
+        self:       CosineAnnealingWarmRestarts, 
+        optimizer:  Optimizer, 
+        T_0:        int,
+        T_mult:     int   = 1,
+        eta_min:    float = 0.0,
+        last_epoch: int   = -1
     ) -> None:
         assert T_0 > 0, 'T_0 must be a positive integer.'
         assert T_mult >= 1, 'T_mult must be >= 1.'
-        self.T_0 = T_0
-        self.T_mult = T_mult
+        self.T_0     = T_0
+        self.T_mult  = T_mult
         self.eta_min = eta_min
         super().__init__(optimizer, last_epoch)
 
@@ -200,42 +268,42 @@ class CosineAnnealingWarmRestarts(Scheduler):
             return [base_lr for base_lr in self.base_lrs]
         T_cur, T_i = self._get_T_cur_T_i()
         schedule = lambda x: self.eta_min + 0.5 * (x - self.eta_min) \
-                 * (1 + math.cos(math.pi * T_cur / T_i))
+                 * (1 + math.cos(PI * T_cur / T_i))
         return [schedule(base_lr) for base_lr in self.base_lrs]
         
 class ReduceLROnPlateau(Scheduler):
     def __init__(
-        self: ReduceLROnPlateau, 
-        optimizer: Optimizer, 
-        mode: Literal['min', 'max'] = 'min',
-        factor: float = 0.1,
-        patience: int = 10,
-        threshold: float = 0.0001,
+        self:           ReduceLROnPlateau, 
+        optimizer:      Optimizer, 
+        mode:           Literal['min', 'max'] = 'min',
+        factor:         float = 0.1,
+        patience:       int   = 10,
+        threshold:      float = 0.0001,
         threshold_mode: Literal['rel', 'abs'] = 'rel',
-        cooldown: int = 0,
-        min_lr: float = 0.0,
-        eps: float = 1e-8,
-        last_epoch: int = -1
+        cooldown:       int   = 0,
+        min_lr:         float = 0.0,
+        eps:            float = 1e-8,
+        last_epoch:     int   = -1
     ) -> None:
         assert 0.0 < factor < 1.0, \
             'factor must be between 0.0 and 1.0, not inclusive.'
-        self.mode = mode
-        self.factor = factor
-        self.patience = patience
-        self.threshold = threshold
+        self.mode           = mode
+        self.factor         = factor
+        self.patience       = patience
+        self.threshold      = threshold
         self.threshold_mode = threshold_mode
-        self.cooldown = cooldown
-        self.min_lr = min_lr
-        self.eps = eps
+        self.cooldown       = cooldown
+        self.min_lr         = min_lr
+        self.eps            = eps
         
         self.best: int | float = None
-        self.num_bad_epochs = 0
-        self.cooldown_counter = 0
+        self.num_bad_epochs    = 0
+        self.cooldown_counter  = 0
         
         super().__init__(optimizer, last_epoch)
         
     def _check_for_improvement(
-        self: ReduceLROnPlateau,
+        self:   ReduceLROnPlateau,
         metric: int | float
     ) -> bool:
         if self.mode == 'min':
@@ -255,7 +323,7 @@ class ReduceLROnPlateau(Scheduler):
             for group in self.optimizer.param_groups]
     
     def step(
-        self: ReduceLROnPlateau, 
+        self:   ReduceLROnPlateau, 
         metric: int | float
     ) -> None:
         if self.best is None: 
@@ -285,28 +353,30 @@ class ReduceLROnPlateau(Scheduler):
         
 class CyclicLR(Scheduler):
     def __init__(
-        self: CyclicLR, 
-        optimizer: Optimizer, 
-        base_lr: float,
-        max_lr: float,
-        step_size_up: int = 2000,
+        self:           CyclicLR, 
+        optimizer:      Optimizer, 
+        base_lr:        float,
+        max_lr:         float,
+        step_size_up:   int = 2000,
         step_size_down: int | None = None,
-        mode: Literal['triangular', 'triangular2', 'exp_range'] = 'triangular',
-        gamma: float | None = None,
-        scale_fn: Callable | None = None,
-        scale_mode: Literal['cycle', 'iterations'] = 'cycle',
+        mode:           Literal[
+            'triangular', 'triangular2', 'exp_range'
+        ] = 'triangular',
+        gamma:          float    | None = None,
+        scale_fn:       Callable | None = None,
+        scale_mode:     Literal['cycle', 'iterations'] = 'cycle',
         cycle_momentum: bool = True,
-        base_momentum: float | list[float] = 0.8,
-        max_momentum: float | list[float] = 0.9,
-        last_epoch: int = -1
+        base_momentum:  float | list[float] = 0.8,
+        max_momentum:   float | list[float] = 0.9,
+        last_epoch:     int = -1
     ) -> None:
-        self.base_lr = base_lr
-        self.max_lr = max_lr
-        self.step_size_up = step_size_up
+        self.base_lr        = base_lr
+        self.max_lr         = max_lr
+        self.step_size_up   = step_size_up
         self.step_size_down = step_size_down if step_size_down is not None \
-                              else step_size_up
-        
+                         else step_size_up
         self.cycle_momentum = cycle_momentum
+        
         if isinstance(base_momentum, list):
             assert len(base_momentum) == len(optimizer.param_groups), \
                 f'base_momentum list length {len(base_momentum)} must match ' \
@@ -325,30 +395,30 @@ class CyclicLR(Scheduler):
         super().__init__(optimizer, last_epoch)
         
     def _init_scale_fn(
-        self: CyclicLR,
-        mode: Literal['triangular', 'triangular2', 'exp_range'],
-        gamma: float | None,
-        scale_fn: Callable | None,
+        self:       CyclicLR,
+        mode:       Literal['triangular', 'triangular2', 'exp_range'],
+        gamma:      float    | None,
+        scale_fn:   Callable | None,
         scale_mode: Literal['cycle', 'iterations']
     ) -> None:
         if scale_fn is None:
             if mode == 'triangular':
-                self.scale_fn = lambda x: 1.0
+                self.scale_fn   = lambda x: 1.0
                 self.scale_mode = 'cycle'
             elif mode == 'triangular2':
-                self.scale_fn = lambda x: 1.0 / (2.0 ** (x - 1))
+                self.scale_fn   = lambda x: 1.0 / (2.0 ** (x - 1))
                 self.scale_mode = 'cycle'
             elif mode == 'exp_range':
                 assert gamma is not None, \
                     'gamma must be provided when mode="exp_range".'
-                self.scale_fn = lambda x: gamma ** x
+                self.scale_fn   = lambda x: gamma ** x
                 self.scale_mode = 'iterations'
         else:
             self.scale_fn = scale_fn
             self.scale_mode = scale_mode
         
     def get_lr(self: CyclicLR) -> list[float]:
-        cycle_size = self.step_size_up + self.step_size_down
+        cycle_size   = self.step_size_up + self.step_size_down
         pos_in_cycle = self.last_epoch % cycle_size
         cycle = math.floor(1 + self.last_epoch / cycle_size)
         if pos_in_cycle < self.step_size_up:
@@ -357,7 +427,7 @@ class CyclicLR(Scheduler):
             x = (pos_in_cycle - self.step_size_up) / self.step_size_down
             x = 1 - x
                 
-        arg = cycle if self.scale_mode == 'cycle' else self.last_epoch
+        arg   = cycle if self.scale_mode == 'cycle' else self.last_epoch
         scale = self.scale_fn(arg)
         lr_values = [base_lr + (self.max_lr - base_lr) * x * scale
                      for base_lr in self.base_lrs]
@@ -373,30 +443,30 @@ class CyclicLR(Scheduler):
         
 class OneCycleLR(Scheduler):
     def __init__(
-        self: OneCycleLR, 
-        optimizer: Optimizer, 
-        max_lr: float | list[float],
-        total_steps: int | None = None,
-        epochs: int | None = None,
-        steps_per_epoch: int | None = None,
-        pct_start: float = 0.3,
-        anneal_strategy: Literal['cos', 'linear'] = 'cos',
-        cycle_momentum: bool = True,
-        base_momentum: float | list[float] = 0.85,
-        max_momentum: float | list[float] = 0.95,
-        div_factor: float = 25.0,
+        self:             OneCycleLR, 
+        optimizer:        Optimizer, 
+        max_lr:           float | list[float],
+        total_steps:      int | None = None,
+        epochs:           int | None = None,
+        steps_per_epoch:  int | None = None,
+        pct_start:        float = 0.3,
+        anneal_strategy:  Literal['cos', 'linear'] = 'cos',
+        cycle_momentum:   bool = True,
+        base_momentum:    float | list[float] = 0.85,
+        max_momentum:     float | list[float] = 0.95,
+        div_factor:       float = 25.0,
         final_div_factor: float = 1e4,
-        three_phase: bool = True,
-        last_epoch: int = -1
+        three_phase:      bool  = True,
+        last_epoch:       int   = -1
     ) -> None:
-        self.max_lr = max_lr
-        self.total_steps = total_steps
-        self.epochs = epochs
-        self.steps_per_epoch = steps_per_epoch
-        self.pct_start = pct_start
-        self.anneal_strategy = anneal_strategy
-        self.cycle_momentum = cycle_momentum
-        self.div_factor = div_factor
+        self.max_lr           = max_lr
+        self.total_steps      = total_steps
+        self.epochs           = epochs
+        self.steps_per_epoch  = steps_per_epoch
+        self.pct_start        = pct_start
+        self.anneal_strategy  = anneal_strategy
+        self.cycle_momentum   = cycle_momentum
+        self.div_factor       = div_factor
         self.final_div_factor = final_div_factor
         
         if total_steps is not None: self.total_steps = total_steps
@@ -411,14 +481,14 @@ class OneCycleLR(Scheduler):
         super().__init__(optimizer, last_epoch)
         
     def _compute_phases(
-        self: OneCycleLR,
-        optimizer: Optimizer,
-        three_phase: bool,
-        pct_start: float,
-        max_lr: float | list[float],
-        base_momentum: float | list[float],
-        max_momentum: float | list[float],
-        div_factor: float,
+        self:             OneCycleLR,
+        optimizer:        Optimizer,
+        three_phase:      bool,
+        pct_start:        float,
+        max_lr:           float | list[float],
+        base_momentum:    float | list[float],
+        max_momentum:     float | list[float],
+        div_factor:       float,
         final_div_factor: float
     ) -> None:
         n_groups = len(optimizer.param_groups)
@@ -478,15 +548,14 @@ class OneCycleLR(Scheduler):
             ]
         
     def _anneal(
-        self: OneCycleLR,
+        self:  OneCycleLR,
         start: float,
-        end: float,
-        pct: float
+        end:   float,
+        pct:   float
     ) -> float:
         if self.anneal_strategy == 'cos':
-            return end + (start - end) / 2 * (1 + math.cos(math.pi * pct))
-        else:
-            return start + (end - start) * pct
+              return end   + (start - end) / 2 * (1 + math.cos(PI * pct))
+        else: return start + (end - start) * pct
         
     def get_lr(self: OneCycleLR) -> list[float]:
         step = self.last_epoch

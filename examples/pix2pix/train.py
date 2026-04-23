@@ -15,9 +15,10 @@ from dataset       import Pix2pixDataset
 ### MODEL SETTINGS ###
 
 DEVICE            = 'cuda'
-LR                = 0.0002
 BATCH_SIZE        = 1
-NUM_EPOCHS        = 200
+LR                = 0.0002
+NUM_EPOCHS        = 100
+NUM_EPOCHS_DECAY  = 100
 L1_LAMBDA         = 100.0
 AUTOCAST_ENABLED  = True
 
@@ -25,7 +26,7 @@ AUTOCAST_ENABLED  = True
 
 OUTPUT_DIRECTORY  = ''
 ALLOW_EXISTING    = True
-MODEL_SAVE_RATE   = 10
+MODEL_SAVE_RATE   = 999999
 EXAMPLE_SAVE_RATE = 1
 
 ### CHECKPOINT LOADING ###
@@ -236,6 +237,34 @@ def train() -> None:
         
         nn.utils.checkpoint(model=disc, optimizer=opt_disc).load(path_d)
     
+    ### INITIALIZE LR SCHEDULES ###
+    
+    sched_g = optim.SequentialLR(
+        optimizer=opt_gen, 
+        schedulers=[
+            optim.ConstantLR(opt_gen, factor=1.0, total_iters=NUM_EPOCHS),
+            optim.LinearLR(
+                opt_gen, 
+                start_factor = 1.0, 
+                end_factor   = 0.0, 
+                total_iters  = NUM_EPOCHS_DECAY)
+        ],
+        milestones=[NUM_EPOCHS], 
+        last_epoch=start_epoch
+    )
+    
+    sched_d = sched_g.clone(new_optimizer=opt_disc)
+    
+    ### INITIALIZE GRADIENT SCALERS ###
+    
+    g_scaler = nectarml.amp.GradScaler()
+    d_scaler = nectarml.amp.GradScaler()
+    
+    ### INITIALIZE LOSS MODULES ###
+
+    BCE     = nn.BCEWithLogitsLoss()
+    L1_LOSS = nn.L1Loss()
+
     ### BUILD DATASETS / DATALOADERS ###
     
     train_dataset = Pix2pixDataset(TRAIN_SET_PATH)
@@ -246,18 +275,26 @@ def train() -> None:
     
     ### RUN TRAINING LOOP ###
 
-    for idx in range(start_epoch, NUM_EPOCHS):
+    for idx in range(start_epoch, NUM_EPOCHS + NUM_EPOCHS_DECAY):
         epoch = idx + 1
-        print(f'Beginning epoch {epoch}...')
+        print(f'{'='*os.get_terminal_size()[0]}\nBeginning epoch {epoch}...')
+        
+        ### RUN EPOCH WITH TIME BENCHMARKING ###
         
         with utils.benchmark_time(f'Finished epoch {epoch}', new_line=True):
             train_fn(
-                disc, gen, 
-                opt_disc, opt_gen, 
-                g_scaler, d_scaler,
-                train_loader, 
-                L1_LOSS, BCE
+                disc, gen, opt_disc, opt_gen, g_scaler, d_scaler,
+                train_loader, L1_LOSS, BCE
             )
+            
+        ### STEP SCHEDULERS ###
+        
+        last_lr_g, last_lr_d = sched_g.get_lr(), sched_d.get_lr()
+
+        sched_g.step(); sched_d.step()
+        
+        print(f'Learning Rate (G): {last_lr_g:.4f} -> {sched_g.get_lr():.4f}')
+        print(f'Learning Rate (D): {last_lr_d:.4f} -> {sched_d.get_lr():.4f}')
         
         ### SAVE EXAMPLE IMAGES ###
         

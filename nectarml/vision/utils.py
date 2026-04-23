@@ -16,13 +16,13 @@ def _normalize(
     input:       Tensor, 
     value_range: tuple[int | float, int | float] = (0.0, 255.0)
 ) -> Tensor:
-    _min, _max = input.min().item(), input.max().item() 
+    _min, _max = input.min().item(), input.max().item()
     _rmin, _rmax = value_range[0], value_range[1]
     if _min == _max:
-        if _min == 0.0: return input
-        return input / _min * _rmax
-    else: return ((input - _min) * ((_rmax - _rmin) / (_max - _min)))
-        
+        return input * 0.0 + _rmin + (_rmax - _rmin) * 0.5
+    _range = _rmax - _rmin
+    return (input - _min) * (_range / (_max - _min)) + _rmin
+
 def make_grid(
     input:       Tensor | Sequence[Tensor], 
     nrow:        int = 8,
@@ -61,18 +61,6 @@ def make_grid(
 
 ### CONVERSION ###
 
-def PIL_to_tensor(
-    input:     Image.Image,
-    dtype:     typing.dtype = typing.float32,
-    device:    typing.DeviceLikeType = 'cpu',
-    batch_dim: bool = True
-) -> Tensor:
-    data = np.array(input).astype(dtype.numpy)
-    output = Tensor(data, dtype=dtype, device=device)
-    output = output.permute((2, 0, 1)).contiguous()
-    if batch_dim: output = output.unsqueeze(0)
-    return output
-
 def tensor_to_PIL(
     input:       Tensor,
     normalize:   bool = False,
@@ -88,21 +76,36 @@ def tensor_to_PIL(
 ### IMAGE I/O ###
 
 def load_image(
-    image_path:  PathLike,
-    dtype:       typing.dtype = typing.float32,
-    device:      typing.DeviceLikeType = 'cpu',
-    normalize:   bool = False,
-    value_range: tuple[int | float, int | float] = (0.0, 1.0),
-    batch_dim:   bool = True
+    path:      PathLike,
+    dtype:     typing.dtype = typing.float32,
+    normalize: bool = False,
+    batch_dim: bool = True
 ) -> Tensor: 
-    image_path = Path(image_path)
-    if not image_path.exists():
-        raise FileNotFoundError(
-            f'Unable to locate image file at path: {image_path.as_posix()}')
+    '''Loads an image file as a nectarml.Tensor.
     
-    image = Image.open(image_path)
-    output = PIL_to_tensor(image, dtype, device, batch_dim)
-    if normalize: output = _normalize(output, value_range)
+    Args:
+        path      : The system path to the image file to load.
+        dtype     : The dtype for the new tensor.
+        normalize : Whether to normalize the output data. If True, the tensor
+            will be divided by it's max item (plus a small epsilon value), 
+            resulting in tensor with a saturated [0:1] range.
+        batch_dim : Whether to add a batch dimension to the new tensor. If 
+            True, the resulting tensor will have shape (B, C, H, W), if False,
+            it will have shape (C, H, W).
+            
+    Returns:
+        Tensor : The resulting image tensor.
+    '''
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f'Unable to locate image file at path: {path.as_posix()}')
+        
+    data   = np.array(Image.open(path)).astype(dtype.numpy)
+    output = Tensor(data, dtype=dtype, device='cpu')
+    output = output.permute((2, 0, 1)).contiguous()
+    if batch_dim: output = output.unsqueeze(0)
+    if normalize: output = output / (output.max().item() + 1e-8)
     return output
     
 def save_image(
@@ -113,7 +116,7 @@ def save_image(
     **kwargs
 ) -> None: 
     output_path = Path(output_path)
-    out_dir = output_path.parent.resolve()
+    out_dir     = output_path.parent.resolve()
     if not out_dir.exists():
         raise FileNotFoundError(
             f'Unable to locate output directory at path: {out_dir.as_posix()}')

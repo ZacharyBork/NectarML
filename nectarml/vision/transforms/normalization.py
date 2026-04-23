@@ -33,7 +33,7 @@ class Normalize(Transform):
         std  = Tensor(np.array(self.std,  dtype=np.float32))
         std  = std.reshape(broadcast_shape).to(input.device, input.dtype)
         
-        out = (input / input.max().item() - mean) / (std + self.eps)
+        out = (input - mean) / (std + self.eps)
         if self.inplace: return input.copy_(out)
         return out
         

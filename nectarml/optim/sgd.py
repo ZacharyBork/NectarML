@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 import _nectarml
-from nectarml.tensor import Tensor
-from nectarml.creation import zeros_like
+from nectarml.tensor          import Tensor
+from nectarml.creation        import zeros_like
 from nectarml.optim.optimizer import Optimizer
 
 class SGD(Optimizer):
@@ -32,6 +32,11 @@ class SGD(Optimizer):
         foreach:       bool = None, # NOT YET IMPLEMENTED
         fused:         bool = True
     ) -> None:
+        '''
+        Reference:
+            - Liu et al., "An Improved Analysis of Stochastic Gradient Descent 
+            with Momentum.", https://arxiv.org/pdf/2007.07989
+        '''
         super().__init__(parameters)
         self.lr           = lr
         self.momentum     = momentum

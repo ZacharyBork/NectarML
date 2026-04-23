@@ -33,12 +33,10 @@ class ImageFolderDataset(Dataset):
     def __init__(
         self:            ImageFolderDataset,
         image_directory: str | PathLike,
-        extensions:      list[str] = ['.jpg', '.jpeg', '.png', '.bmp'],
-        device:          typing.DeviceLikeType = 'cpu',
+        extensions:      list[str]    = ['.jpg', '.jpeg', '.png', '.bmp'],
         dtype:           typing.dtype = typing.float32,
-        normalize:       bool = False,
-        value_range:     tuple[int | float, int | float] = [0.0, 1.0],
-        transform:       Transform = None
+        normalize:       bool         = False,
+        transform:       Transform    = None
     ) -> None:
         super().__init__()
         self.image_directory = Path(image_directory).resolve()
@@ -56,7 +54,7 @@ class ImageFolderDataset(Dataset):
         self.length = len(self.image_files)
         self.transform = transform
         self.load = lambda x : load_image(
-            x, dtype, device, normalize, value_range, batch_dim=False)
+            x, dtype, normalize, batch_dim=False)
         
     def __len__(self: ImageFolderDataset) -> int:
         return self.length
@@ -144,8 +142,8 @@ class ConcatDataset(Dataset):
     ) -> None:
         super().__init__()
         self.datasets = datasets
-        self.lengths = [len(i) for i in self.datasets]
-        self.length = sum(self.lengths)
+        self.lengths  = [len(i) for i in self.datasets]
+        self.length   = sum(self.lengths)
     
     def __len__(self: ConcatDataset) -> int:
         return self.length
@@ -167,7 +165,7 @@ class ChainDataset(IterableDataset):
     ) -> None:
         super().__init__()
         self.datasets = list(datasets)
-        self.length = sum(len(i) for i in self.datasets)
+        self.length   = sum(len(i) for i in self.datasets)
     
     def __len__(self: ChainDataset) -> int:
         return self.length

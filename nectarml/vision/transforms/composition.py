@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import math
 from os import PathLike
 from pathlib import Path
 from contextlib import nullcontext
+from collections.abc import Iterator
 
 from nectarml.tensor import Tensor
 from nectarml.vision.transforms.transform import Transform
@@ -17,9 +20,43 @@ class Compose(Transform):
         super().__init__()
         self.transforms = transforms
     
+    ### List-like methods ###
+    
+    def append(self, transform: Transform) -> None:
+        self.transforms.append(transform)
+    
+    def extend(self, other: Compose | list[Transform]) -> None:
+        if isinstance(other, Compose): other = other.transforms
+        self.transforms.extend(other)
+    
+    def insert(self, index: int, transform: Transform) -> None:
+        self.transforms.insert(index, transform)  
+    
+    def __getitem__(self, index: int) -> Transform:
+        return self.transforms[index]
+
+    def __setitem__(self, index: int, transform: Transform) -> None:
+        self.transforms[index] = transform
+
+    def __delitem__(self, index: int) -> None:
+        del self.transforms[index]
+
+    def __len__(self) -> int:
+        return len(self.transforms)
+
+    def __iter__(self) -> Iterator[Transform]:
+        return iter(self.transforms)
+
+    def __contains__(self, transform: Transform) -> bool:
+        return transform in self.transforms
+    
+    ### Forward method ###
+    
     def forward(self, input: TransformInput) -> TransformInput:
         for transform in self.transforms: input = transform._call(input)
         return input
+    
+    ### Optimization ###
     
     def optimize(self) -> None:
         optimized = []
@@ -39,6 +76,8 @@ class Compose(Transform):
             
             optimized.append(xform)
         self.transforms = optimized
+     
+    ### Example generation ###
      
     def _generate_examples(
         self,
@@ -110,6 +149,8 @@ class Compose(Transform):
                         f'Remove existing file or run generate_examples '
                         f'with allow_overwrite=True to continue.')
                 utility.SaveImageFile(output_path)(output)
+    
+    ### Inspection ###
     
     def __repr__(self) -> str:
         output = '\nCompose:\n\n'

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
-from collections import OrderedDict
+from typing          import Any
+from collections     import OrderedDict
 from collections.abc import Iterable, Iterator, ItemsView, KeysView, ValuesView
 
-from nectarml.tensor import Tensor
+from nectarml.tensor    import Tensor
 from nectarml.nn.module import Module
 
 class ModuleDict(Module):

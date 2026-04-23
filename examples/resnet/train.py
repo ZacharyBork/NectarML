@@ -82,7 +82,9 @@ def train_fn(
             predicted = logits.argmax(dim=1)
             correct   = (predicted == y.to(dtype=predicted.dtype))
             accuracy  = correct.float().sum().item() / len(y)
-            correct   = ['x' if i else 'o' for i in correct.tolist()]
+            
+            _x, _o = '\033[91mx\033[0m', '\033[92mo\033[0m'
+            correct   = [_o if i else _x for i in correct.tolist()]
             correct   = f'[{' '.join([i for i in correct])}]'
             
             print(f'{'='*os.get_terminal_size()[0]}\n'
@@ -91,7 +93,7 @@ def train_fn(
                   f'    Predicted: {predicted.cpu().numpy()}\n'
                   f'    Actual:    {y.cpu().numpy()}\n'
                   f'    Correct:   {correct}\n'
-                  f'    Accuracy:  {accuracy:.4f}\n')
+                  f'    Accuracy:  {accuracy*100:.2f}%\n')
 
 ###############################################################################
 # VALIDATION LOOP FUNCTION
@@ -197,7 +199,7 @@ def train() -> None:
         path = Path(CHECKPOINT_PATH).resolve()
         if not path.exists():
             raise FileNotFoundError(
-                f'Unable to locate generator checkpoint at: '
+                f'Unable to locate checkpoint file at: '
                 f'{path.as_posix()}')
         
         info = nn.utils.checkpoint(model=model, optimizer=opt).load(path)

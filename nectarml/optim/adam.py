@@ -34,6 +34,11 @@ class Adam(Optimizer):
         capturable:             bool = False, # NOT YET IMPLEMENTED
         fused:                  bool = True
     ) -> None:
+        '''
+        Reference:
+            - Diederik P. Kingma, and Jimmy Lei Ba, "Adam: A Method for 
+                Stochastic Optimization.", https://arxiv.org/pdf/1412.6980
+        '''
         super().__init__(parameters)
         self.lr                     = lr
         self.beta1, self.beta2      = betas
@@ -170,6 +175,11 @@ class AdamW(Adam):
         capturable:           bool = False, # NOT YET IMPLEMENTED
         fused:                bool = True
     ) -> None:
+        '''
+        Reference:
+            - Ilya Loshchilov, and Frank Hutter, "Decoupled Weight Decay 
+                Regularization.", https://arxiv.org/pdf/1711.05101
+        '''
         super().__init__(
             parameters, lr, betas, eps, weight_decay, True, 
             amsgrad, maximize, foreach, capturable, fused)
@@ -201,6 +211,11 @@ class NAdam(Adam):
         capturable:             bool = False, # NOT YET IMPLEMENTED
         fused:                  bool = True
     ) -> None:
+        '''
+        Reference:
+            - Dozat, Timothy, "Incorporating Nesterov Momentum into Adam.",
+                https://cs229.stanford.edu/proj2015/054_report.pdf
+        '''
         super().__init__(
             parameters, lr, betas, eps, weight_decay, decoupled_weight_decay,
             False, maximize, foreach, capturable, fused)
@@ -212,7 +227,15 @@ class NAdam(Adam):
         if 'mu_product' not in self.state[param_index]:
             self.state[param_index]['mu_product'] = 1.0
     
-    def _compute_momentum_decay(self, step: int, param_index: int) -> None:
+    def _compute_momentum_decay(
+        self:        NAdam, 
+        step:        int, 
+        param_index: int
+    ) -> None:
+        '''
+        Based heavily on PyTorch's NAdam momentum decay:
+        - https://github.com/pytorch/pytorch/blob/main/torch/optim/nadam.py
+        '''
         self.mu_t   = self.beta1 \
                     * (1.0 - 0.5 * (0.96**(step * self.momentum_decay)))
         self.mu_t1  = self.beta1 \
@@ -223,7 +246,7 @@ class NAdam(Adam):
         self.state[param_index]['mu_product'] = mu_product
 
     def _run_update(
-        self:  Adam,
+        self:  NAdam,
         param: Tensor,
         idx:   int,
         lr:    float,

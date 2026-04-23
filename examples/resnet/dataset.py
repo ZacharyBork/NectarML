@@ -36,7 +36,7 @@ class ResNetDataset(utils.data.Dataset):
     
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         path, label = self.samples[index]
-        image       = vision.utils.load_image(path)
+        image       = vision.utils.load_image(path, normalize=True)
         image       = self.transforms(image)
         label       = Tensor(label, dtype=typing.int32)
         return image.squeeze(0), label

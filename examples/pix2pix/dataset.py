@@ -4,7 +4,11 @@ from pathlib  import Path
 from nectarml import Tensor, vision, utils
 
 class Pix2pixDataset(utils.data.Dataset):
-    def __init__(self, root_directory: PathLike) -> None:
+    def __init__(
+        self, 
+        root_directory: PathLike, 
+        training:       bool = True
+    ) -> None:
         super().__init__()
         # First get all the dataset files in our root directory
         self.root_directory = Path(root_directory)
@@ -13,12 +17,16 @@ class Pix2pixDataset(utils.data.Dataset):
         # Then we define a transform stack. This is used for input and target.
         self.transforms = vision.transforms.Compose([
             vision.transforms.Normalize(
-                mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]
-            ),
-            vision.transforms.Resize(size=(286, 286), mode='bilinear'),
-            vision.transforms.RandomHorizontalFlip(p=0.5),
-            vision.transforms.RandomCrop(size=(256, 256))
+                mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
+        
+        # If training, add some variation with random crop / h-flip
+        if training:
+            self.transforms.extend([
+                vision.transforms.RandomHorizontalFlip(p=0.5),
+                vision.transforms.Resize(size=(286, 286), mode='bilinear'),
+                vision.transforms.RandomCrop(size=(256, 256))
+            ])
         
     def __len__(self) -> int:
         # Dataset classes must define __len__. 
@@ -29,8 +37,8 @@ class Pix2pixDataset(utils.data.Dataset):
         # nectarml.vision.transforms are intended to work on tensors.
         # So first we load the current image file as a tensor:
         image_path   = self.list_files[index]
-        image        = vision.utils.load_image(image_path)
-        
+        image        = vision.utils.load_image(image_path, normalize=True)
+                
         # Then we slice in half to create input and target tensors.
         width        = image.shape[-1] // 2
         input_image  = image[:, :, :, width:]
