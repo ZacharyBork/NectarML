@@ -4,6 +4,8 @@ import math
 from typing          import Any, Literal
 from collections.abc import Callable
 
+import matplotlib.pyplot as plt
+
 from nectarml.optim.optimizer import Optimizer
 from nectarml.constants       import PI
 
@@ -15,33 +17,108 @@ class Scheduler:
         optimizer:  Optimizer, 
         last_epoch: int = -1
     ) -> None:
-        self.optimizer  = optimizer
-        self.last_epoch = last_epoch
-        self.base_lrs   = [group['lr'] for group in optimizer.param_groups]
-        self._last_lr   = self.base_lrs.copy()
+        self._optimizer  = optimizer
+        self._last_epoch = last_epoch
+        self._base_lrs   = [group['lr'] for group in optimizer.param_groups]
+        self._last_lrs   = self.base_lrs.copy()
+        
+        self._prev_single_lr: float = None
+        self._curr_single_lr: float = None
         self.step()
+        
+    ### PROPERTIES ###
+    
+    @property
+    def lr(self: Scheduler) -> float:
+        '''Convenience property to get current LR of first optimizer parameter.
+        
+        Equivelent to Scheduler.get_last_lr()[0]
+        '''
+        lrs = self.get_last_lr()
+        if isinstance(lrs, float): return lrs
+        return lrs[0] if lrs else self.optimizer.lr
+    
+    @property
+    def optimizer(self: Scheduler) -> Optimizer:
+        '''Returns a reference to the Optimizer managed by the Scheduler.'''
+        return self._optimizer
+    
+    @property
+    def last_epoch(self: Scheduler) -> int:
+        '''Returns the last_epoch value of the Scheduler.'''
+        return self._last_epoch
+    
+    @property
+    def base_lrs(self: Scheduler) -> list[float]:
+        '''Returns a list of the base LR values of all scheduled parameters.'''
+        return self._base_lrs
+        
+    ### GETTERS ###
         
     def get_lr(self: Scheduler) -> list[float]:
         raise NotImplementedError
 
     def get_last_lr(self: Scheduler) -> list[float]:
-        return self._last_lr
+        return self._last_lrs
+
+    ### SCHEDULE ###
 
     def step(self: Scheduler, epoch: int | None = None) -> None:
-        if epoch is None: self.last_epoch += 1
-        else: self.last_epoch = epoch
+        if epoch is None: self._last_epoch += 1
+        else: self._last_epoch = epoch
         
-        values = self.get_lr()
-        self._last_lr = values
+        self._prev_single_lr = self.lr
+        self._last_lrs       = self.get_lr()
+        self._curr_single_lr = self.lr
         
-        for group, lr in zip(self.optimizer.param_groups, values):
+        for group, lr in zip(self.optimizer.param_groups, self.get_last_lr()):
             group['lr'] = lr
+
+    ### STATE DICT ###
 
     def state_dict(self: Scheduler) -> dict[str, Any]:
         return { k: v for k, v in self.__dict__.items() if k != 'optimizer' }
 
     def load_state_dict(self: Scheduler, state_dict: dict[str, Any]) -> None:
         self.__dict__.update(state_dict)
+        
+    ### UTILITIES ###
+        
+    def eval_schedule(
+        self:           Scheduler,
+        start_timestep: int = 0,
+        end_timestep:   int = 100
+    ) -> list[float]:
+        _last_epoch_prev = self.last_epoch
+        values           = [self.lr]
+        self._last_epoch = start_timestep
+        for idx in range(start_timestep, end_timestep):
+            self.step(idx+1)
+            values.append(self.lr)
+        self._last_epoch = _last_epoch_prev
+        return values
+        
+    def plot(
+        self:           Scheduler, 
+        start_timestep: int = 0,
+        end_timestep:   int = 100
+    ) -> None:
+        values = self.eval_schedule(start_timestep, end_timestep)
+        plt.xlabel('Timesteps'); plt.ylabel('Learning Rate')
+        plt.plot(values)
+        plt.show()
+        
+    def print(
+        self:           Scheduler, 
+        start_timestep: int = 0,
+        end_timestep:   int = 100
+    ) -> None:
+        values = self.eval_schedule(start_timestep, end_timestep)
+        for idx, value in enumerate(values):
+            idx_str  = f'{idx+1+start_timestep}'.rjust(len(str(len(values))))
+            step_str = f'(Timestep {idx_str})'
+            before   = values[max(0, idx-1)]
+            print(f'{step_str} LR: {before:.4f} -> {value:.4f}')
 
 ### COMPOSITION ###
 
@@ -53,14 +130,17 @@ class SequentialLR(Scheduler):
         milestones: list[int],
         last_epoch: int | None = None
     ) -> None:
-        self.optimizer  = optimizer
         self.schedulers = schedulers
         self.milestones = milestones
-        self.last_epoch = last_epoch or 0
         self._idx       = 0
+        self._active    = self.schedulers[self._idx]
         
+        for group, lr in zip(optimizer.param_groups, schedulers[0].base_lrs):
+            group['lr'] = lr
+        
+        super().__init__(optimizer, last_epoch or -1)
         self._init_schedule()
-
+                
     def _init_schedule(self: SequentialLR) -> None:
         if self.last_epoch is not None:
             for i, milestone in enumerate(self.milestones):
@@ -74,29 +154,33 @@ class SequentialLR(Scheduler):
                 elapsed -= self.milestones[i] \
                         - (self.milestones[i-1] if i > 0 else 0)
             
-            active = self.schedulers[self._idx]
-            if hasattr(active, 'last_epoch'):
-                active.last_epoch = elapsed
+            self._active = self.schedulers[self._idx]
+            if hasattr(self._active, 'last_epoch'):
+                self._active._last_epoch = elapsed
     
     def get_lr(self: SequentialLR) -> float:
         if self._idx < len(self.schedulers):
-            return self.schedulers[self._idx].get_lr()[0]
+            return self._active.get_lr()[0]
         return self.optimizer.lr
     
     def get_last_lr(self: SequentialLR) -> list[float]:
         if self._idx < len(self.schedulers):
-            return self.schedulers[self._idx].get_last_lr()[0]
+            return self._active.get_last_lr()[0]
         return self.optimizer.lr
     
-    def step(self: SequentialLR) -> None:
-        self.last_epoch += 1
+    def step(self: SequentialLR, epoch: int | None = None) -> None:
+        if epoch is None: self._last_epoch += 1
+        else: self._last_epoch = epoch
         
         if  self._idx < len(self.milestones) \
         and self.last_epoch > self.milestones[self._idx]:
             self._idx += 1
+            self._active = self.schedulers[self._idx]
         
+        self._prev_single_lr = self._active.lr
         if self._idx < len(self.schedulers):
-            self.schedulers[self._idx].step()
+            self._active.step()
+        self._curr_single_lr = self._active.lr
             
     def clone(self: SequentialLR, new_optimizer: Optimizer) -> SequentialLR:
         return SequentialLR(
@@ -256,11 +340,11 @@ class CosineAnnealingWarmRestarts(Scheduler):
         super().__init__(optimizer, last_epoch)
 
     def _get_T_cur_T_i(self: CosineAnnealingWarmRestarts) -> tuple[int, int]:
-        T_i = self.T_0
+        T_i   = self.T_0
         T_cur = self.last_epoch
         while T_cur >= T_i:
             T_cur -= T_i
-            T_i *= self.T_mult
+            T_i   *= self.T_mult
         return T_cur, T_i
 
     def get_lr(self: CosineAnnealingWarmRestarts) -> list[float]:
@@ -338,17 +422,18 @@ class ReduceLROnPlateau(Scheduler):
         
         if improved:
             self.num_bad_epochs = 0
-            self.best = metric
+            self.best           = metric
         else: self.num_bad_epochs += 1
         
         if self.num_bad_epochs > self.patience:
-            self.num_bad_epochs = 0
+            self.num_bad_epochs   = 0
             self.cooldown_counter = self.cooldown
             
-            values = self.get_lr()
-            self._last_lr = values
+            self._prev_single_lr = self.lr
+            self._last_lrs       = self.get_lr()
+            self._curr_single_lr = self.lr
             
-            for group, lr in zip(self.optimizer.param_groups, values):
+            for group, lr in zip(self.optimizer.param_groups, self._last_lrs):
                 if group['lr'] - lr > self.eps: group['lr'] = lr
         
 class CyclicLR(Scheduler):

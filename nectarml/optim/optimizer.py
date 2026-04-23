@@ -16,7 +16,7 @@ class HookHandle:
         self.hook_list.remove(self.hook)
     
 class Optimizer:
-    _defaults: dict[str, Any] = {}
+    _defaults: dict[str, Any] = None
     
     def __init__(
         self: Optimizer,
@@ -24,8 +24,10 @@ class Optimizer:
             list[Tensor] 
           | list[tuple[str, Tensor]]
           | list[dict[str, Any]]
-        )
+        ),
+        defaults: dict[str, Any] | None = None
     ) -> None:
+        super().__setattr__('_defaults', defaults or {})
         self.state:   dict[int, dict[str, Any]] = {}
         self.param_groups: list[dict[str, Any]] = []
         

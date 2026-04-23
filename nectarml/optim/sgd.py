@@ -8,14 +8,6 @@ from nectarml.creation        import zeros_like
 from nectarml.optim.optimizer import Optimizer
 
 class SGD(Optimizer):
-    _defaults={
-        'lr':           0.003,
-        'momentum':     0.0,
-        'dampening':    0.0,
-        'weight_decay': 0.0,
-        'nesterov':     False
-    }
-    
     def __init__(
         self: SGD,
         parameters: (
@@ -37,7 +29,13 @@ class SGD(Optimizer):
             - Liu et al., "An Improved Analysis of Stochastic Gradient Descent 
             with Momentum.", https://arxiv.org/pdf/2007.07989
         '''
-        super().__init__(parameters)
+        super().__init__(parameters, defaults={
+            'lr':           lr,
+            'momentum':     momentum,
+            'dampening':    dampening,
+            'weight_decay': weight_decay,
+            'nesterov':     nesterov
+        })
         self.lr           = lr
         self.momentum     = momentum
         self.dampening    = dampening

@@ -8,14 +8,6 @@ from nectarml.creation        import zeros_like
 from nectarml.optim.optimizer import Optimizer
 
 class Adam(Optimizer):
-    _defaults = {
-        'lr':           0.003,
-        'betas':        (0.9, 0.999),
-        'eps':          1e-8,
-        'weight_decay': 0.0,
-        'amsgrad':      False
-    }
-
     def __init__(
         self: Adam,
         parameters: (
@@ -39,7 +31,14 @@ class Adam(Optimizer):
             - Diederik P. Kingma, and Jimmy Lei Ba, "Adam: A Method for 
                 Stochastic Optimization.", https://arxiv.org/pdf/1412.6980
         '''
-        super().__init__(parameters)
+        super().__init__(parameters, defaults={
+            'lr':                     lr,
+            'betas':                  betas,
+            'eps':                    eps,
+            'weight_decay':           weight_decay,
+            'decoupled_weight_decay': decoupled_weight_decay,
+            'amsgrad':                amsgrad
+        })
         self.lr                     = lr
         self.beta1, self.beta2      = betas
         self.eps                    = eps
@@ -150,14 +149,6 @@ class Adam(Optimizer):
                         param, idx, _lr, bias_correction1, bias_correction2)
 
 class AdamW(Adam):
-    _defaults = {
-        'lr':           0.003,
-        'betas':        (0.9, 0.999),
-        'eps':          1e-8,
-        'weight_decay': 0.0,
-        'amsgrad':      False
-    }
-    
     def __init__(
         self: AdamW,
         parameters: (
@@ -185,14 +176,6 @@ class AdamW(Adam):
             amsgrad, maximize, foreach, capturable, fused)
 
 class NAdam(Adam):
-    _defaults = {
-        'lr':             0.003,
-        'betas':          (0.9, 0.999),
-        'eps':            1e-8,
-        'weight_decay':   0.0,
-        'momentum_decay': 0.004
-    }
-    
     def __init__(
         self: NAdam,
         parameters: (
@@ -216,12 +199,30 @@ class NAdam(Adam):
             - Dozat, Timothy, "Incorporating Nesterov Momentum into Adam.",
                 https://cs229.stanford.edu/proj2015/054_report.pdf
         '''
+        Optimizer.__init__(parameters, defaults={
+            'lr':                     lr,
+            'betas':                  betas,
+            'eps':                    eps,
+            'weight_decay':           weight_decay,
+            'momentum_decay':         momentum_decay,
+            'decoupled_weight_decay': decoupled_weight_decay
+        })
+        self.lr                     = lr
+        self.beta1, self.beta2      = betas
+        self.eps                    = eps
+        self.weight_decay           = weight_decay
+        self.momentum_decay         = momentum_decay
+        self.decoupled_weight_decay = decoupled_weight_decay
+        self.maximize               = maximize
+        self.foreach                = foreach
+        self.capturable             = capturable
+        self.fused                  = fused
+        
         super().__init__(
             parameters, lr, betas, eps, weight_decay, decoupled_weight_decay,
             False, maximize, foreach, capturable, fused)
         
-        self.momentum_decay = momentum_decay
-    
+        
     def _build_state(self: NAdam, param_index: int, param: Tensor) -> None:
         super()._build_state(param_index, param)
         if 'mu_product' not in self.state[param_index]:
@@ -309,16 +310,13 @@ class RAdam(Optimizer):
         foreach:                bool = None, # NOT YET IMPLEMENTED
         capturable:             bool = False # NOT YET IMPLEMENTED
     ) -> None:
-        super().__init__(
-            parameters, 
-            defaults={
-                'lr': 0.003,
-                'betas': (0.9, 0.999),
-                'eps': 1e-8,
-                'weight_decay': 0.0,
-                'decoupled_weight_decay': False
-            }
-        )
+        super().__init__(parameters, defaults={
+            'lr':                     lr,
+            'betas':                  betas,
+            'eps':                    eps,
+            'weight_decay':           weight_decay,
+            'decoupled_weight_decay': decoupled_weight_decay
+        })
         self.lr = lr
         self.beta1, self.beta2 = betas
         self.eps = eps
