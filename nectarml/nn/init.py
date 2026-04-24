@@ -89,8 +89,10 @@ def normal_(
 ### VARIANCE SCALING ###
 
 def xavier_uniform_(weights: Tensor, gain: builtins.float = 1.0) -> None: 
-    fan_in = weights.shape[-1]
-    fan_out = weights.shape[0]
+    s           = weights.shape
+    kernel_size = int(np.prod(s[2:])) if len(s) > 2 else 1
+    fan_in      = weights.shape[-1] * kernel_size
+    fan_out     = weights.shape[0]  * kernel_size
     
     std_dev = gain * np.sqrt(6 / (fan_in + fan_out))
     data = RNG.uniform(low=-std_dev, high=std_dev, size=weights.shape)
@@ -98,7 +100,8 @@ def xavier_uniform_(weights: Tensor, gain: builtins.float = 1.0) -> None:
 
 def xavier_normal_(weights: Tensor, gain: builtins.float = 1.0) -> None: 
     s = weights.shape
-    fan_in, fan_out = s[-1], s[0]
+    kernel_size = int(np.prod(s[2:])) if len(s) > 2 else 1
+    fan_in, fan_out = s[-1] * kernel_size, s[0] * kernel_size
     std_dev = gain * np.sqrt(2 / (fan_in + fan_out))
     _set_weights(weights, RNG.normal(loc=0.0, scale=std_dev, size=s))
 
@@ -113,9 +116,10 @@ def kaiming_uniform_(
     ] = 'leaky_relu'
 ) -> None: 
     s = weights.shape
+    kernel_size = int(np.prod(s[2:])) if len(s) > 2 else 1
     match mode:
-        case 'fan_in':  features = s[1]
-        case 'fan_out': features = s[0]
+        case 'fan_in':  features = s[1] * kernel_size
+        case 'fan_out': features = s[0] * kernel_size
         case _: raise ValueError(f'Invalid init mode: {mode}')
     
     gain = calculate_gain(nonlinearity, a)
@@ -133,9 +137,10 @@ def kaiming_normal_(
     ] = 'leaky_relu'    
 ) -> None: 
     s = weights.shape
+    kernel_size = int(np.prod(s[2:])) if len(s) > 2 else 1
     match mode:
-        case 'fan_in':  features = s[1]
-        case 'fan_out': features = s[0]
+        case 'fan_in':  features = s[1] * kernel_size
+        case 'fan_out': features = s[0] * kernel_size
         case _: raise ValueError(f'Invalid init mode: {mode}')
     
     gain = calculate_gain(nonlinearity, a)
