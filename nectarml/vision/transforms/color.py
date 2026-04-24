@@ -7,12 +7,12 @@ import numpy as np
 from PIL import Image, ImageOps
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
-from nectarml.typing import float32
+from nectarml.tensor   import Tensor
+from nectarml.typing   import float32
 from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform 
-from nectarml.vision.transforms.spatial import OpticalDistortion
-from nectarml.vision.transforms.common import \
+from nectarml.vision.transforms.spatial   import OpticalDistortion
+from nectarml.vision.transforms.common    import \
     TransformInput, hsv_adjust, gradient_mask, lerp3
 
 ### TRANSFORMS ###
@@ -21,10 +21,10 @@ class ColorJitter(Transform):
     def __init__(
         self,
         brightness: float | tuple[float, float] = (0.9, 1.1),
-        contrast: float | tuple[float, float] = (0.9, 1.1),
+        contrast:   float | tuple[float, float] = (0.9, 1.1),
         saturation: float | tuple[float, float] = (0.9, 1.1),
-        hue: float | tuple[float, float] = (-0.1, 0.1),
-        p: float = 0.5
+        hue:        float | tuple[float, float] = (-0.1, 0.1),
+        p:          float = 0.5
     ) -> None:
         super().__init__(p=p)
         if isinstance(brightness, float): 
@@ -36,20 +36,18 @@ class ColorJitter(Transform):
         if isinstance(hue, float): hue = (-hue, hue)
         
         self.brightness = brightness
-        self.contrast = contrast
+        self.contrast   = contrast
         self.saturation = saturation
-        self.hue = hue
+        self.hue        = hue
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
         
         if not np.allclose(list(self.contrast), [1, 1]):
-            input = input / (max_value + self._epsilon)
-            input = ((input - 0.5) * self._contrast + 0.5) * max_value
-            input = input.clamp(0.0, max_value)
+            input = ((input - 0.5) * self._contrast + 0.5)
+            input = input.clamp(0.0, 1.0)
 
-        return hsv_adjust(input, self._hue, self._sat, self._val, max_value)
+        return hsv_adjust(input, self._hue, self._sat, self._val)
     
     def _build_parameters(self) -> None:
         self._hue      = self._random_in_range(self.hue)
@@ -71,7 +69,7 @@ class RandomBrightness(Transform):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
-        p: float = 0.5
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.value_range = value_range
@@ -97,18 +95,15 @@ class RandomContrast(Transform):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
-        p: float = 0.5
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.value_range = value_range
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        out = (
-            (input / (max_value + self._epsilon) - 0.5) 
-           * self._contrast + 0.5) * max_value
-        return out.clamp(0.0, max_value)
+        out = (input - 0.5) * self._contrast + 0.5
+        return out.clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
         self._contrast = self._random_in_range(self.value_range)
@@ -127,7 +122,7 @@ class RandomSaturation(Transform):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
-        p: float = 0.5
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.value_range = value_range
@@ -153,7 +148,7 @@ class RandomHue(Transform):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
-        p: float = 0.5
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.value_range = value_range
@@ -179,16 +174,15 @@ class RandomGamma(Transform):
     def __init__(
         self,
         value_range: tuple[float, float] = (0.9, 1.1),
-        p: float = 0.5
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.value_range = value_range
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        out = (input / (max_value + self._epsilon)) ** self._gamma * max_value
-        return out.clamp(0.0, max_value)
+        out = input**self._gamma
+        return out.clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
         self._gamma = self._random_in_range(self.value_range)
@@ -209,7 +203,7 @@ class ToGrayscale(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        ch = input.unbind(dim=1)
+        ch  = input.unbind(dim=1)
         out = 0.2999 * ch[0] + 0.587 * ch[1] + 0.114 * ch[2]
         out = out.unsqueeze(dim=0).expand(input.shape)
         return out.to(input.device, input.dtype)
@@ -226,23 +220,18 @@ class ToGrayscale(Transform):
 class ToBlackAndWhite(Transform):
     def __init__(
         self,
-        white_point: int = 125,
-        p: float = 0.5
+        white_point: int   = 125,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.white_point = white_point / 255
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value+ self._epsilon)
-        
-        gray = norm.mean(dim=1, keepdim=True)
-        result = F.where(
+        gray = input.mean(dim=1, keepdim=True)
+        return F.where(
             (gray > self.white_point), 
             ones((), input.dtype, input.device), 0.0)
-
-        return result * max_value
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -259,13 +248,11 @@ class ToSepia(Transform):
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
         in_r, in_g, in_b = input.unbind(dim=1)
-        r = (in_r * 0.393) + (in_g * 0.769) + (in_b * 0.189)
-        g = (in_r * 0.349) + (in_g * 0.686) + (in_b * 0.168)
-        b = (in_r * 0.272) + (in_g * 0.534) + (in_b * 0.131)
-        out = F.stack([r, g, b], dim=1).clamp(0.0, max_value)
-        return out.to(input.device, input.dtype)
+        r   = (in_r * 0.393) + (in_g * 0.769) + (in_b * 0.189)
+        g   = (in_r * 0.349) + (in_g * 0.686) + (in_b * 0.168)
+        b   = (in_r * 0.272) + (in_g * 0.534) + (in_b * 0.131)
+        return F.stack([r, g, b], dim=1).clamp(0.0, 1.0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -276,14 +263,12 @@ class ToSepia(Transform):
             keypoints = input.keypoints
         )
 
-class Equalize(Transform):
-    # NOTE: Equalize always happens on CPU regardless of input Tensor's device.
-    
+class Equalize(Transform):    
     def __init__(
         self,
-        mode: Literal['cv2', 'pil'] = 'pil',
-        by_channel: bool = True,
-        p: float = 0.5
+        mode:       Literal['cv2', 'pil'] = 'pil',
+        by_channel: bool  = True,
+        p:          float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.mode = mode
@@ -295,15 +280,16 @@ class Equalize(Transform):
         
         for batch in batches:
             if not self.by_channel:
-                data = batch.permute((1, 2, 0))
-                img_yuv = cv2.cvtColor(data, cv2.COLOR_BGR2YUV)
+                data           = batch.permute((1, 2, 0))
+                img_yuv        = cv2.cvtColor(data, cv2.COLOR_BGR2YUV)
                 img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
-                img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+                img_output     = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+                
                 out_data = np.array(img_output).astype(input.dtype.numpy)
                 out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
             else:
                 channels = batch.unbind(dim=0)
-                arrs = []
+                arrs     = []
                 for ch in channels:
                     equalized = cv2.equalizeHist(ch.numpy().astype(np.uint8))
                     arrs.append(np.array(equalized).astype(input.dtype.numpy))
@@ -321,9 +307,8 @@ class Equalize(Transform):
         
         for batch in batches:
             if not self.by_channel:
-                out = batch.permute((1, 2, 0))
-                img = Image.fromarray(
-                    out.numpy().astype(dtype=np.uint8), 'RGB')
+                out = batch.permute((1, 2, 0)).numpy().astype(dtype=np.uint8)
+                img = Image.fromarray(out, 'RGB')
                 img = ImageOps.equalize(img)
                 out_data = np.array(img).astype(input.dtype.numpy)
                 out_data = np.ascontiguousarray(out_data.transpose((2, 0, 1)))
@@ -364,7 +349,7 @@ class AutoContrast(Transform):
         self, 
         cutoff: float = 0.0,
         method: Literal['cdf', 'pil'] = 'pil',
-        p: float = 0.5
+        p:      float = 0.5
     ) -> None:
         super().__init__(p=p)
         assert 0.0 <= cutoff <= 1.0, \
@@ -373,18 +358,15 @@ class AutoContrast(Transform):
         self.method = method
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
-        
+        if input is None: return input        
         if self.cutoff == 0.0:
-            lo = norm.amin(dim=(-2, -1), keepdim=True)
-            hi = norm.amax(dim=(-2, -1), keepdim=True)
+            lo = input.amin(dim=(-2, -1), keepdim=True)
+            hi = input.amax(dim=(-2, -1), keepdim=True)
         else:
-            B, C, H, W = norm.shape
+            _, C, H, W = input.shape
             lo_list, hi_list = [], []
             for c in range(C):
-                channel = norm[:, c]
+                channel = input[:, c]
                 lo = F.quantile(channel, self.cutoff / 100.0)
                 lo_list.append(lo.reshape((1, 1, 1, 1)))
                 hi = F.quantile(channel, 1 - self.cutoff / 100.0)
@@ -392,7 +374,7 @@ class AutoContrast(Transform):
             lo = F.cat(lo_list, dim=1)
             hi = F.cat(hi_list, dim=1)
 
-        return ((norm - lo) / (hi - lo + 1e-8)).clamp(0.0, 1.0) * max_value
+        return ((input - lo) / (hi - lo + 1e-8)).clamp(0.0, 1.0)
     
     def forward(self, input: Tensor) -> Tensor:
         return TransformInput(
@@ -420,13 +402,11 @@ class Solarize(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        r, g, b = (input / (max_value + self._epsilon)).unbind(dim=1)
-        channels = [
-            F.where((r < self._thresholds[0]), r, 1-r),
-            F.where((g < self._thresholds[1]), g, 1-g),
-            F.where((b < self._thresholds[2]), b, 1-b)]
-        return (F.stack(channels, dim=1) * max_value).clamp(0.0, max_value)
+        r, g, b   = input.unbind(dim=1)
+        channels  = [F.where((r < self._thresholds[0]), r, 1-r),
+                     F.where((g < self._thresholds[1]), g, 1-g),
+                     F.where((b < self._thresholds[2]), b, 1-b)]
+        return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
         if self.per_channel:
@@ -454,8 +434,7 @@ class Posterize(Transform):
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        step = max_value / self.levels
+        step = 1.0 / self.levels
         return (input / step).floor() * step
 
     def forward(self, input: TransformInput) -> TransformInput:
@@ -473,9 +452,7 @@ class Invert(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        base = full(input.shape, max_value, input.dtype).to(input.device)
-        return (base - input).clamp(0.0, max_value)
+        return (1.0 - input).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -489,9 +466,9 @@ class Invert(Transform):
 class CLAHE(Transform):
     def __init__(
         self,
-        clip_limit: int = 4,
+        clip_limit:     int = 4,
         tile_grid_size: tuple[int, int] = (8, 8),
-        p: float = 0.5
+        p:              float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.clip_limit = clip_limit
@@ -500,11 +477,10 @@ class CLAHE(Transform):
         
     def _clahe_mapping(self, tile: np.ndarray) -> np.ndarray:
         hist, _ = np.histogram(tile.ravel(), bins=256, range=(0, 256))
-        
-        limit = self.clip_limit * tile.size / 256
-        excess = np.sum(np.maximum(hist - limit, 0))
-        hist = np.minimum(hist, limit)
-        hist += excess / 256
+        limit   = self.clip_limit * tile.size / 256
+        excess  = np.sum(np.maximum(hist - limit, 0))
+        hist    = np.minimum(hist, limit)
+        hist   += excess / 256
         
         cdf = np.cumsum(hist)
         cdf = (cdf - cdf.min()) / (tile.size - cdf.min() + self._epsilon) * 255
@@ -555,9 +531,7 @@ class CLAHE(Transform):
         
         B, C, H, W = input.shape
         ty, tx = self.tile_grid_size
-        max_val = input.max().item()
-
-        arr = (input.cpu().numpy() / (max_val + self._epsilon) * 255)
+        arr = input.cpu().numpy() * 255
         arr = arr.astype(np.uint8)
         out = np.zeros_like(arr, dtype=np.float32)
         
@@ -574,7 +548,7 @@ class CLAHE(Transform):
                 
                 out[b, c] = self._interp(channel, mappings, th, tw, ty, tx)
         
-        out = (out / 255.0 * max_val).astype(input.dtype.numpy)
+        out = (out / 255.0).clip(0.0, 1.0).astype(input.dtype.numpy)
         return Tensor(out, dtype=input.dtype, device=input.device)
         
     def forward(self, input: Tensor) -> Tensor:
@@ -614,8 +588,8 @@ class ChannelDropout(Transform):
     def __init__(
         self,
         range: tuple[int, int] = (1, 1),
-        fill: float = 0.0,
-        p: float = 0.5
+        fill:  float = 0.0,
+        p:     float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.range = range
@@ -623,12 +597,10 @@ class ChannelDropout(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        channels = input.unbind(dim=1)
-        
-        new_channel = full(channels[0].shape, self.fill) * max_value
+        channels              = input.unbind(dim=1)
+        new_channel           = full(channels[0].shape, self.fill)
         channels[self._index] = new_channel.to(input.device, input.dtype)
-        return F.stack(channels, dim=1).clamp(0.0, max_value)
+        return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
         self._index = self.rng.randint(self.range[0], self.range[1])
@@ -658,18 +630,14 @@ class RGBShift(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        remapped = input / (max_value + self._epsilon) * 255.0
-        r, g, b = remapped.unbind(dim=1)
-        
+        r, g, b  = input.unbind(dim=1)
         channels = [r + self._r, g + self._g, b + self._b]
-        out = F.stack(channels, dim=1)
-        return (out / 255.0 * max_value).clamp(0.0, max_value)
+        return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
-        self._r = self._random_in_range(self.r_shift_limit)
-        self._g = self._random_in_range(self.g_shift_limit)
-        self._b = self._random_in_range(self.b_shift_limit)
+        self._r = self._random_in_range(self.r_shift_limit) / 255
+        self._g = self._random_in_range(self.g_shift_limit) / 255
+        self._b = self._random_in_range(self.b_shift_limit) / 255
     
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -684,10 +652,10 @@ class RGBShift(Transform):
 class HueSaturationValue(Transform):
     def __init__(
         self,
-        hue: float = 0.0,
+        hue:        float = 0.0,
         saturation: float = 1.0,
-        value: float = 1.0,
-        p: float = 0.5
+        value:      float = 1.0,
+        p:          float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.hue = hue
@@ -714,13 +682,13 @@ class TonemapHDR(Transform):
             'reinhard', 'exposure+gamma', 'filmic', 'aces'
         ] = 'reinhard',
         exposure: float = 1.0,
-        gamma: float = 2.2,
-        p: float = 0.5
+        gamma:    float = 2.2,
+        p:        float = 0.5
     ) -> None:
         super().__init__(p=p)
-        self.method = method
+        self.method   = method
         self.exposure = exposure
-        self.gamma = gamma
+        self.gamma    = gamma
     
     def _hable(self, x: Tensor | float) -> Tensor:
         A, B, C, D, E, F = 0.15, 0.50, 0.10, 0.20, 0.02, 0.30
@@ -734,29 +702,26 @@ class TonemapHDR(Transform):
         return rgb.clamp(0, 1) ** (1.0 / self.gamma)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
-        
+        if input is None: return input        
         match self.method:
             case 'reinhard': 
-                r, g, b = norm.unbind(dim=1)
+                r, g, b = input.unbind(dim=1)
                 luma = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
                 curve = luma / (1 + luma)
-                tonemapped = norm * (curve / (luma + 1e-8))
+                tonemapped = input * (curve / (luma + 1e-8))
             case 'exposure+gamma':
-                r, g, b = norm.unbind(dim=1)
+                r, g, b = input.unbind(dim=1)
                 luma = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
                 curve = 1 - (-self.exposure * luma).exp()
                 tonemapped = input * curve
             case 'filmic':
-                curr = self._hable(norm * self.exposure)
+                curr = self._hable(input * self.exposure)
                 white = self._hable(11.2)
                 tonemapped = curr / white
             case 'aces': 
-                tonemapped = self._aces(norm * self.exposure).clamp(0, 1)
+                tonemapped = self._aces(input * self.exposure).clamp(0, 1)
         
-        return self._gamma_encode(tonemapped) * max_value
+        return self._gamma_encode(tonemapped)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -772,8 +737,8 @@ class ChromaticAberration(Transform):
         self,
         inner_distortion_limit: float | tuple[float, float] = (-0.03, 0.03),
         outer_distortion_limit: float | tuple[float, float] = (-0.15, 0.15),
-        falloff_power: float = 2.0,
-        p: float = 0.5
+        falloff_power:          float = 2.0,
+        p:                      float = 0.5
     ) -> None:
         super().__init__(p=p)
         inner, outer = inner_distortion_limit, outer_distortion_limit
@@ -831,8 +796,8 @@ class Vignetting(Transform):
     def __init__(
         self,
         intensity_range: float | tuple[float, float] = (0.2, 0.5),
-        center_range: float | tuple[float, float] = (0.3, 0.7),
-        p: float = 0.5    
+        center_range:    float | tuple[float, float] = (0.3, 0.7),
+        p:               float = 0.5    
     ) -> None:
         super().__init__(p=p)
         self.intensity_range = (intensity_range, intensity_range) \
@@ -843,13 +808,12 @@ class Vignetting(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         
-        mask = gradient_mask(input.shape, 'elliptical', 'corners')
-        mask = mask.to(input.device, input.dtype)
-        mask = 1.0 - (mask - self._center).clamp(0.0, 1.0)
-        mask = mask ** (1.0 + self._intensity)
-        output = input * mask
+        mask   = gradient_mask(input.shape, 'elliptical', 'corners')
+        mask   = mask.to(input.device, input.dtype)
+        mask   = 1.0 - (mask - self._center).clamp(0.0, 1.0)
+        mask   = mask ** (1.0 + self._intensity)
         
-        return output.clamp(0.0, input.max().item())
+        return (input * mask).clamp(0.0, 1.0)
         
     def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
@@ -868,12 +832,12 @@ class Vignetting(Transform):
 class Illumination(Transform):
     def __init__(
         self,
-        mode: Literal['linear', 'radial'] = 'radial',
+        mode:            Literal['linear', 'radial'] = 'radial',
         intensity_range: float | tuple[float, float] = (0.1, 0.3),
-        effect_type: Literal['brighten', 'darken', 'both'] = 'both',
-        angle_range: tuple[float, float] = (0.0, 360.0),
-        center_range: tuple[float, float] = (0.25, 0.75),
-        p: float = 0.5
+        effect_type:     Literal['brighten', 'darken', 'both'] = 'both',
+        angle_range:     tuple[float, float] = (0.0, 360.0),
+        center_range:    tuple[float, float] = (0.25, 0.75),
+        p:               float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.mode = mode
@@ -903,17 +867,16 @@ class Illumination(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         _, _, H, W = input.shape
-        max_value = input.max().item()
 
         if self.mode == 'linear': mask = self._linear_mask(H, W)
         else: mask = self._radial_mask(H, W)
         mask = mask.to(input.device, input.dtype)
 
-        if self.effect_type == 'brighten': delta = mask * self._intensity
-        elif self.effect_type == 'darken': delta = -mask * self._intensity
+        if self.effect_type   == 'brighten': delta =  mask * self._intensity
+        elif self.effect_type == 'darken':   delta = -mask * self._intensity
         else: delta = (mask - 0.5) * 2 * self._intensity
 
-        return (input + (delta * max_value)).clamp(0.0, max_value)
+        return (input + delta).clamp(0.0, 1.0)
 
     def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
@@ -934,9 +897,9 @@ class Illumination(Transform):
 class Quantize(Transform):
     def __init__(
         self,
-        levels: int | tuple[int, int] = (3, 5),
+        levels:  int | tuple[int, int] = (3, 5),
         palette: Tensor | None = None,
-        p: float = 0.5    
+        p:       float = 0.5    
     ) -> None:
         super().__init__(p=p)
         self.levels = (levels, levels) if isinstance(levels, int) else levels
@@ -950,8 +913,8 @@ class Quantize(Transform):
             return (input * self._levels).round() / self._levels
         else:
             palette = self.palette.to(input.device, input.dtype)
-            diff = (input.unsqueeze(-1) - palette)
-            idx = diff.abs().argmin(dim=-1)
+            diff    = (input.unsqueeze(-1) - palette)
+            idx     = diff.abs().argmin(dim=-1)
             return palette[idx]
                 
     def _build_parameters(self) -> None:

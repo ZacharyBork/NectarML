@@ -5,12 +5,12 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml.tensor   import Tensor
 from nectarml.creation import zeros, ones_like
-from nectarml.typing import float32
+from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
-from nectarml.vision.transforms.blur import GaussianBlur
+from nectarml.vision.transforms.blur   import GaussianBlur
 
 class Convolve(Transform):
     def __init__(
@@ -21,7 +21,7 @@ class Convolve(Transform):
             [ 0,  1,  2]
         ],
         alpha: float | tuple[float, float] = 1.0,
-        p: float = 1.0
+        p:     float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.kernel = Tensor(kernel, dtype=float32)
@@ -29,12 +29,10 @@ class Convolve(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        kernel = self.kernel.to(input.device, input.dtype)
-        
-        result = F.sqrt(apply_kernel_2d(input, kernel)**2 + 1e-6)
+        kernel  = self.kernel.to(input.device, input.dtype)
+        result  = F.sqrt(apply_kernel_2d(input, kernel)**2 + 1e-6)
         blended = (1 - self._alpha) * input + self._alpha * result
-        return blended.clamp(0.0, max_value)
+        return blended.clamp(0.0, 1.0)
         
     def _build_parameters(self) -> None:
         self._alpha = self._random_in_range(self.alpha)
@@ -79,30 +77,28 @@ class Sobel(Transform):
       
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
         kernel_x = self.sobel_x.to(input.device, input.dtype)
         kernel_y = self.sobel_y.to(input.device, input.dtype)
 
         outputs = []
         if not self.per_channel:
-            gray = norm.mean(dim=1, keepdim=True)
-            out = F.sqrt(
+            gray = input.mean(dim=1, keepdim=True)
+            out  = F.sqrt(
                 apply_kernel_2d(gray, kernel_x)**2 
               + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
             outputs = [out]*3
         else:
-            channels = norm.unbind(dim=1)
+            channels = input.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out = F.sqrt(
+                out  = F.sqrt(
                 apply_kernel_2d(gray, kernel_x)**2 
               + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
                 outputs.append(out)
         
-        return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -116,8 +112,8 @@ class Sobel(Transform):
 class Prewitt(Transform):
     def __init__(
         self,
-        per_channel: bool = False,
-        p: float = 1.0
+        per_channel: bool  = False,
+        p:           float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.per_channel = per_channel
@@ -135,30 +131,28 @@ class Prewitt(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
         kernel_x = self.prewitt_x.to(input.device, input.dtype)
         kernel_y = self.prewitt_y.to(input.device, input.dtype)
 
         outputs = []
         if not self.per_channel:
-            gray = norm.mean(dim=1, keepdim=True)
-            out = F.sqrt(
+            gray = input.mean(dim=1, keepdim=True)
+            out  = F.sqrt(
                 apply_kernel_2d(gray, kernel_x)**2 
               + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
             outputs = [out]*3
         else:
-            channels = norm.unbind(dim=1)
+            channels = input.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out = F.sqrt(
+                out  = F.sqrt(
                 apply_kernel_2d(gray, kernel_x)**2 
               + apply_kernel_2d(gray, kernel_y)**2
               + 1e-6)
                 outputs.append(out)
         
-        return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -186,23 +180,21 @@ class Laplacian(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
         kernel = self.kernel.to(input.device, input.dtype)
 
         outputs = []
         if not self.per_channel:
-            gray = norm.mean(dim=1, keepdim=True)
-            out = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
+            gray    = input.mean(dim=1, keepdim=True)
+            out     = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
             outputs = [out]*3
         else:
-            channels = norm.unbind(dim=1)
+            channels = input.unbind(dim=1)
             for ch in channels:
                 gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
+                out  = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
                 outputs.append(out)
         
-        return (F.cat(outputs, dim=1) * max_value).clamp(0.0, max_value)
+        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -216,11 +208,11 @@ class Laplacian(Transform):
 class Dither(Transform):
     def __init__(
         self,
-        levels: int = 4,
-        algorithm: Literal['floyd-steinberg'] = 'floyd-steinberg',
-        per_channel: bool = True,
+        levels:       int = 4,
+        algorithm:    Literal['floyd-steinberg'] = 'floyd-steinberg',
+        per_channel:  bool = True,
         from_channel: Literal['r', 'g', 'b'] = 'r',
-        p: float = 1.0
+        p:            float = 1.0
     ) -> None:
         '''
         Fully sequential and pure CPU so very slow on large tensors. Likely 
@@ -232,17 +224,16 @@ class Dither(Transform):
         '''
         super().__init__(p=p)
         assert levels > 1, 'Dither "levels" must be > 1.'
-        self.levels = levels
-        self.algorithm = algorithm
-        self.per_channel = per_channel
+        self.levels       = levels
+        self.algorithm    = algorithm
+        self.per_channel  = per_channel
         self.from_channel = from_channel
 
     def _get_new_val(self, old_val) -> np.ndarray:
         return np.round(old_val * (self.levels - 1)) / (self.levels - 1)
 
     def _floyd_steinberg(self, input: Tensor) -> Tensor:
-        max_value = input.max().item()
-        out = np.array(input.numpy().copy()) / (max_value + self._epsilon)        
+        out = input.numpy().copy()       
         
         if not self.per_channel: 
             out = out[:, ['r', 'g', 'b'].index(self.from_channel), :, :]
@@ -267,7 +258,7 @@ class Dither(Transform):
                             if x < W - 1:
                                 out[b, c, y+1, x+1] += err / 16
 
-        out = np.clip(out, 0.0, 1.0) * max_value
+        out = np.clip(out, 0.0, 1.0)
         if not self.per_channel: 
             out = np.concatenate([out, out, out], axis=1)        
         return Tensor(out, out.shape, input.dtype, input.device)
@@ -292,24 +283,21 @@ class Dither(Transform):
 class Halftone(Transform):
     def __init__(
         self,
-        cell_size: int = 10,
-        foreground: tuple[float, float, float] = (0.0, 0.0, 0.0),
-        background: tuple[float, float, float] = (1.0, 1.0, 1.0),
-        blend: float | tuple[float, float] = 0.5,
-        p: float = 1.0
+        cell_size:  int = 10,
+        foreground: tuple[float, float, float]  = (0.0, 0.0, 0.0),
+        background: tuple[float, float, float]  = (1.0, 1.0, 1.0),
+        blend:      float | tuple[float, float] = 0.5,
+        p:          float = 1.0
     ) -> None:
         super().__init__(p=p)
-        self.cell_size = cell_size
+        self.cell_size  = cell_size
         self.foreground = foreground
         self.background = background
         self.blend = (blend, blend) if isinstance(blend, float|int) else blend
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        max_value = input.max().item()
-        norm = input / (max_value + self._epsilon)
-        
-        arr = norm.cpu().numpy()[0]
+        if input is None: return input        
+        arr = input.cpu().numpy()[0]
         C, H, W = arr.shape
         
         gray = arr.mean(axis=0)
@@ -322,9 +310,9 @@ class Halftone(Transform):
         
         fg = np.array(self.foreground, dtype=np.float32)
         
-        cy, cx = np.ogrid[:cs, :cs]
-        center = cs / 2.0
-        dist = np.sqrt((cx - center)**2 + (cy - center)**2)
+        cy, cx     = np.ogrid[:cs, :cs]
+        center     = cs / 2.0
+        dist       = np.sqrt((cx - center)**2 + (cy - center)**2)
         max_radius = center * 0.95
         
         for r in range(rows):
@@ -336,10 +324,10 @@ class Halftone(Transform):
                 
                 brightness = gray[y0:y1, x0:x1].mean()
                 radius = (1.0 - brightness) * max_radius
-                mask = dist <= radius
+                mask   = dist <= radius
                 
                 for c in range(C):
-                    cell = out[c, y0:y1, x0:x1]
+                    cell       = out[c, y0:y1, x0:x1]
                     cell[mask] = fg[c]
                     out[c, y0:y1, x0:x1] = cell
         
@@ -363,20 +351,19 @@ class Halftone(Transform):
 class Kuwahara(Transform):
     def __init__(
         self,
-        radius: int = 7,
-        p: float = 1.0
+        radius: int   = 7,
+        p:      float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.radius = radius
       
     def make_kernel(self, row_slice: slice, col_slice: slice) -> Tensor:
         size = 2 * self.radius + 1
-        k = zeros((size, size))
+        k    = zeros((size, size))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             k[row_slice, col_slice] = 1.0
-        k /= (k.sum().item() + self._epsilon)
-        return k
+        return k / (k.sum().item() + self._epsilon)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -418,7 +405,7 @@ class Pixelate(Transform):
     def __init__(
         self,
         block_size: int | tuple[int, int] = (6, 12),
-        p: float = 1.0
+        p:          float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.block_size = (block_size, block_size) \
@@ -446,18 +433,18 @@ class Pixelate(Transform):
 class AsciiRender(Transform):
     def __init__(
         self,
-        block_size: int = 12,
-        font: str | None = None,
-        charset: Literal['minimal', 'dense', 'block'] = 'dense',
+        block_size:     int = 12,
+        font:           str | None = None,
+        charset:        Literal['minimal', 'dense', 'block'] = 'dense',
         custom_charset: str | None = None,
-        sample_color: bool = True,
-        p: float = 1.0
+        sample_color:   bool = True,
+        p:              float = 1.0
     ) -> None:
         super().__init__(p=p)
         assert block_size > 0, 'AsciiRender "block_size" must be > 0.'
-        self.block_size = block_size
+        self.block_size   = block_size
         self.sample_color = sample_color
-        self.font_path = font
+        self.font_path    = font
 
         if custom_charset is None:
             match charset:
@@ -535,13 +522,11 @@ class AsciiRender(Transform):
         _, _, H, W = input.shape
         
         lines = self._to_ascii(input)
-        arr = self._to_image(lines, input)
-        arr = arr.transpose(2, 0, 1).astype(np.float32) / arr.max().item()
-        out = Tensor(arr[np.newaxis].astype(input.dtype.numpy), 
-            dtype=input.dtype, device=input.device)
-        out = F.upsample(out, size=(H, W), mode='nearest')
-
-        return out * input.max().item()
+        arr   = self._to_image(lines, input)
+        arr   = arr.transpose(2, 0, 1).astype(np.float32) / arr.max().item()
+        out   = Tensor(arr[np.newaxis].astype(input.dtype.numpy), 
+                       dtype=input.dtype, device=input.device)
+        return F.upsample(out, size=(H, W), mode='nearest')
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -555,17 +540,17 @@ class AsciiRender(Transform):
 class DifferenceOfGaussians(Transform):
     def __init__(
         self,
-        kernel_size:  int | tuple[int, int] = 7,
-        sigma1: float | tuple[float, float] = 1.5,
-        sigma2: float | tuple[float, float] = 1.0,
-        iterations:   int | tuple[int, int] = 1,
-        alpha:  float | tuple[float, float] = 1.0,
-        phi:    float | tuple[float, float] = 0.0,
-        tau:    float | tuple[float, float] = 0.99,
-        threshold: float | None = None,
-        invert: bool = False,
-        gray: bool = True,
-        p: float = 1.0
+        kernel_size:int   | tuple[int,   int]   = 7,
+        sigma1:     float | tuple[float, float] = 1.5,
+        sigma2:     float | tuple[float, float] = 1.0,
+        iterations: int   | tuple[int,   int]   = 1,
+        alpha:      float | tuple[float, float] = 1.0,
+        phi:        float | tuple[float, float] = 0.0,
+        tau:        float | tuple[float, float] = 0.99,
+        threshold:  float | None = None,
+        invert:     bool  = False,
+        gray:       bool  = True,
+        p:          float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -576,27 +561,28 @@ class DifferenceOfGaussians(Transform):
             if isinstance(sigma2, float|int) else sigma2
         self.iterations = (iterations, iterations) \
             if isinstance(iterations, int) else iterations
+        
         self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
-        self.phi = (phi, phi) if isinstance(phi, int|float) else phi
-        self.tau = (tau, tau) if isinstance(tau, int|float) else tau
+        self.phi   = (phi,   phi)   if isinstance(phi,   int|float) else phi
+        self.tau   = (tau,   tau)   if isinstance(tau,   int|float) else tau
+        
         self.threshold = threshold
-        self.invert = invert
-        self.gray = gray
+        self.invert    = invert
+        self.gray      = gray
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        out = input.detach()
-        if self.gray: out = out.mean(dim=1, keepdim=True)
+        if self.gray: input = input.mean(dim=1, keepdim=True)
 
-        g1 = self._g1._transform(out)
-        g2 = self._g2._transform(out) 
+        g1 = self._g1._transform(input)
+        g2 = self._g2._transform(input) 
 
         if self.invert: diff = g2 - self._tau * g1
-        else: diff = g1 - self._tau * g2
+        else:           diff = g1 - self._tau * g2
 
         diff_min = diff.min().item()
         diff_max = diff.max().item()
-        diff = (diff - diff_min) / (diff_max - diff_min + self._epsilon)
+        diff     = (diff - diff_min) / (diff_max - diff_min + self._epsilon)
 
         if self.threshold is not None:
             if self._phi == 0.0:
@@ -608,7 +594,7 @@ class DifferenceOfGaussians(Transform):
                     1 + F.tanh(self._phi * (diff - self.threshold)))
 
         result = (1 - self._alpha) * input + self._alpha * diff
-        return result.clamp(0.0, input.max().item())
+        return result.clamp(0.0, 1.0)
             
     def _build_parameters(self) -> None:
         valid_sizes = [

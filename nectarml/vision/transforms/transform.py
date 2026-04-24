@@ -9,7 +9,7 @@ from nectarml.vision.transforms.common import TransformInput
 TInputType  = TypeVar('TInputType')
 TOutputType = TypeVar('TOutputType')
             
-class Transform():
+class Transform:
     def __init__(self, p: float = 1.0) -> None:
         self.rng = RNG
         self.p = p

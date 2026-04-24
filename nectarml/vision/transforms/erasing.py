@@ -23,9 +23,9 @@ class Erasing(Transform):
         p:                   float = 0.5
     ) -> None:
         super().__init__(p=p)
-        self.scale = scale
-        self.ratio = ratio
-        self.fill = fill
+        self.scale      = scale
+        self.ratio      = ratio
+        self.fill       = fill
         self.erase_mask = erase_mask
     
     def _build_mask(self, input: Tensor) -> Tensor:
@@ -55,13 +55,13 @@ class Erasing(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         mask = self._build_mask(input)
-        return input * mask + self.fill * input.max().item() * (1 - mask)
+        return input * mask + self.fill * (1 - mask)
     
     def _build_parameters(self, batches: int) -> None:
         self._scale = []
         self._ratio = []
-        self._cy = []
-        self._cx = []
+        self._cy    = []
+        self._cx    = []
         for _ in range(batches):
             self._scale.append(self._random_in_range(self.scale))
             self._ratio.append(self._random_in_range(self.ratio))
@@ -86,7 +86,7 @@ class CoarseDropout(Transform):
         holes_height_range: tuple[float, float] = (0.1, 0.2),
         holes_width_range:  tuple[float, float] = (0.1, 0.2),
         fill:               float = 0.0,
-        erase_mask:          bool = False,
+        erase_mask:         bool  = False,
         p:                  float = 0.5
     ) -> None:
         super().__init__(p=p)
@@ -121,14 +121,12 @@ class CoarseDropout(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         mask = self._build_mask(input)
-        return input * mask + self.fill * input.max().item() * (1 - mask)
+        return input * mask + self.fill * (1 - mask)
      
     def _build_parameters(self, batches: int) -> None:
         self._num_holes = []
-        self._hole_h = []
-        self._hole_w = []
-        self._cy = []
-        self._cx = []
+        self._hole_h, self._hole_w = [], []
+        self._cy,     self._cx     = [], []
         for _ in range(batches):
             num_holes = int(round(self._random_in_range(self.num_holes_range)))
             self._num_holes.append(num_holes)
@@ -168,14 +166,15 @@ class GridDropout(Transform):
         p:               float = 0.5
     ) -> None:
         super().__init__(p=p)
-        self.ratio = ratio
+        self.ratio         = ratio
         self.random_offset = random_offset
         for num in holes_number_xy:
             assert num > 1, 'Hole counts must be greater than 1 on both axes.'
+        
         self.holes_number_xy = holes_number_xy
-        self.shift_xy = shift_xy
-        self.fill = fill
-        self.erase_mask = erase_mask
+        self.shift_xy        = shift_xy
+        self.fill            = fill
+        self.erase_mask      = erase_mask
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
@@ -214,7 +213,7 @@ class GridDropout(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         mask = self._build_mask(input)
-        return input * mask + self.fill * input.max().item() * (1 - mask)
+        return input * mask + self.fill * (1 - mask)
     
     def _build_parameters(self, batches: int) -> None:
         self._offsets = []
@@ -348,10 +347,9 @@ class RandomLensFlare(Transform):
         self._dtype = input.dtype
         
         B, C, H, W = input.shape
-        max_value = input.max().item()
         
         self._build_projections(H, W)
-        self.layer_shape = (3, H, W)
+        self.layer_shape  = (3, H, W)
         self.smaller_side = min(H, W)
         
         with warnings.catch_warnings():
@@ -374,8 +372,8 @@ class RandomLensFlare(Transform):
                     flare += self._make_ghost(
                         gx, gy, self._radius, self._alpha, self._shift)
 
-                flare = flare.clamp(0.0, 1.0) * max_value
-                input[b] = (input[b] + flare).clamp(0.0, max_value)
+                flare    = flare.clamp(0.0, 1.0)
+                input[b] = (input[b] + flare).clamp(0.0, 1.0)
 
         return input
 
@@ -421,12 +419,12 @@ class RandomFog(Transform):
         
     def _perlin_approx(
         self, 
-        H: int, 
-        W: int,
+        H:      int, 
+        W:      int,
         device: typing.DeviceLikeType,
-        dtype: typing.dtype
+        dtype:  typing.dtype
     ) -> Tensor:
-        noise = zeros((1, 1, H, W), dtype, device)
+        noise     = zeros((1, 1, H, W), dtype, device)
         amplitude = frequency = 1.0
         
         for _ in range(self.octaves):
@@ -447,7 +445,6 @@ class RandomFog(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         B, C, H, W = input.shape
-        max_value = input.max().item()
         
         fog_maps = F.stack(
             [self._perlin_approx(H, W, input.device, input.dtype).squeeze(0)
@@ -459,13 +456,11 @@ class RandomFog(Transform):
         fog = (1 - fog_maps * self._intensity) \
             + fog_color * fog_maps * self._intensity
         
-        out = input + fog
-        divisor = max(self._epsilon, out.max().item() * max_value)
-        return (out / divisor).clamp(0.0, max_value)
+        return (input + fog).clamp(0.0, 1.0)
 
     def _build_parameters(self) -> None:
         self._intensity = self._random_in_range(self.intensity_range)
-        self._seed = int(self._random_in_range((0.0, 999999999.0)))
+        self._seed      = int(self._random_in_range((0.0, 999999999.0)))
 
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -507,12 +502,9 @@ class RandomRain(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         _, C, H, W = input.shape
-        out = input.cpu() * self._brightness_coef
+        out   = input.cpu() * self._brightness_coef
         color = self._color.to(out.device, input.dtype)
-        color = (
-            color / 255 
-          * max(self._epsilon, input.max().item()) 
-          * self._brightness_coef)
+        color = (color / 255) * self._brightness_coef
         
         for i in range(self._num_drops):
             x, y = self._xs[i-1], self._ys[i-1]
@@ -551,16 +543,15 @@ class RandomRain(Transform):
     
     def _build_parameters(self, H: int, W: int) -> None:
         self._brightness_coef = self._random_in_range(self.brightness_coef)
-        self._num_drops = int(round(self._random_in_range(self.num_drops)))
+        self._num_drops   = int(round(self._random_in_range(self.num_drops)))
         self._drop_length = int(round(self._random_in_range(self.drop_length)))
-        self._drop_width = int(round(self._random_in_range(self.drop_width)))
+        self._drop_width  = int(round(self._random_in_range(self.drop_width)))
         
         self._color = Tensor(self.drop_color, dtype=typing.float32)
         self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))
         
-        self._xs = []
-        self._ys = []
-        self._angles = []
+        self._xs,self._ys = [], []
+        self._angles  = []
         self._lengths = []
         for _ in range(self._num_drops):
             self._xs.append(self.rng.integers(0, W))
@@ -593,10 +584,8 @@ class RandomSnow(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item() + 1e-8
-        norm = input / max_value
         
-        r, g, b = norm.unbind(dim=1)
+        r, g, b   = input.unbind(dim=1)
         luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(1)
         
         snow_mask = ((luminance-self._snow_point) / (1.0-self._snow_point))
@@ -605,12 +594,12 @@ class RandomSnow(Transform):
         noise = rand(snow_mask.shape, self._seed, input.dtype, input.device)
         snow_mask = (snow_mask + noise * 0.1).clamp(0.0, 1.0)
         
-        out = norm + snow_mask * (1.0 - norm) * self.brightness_coef
-        return (out * max_value).clamp(0.0, max_value)
+        out = input + snow_mask * (1.0 - input) * self.brightness_coef
+        return out.clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
         self._snow_point = self._random_in_range(self.snow_point_range)
-        self._seed = int(self._random_in_range((0.0, 999999999.0)))
+        self._seed       = int(self._random_in_range((0.0, 999999999.0)))
     
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -696,10 +685,10 @@ class RandomShadow(Transform):
         self._intensity = self._random_in_range(self.shadow_intensity)
         self._frequency = self._random_in_range(self.noise_frequency)
         self._threshold = self._random_in_range(self.noise_threshold)
-        self._sigma = self._random_in_range(self.blur_sigma)
-        self._shift = self._random_in_range(self.color_shift)
+        self._sigma     = self._random_in_range(self.blur_sigma)
+        self._shift     = self._random_in_range(self.color_shift)
         self._falloff_intensity = self._random_in_range(self.falloff_intensity)
-        self._falloff_contrast = self._random_in_range(self.falloff_contrast)
+        self._falloff_contrast  = self._random_in_range(self.falloff_contrast)
         
         self._make_cloud_mask(H, W)
     
@@ -717,9 +706,9 @@ class RandomShadow(Transform):
 class Spatter(Transform):
     def __init__(
         self,
-        droplet_scales:     int | tuple[int, int] = (3, 5),
+        droplet_scales:     int   | tuple[int,   int]   = (3, 5),
         droplet_density:    float | tuple[float, float] = (0.08, 0.12),
-        droplet_color:      tuple[int, int, int] = (255, 255, 255),
+        droplet_color:      tuple[int, int, int]        = (255, 255, 255),
         droplet_refraction: float = 0.15,
         p:                  float = 0.5
     ) -> None:
@@ -760,19 +749,19 @@ class Spatter(Transform):
         
         for r in range(self._droplet_scales, 0, -1):
             ds_cur = self._ds[r-1]
-            d = Tensor(ds_cur, dtype=typing.float32, device=input.device)
-            ds = F.unbind(d, dim=0)
+            d      = Tensor(ds_cur, dtype=typing.float32, device=input.device)
+            ds     = F.unbind(d, dim=0)
             
-            ux, uy = u * self._gx, v * self._gy
-            cell_x = (ux-0.25).round().to(dtype=typing.int32)
-            cell_x = cell_x.clamp(0, self._n_cx-1)
-            cell_y = (uy-0.25).round().to(dtype=typing.int32)
-            cell_y = cell_y.clamp(0, self._n_cy-1)
+            ux, uy   = u * self._gx, v * self._gy
+            cell_x   = (ux-0.25).round().to(dtype=typing.int32)
+            cell_x   = cell_x.clamp(0, self._n_cx-1)
+            cell_y   = (uy-0.25).round().to(dtype=typing.int32)
+            cell_y   = cell_y.clamp(0, self._n_cy-1)
             d_r, d_g = ds[0][cell_y, cell_x], ds[1][cell_y, cell_x]
                         
-            phase = d_g
-            p_x = 6.28 * ux + (n_x - 0.5) * 2.0
-            p_y = 6.28 * uy + (n_y - 0.5) * 2.0
+            phase    = d_g
+            p_x      = 6.28 * ux + (n_x - 0.5) * 2.0
+            p_y      = 6.28 * uy + (n_y - 0.5) * 2.0
             s_x, s_y = (p_x + phase * 6.28).sin(), (p_y + phase * 6.28).sin()
             
             t = (s_x + s_y) * F.maximum(1.0 - d_g * 2.0, 0.0)
@@ -785,10 +774,10 @@ class Spatter(Transform):
             cos_py = (p_y + phase * 6.28).cos()
             
             nx, ny = -cos_px, -cos_py
-            nz = F.where(active, (2.0 * (t - 0.5)).clamp(0.2, 2.0), 1.0)
-            norm = (nx**2 + ny**2 + nz**2).sqrt() + 1e-8
-            nx /= norm
-            ny /= norm
+            nz     = F.where(active, (2.0 * (t - 0.5)).clamp(0.2, 2.0), 1.0)
+            norm   = (nx**2 + ny**2 + nz**2).sqrt() + 1e-8
+            nx    /= norm
+            ny    /= norm
             
             disp_x    = F.where(active, nx, disp_x)
             disp_y    = F.where(active, ny, disp_y)
@@ -806,8 +795,8 @@ class Spatter(Transform):
                 refracted = input[:, c].squeeze(0)[py, px]
                 out[:, c] = F.where(drop_mask > 0, refracted, out[:, c])
         
-        color = (self._color/255).to(input.device, input.dtype)
-        out = lerp(out, out * color, drop_mask)
+        color = (self._color / 255).to(input.device, input.dtype)
+        out   = lerp(out, out * color, drop_mask)
         return out.to(input.device, input.dtype)
 
     def _build_parameters(self, H: int, W: int) -> None:

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import math
-from os import PathLike
-from pathlib import Path
-from contextlib import nullcontext
+from os              import PathLike
+from typing          import Any
+from pathlib         import Path
+from contextlib      import nullcontext
 from collections.abc import Iterator
 
-from nectarml.tensor import Tensor
+from nectarml.tensor                      import Tensor
 from nectarml.vision.transforms.transform import Transform
-from nectarml.vision.transforms.common import TransformInput
-from nectarml.vision.transforms import format, utility
-from nectarml.utils.benchmark import benchmark_time
+from nectarml.vision.transforms.common    import TransformInput
+from nectarml.vision.transforms           import format, utility
+from nectarml.utils.benchmark             import benchmark_time
 
 class Compose(Transform):
     def __init__(
@@ -81,9 +82,9 @@ class Compose(Transform):
      
     def _generate_examples(
         self,
-        input_image: PathLike,
+        input_image:  PathLike,
         num_examples: int,
-        benchmark: bool
+        benchmark:    bool
     ) -> list[Tensor]:
         input_image = utility.LoadImageFile(input_image)()
         outputs = []
@@ -101,13 +102,13 @@ class Compose(Transform):
         
     def generate_examples(
         self, 
-        input_image: PathLike,
+        input_image:      PathLike,
         output_directory: PathLike,
-        num_examples: int = 5,
-        allow_overwrite: bool = False,
-        benchmark: bool = False,
-        make_grid: bool = True,
-        **grid_kwargs
+        num_examples:     int  = 5,
+        allow_overwrite:  bool = False,
+        benchmark:        bool = False,
+        make_grid:        bool = True,
+        **grid_kwargs:    dict[str, Any]
     ) -> None:
         input_image = Path(input_image).resolve()
         assert input_image.exists(), \
@@ -162,7 +163,7 @@ class RandomApply(Transform):
     def __init__(
         self, 
         transforms: list[Transform],
-        p: float = 0.5
+        p:          float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.transforms = transforms
@@ -178,7 +179,7 @@ class RandomChoice(Transform):
     def __init__(
         self, 
         transforms: list[Transform],
-        p: float | list[float] = 0.5
+        p:          float | list[float] = 0.5
     ) -> None:
         self.use_prob_list = isinstance(p, list)
         if self.use_prob_list:

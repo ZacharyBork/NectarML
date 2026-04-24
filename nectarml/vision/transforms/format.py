@@ -6,7 +6,7 @@ from PIL import Image
 from nectarml.tensor import Tensor
 from nectarml.typing import DeviceLikeType, dtype, float32
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
-from nectarml.vision.transforms.common import TransformInput
+from nectarml.vision.transforms.common    import TransformInput
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):
@@ -83,7 +83,7 @@ class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
     def forward(self, input: Tensor | Image.Image) -> np.ndarray:
         if isinstance(input, np.ndarray): return input
         
-        if isinstance(input, Tensor): return input.numpy()
+        if   isinstance(input, Tensor):      return input.numpy()
         elif isinstance(input, Image.Image): return np.array(input)
         else: raise ValueError(f'Unsupported input type: {type(input)}')
         

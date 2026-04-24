@@ -5,20 +5,20 @@ import numpy as np
 from scipy.ndimage import median_filter
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml.tensor   import Tensor
 from nectarml.creation import linspace, ones, zeros
-from nectarml.typing import float32
+from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
 
 class GaussianBlur(Transform):
     def __init__(
         self,
-        kernel_size: int | tuple[int, int] = (3, 7),
-        sigma: float | tuple[float, float] = 1.0,
-        iterations:  int | tuple[int, int] = 1,
-        alpha: float | tuple[float, float] = 1.0,
-        p: float = 0.5
+        kernel_size: int   | tuple[int,   int]   = (3, 7),
+        sigma:       float | tuple[float, float] = 1.0,
+        iterations:  int   | tuple[int,   int]   = 1,
+        alpha:       float | tuple[float, float] = 1.0,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -70,10 +70,10 @@ class GaussianBlur(Transform):
 class BoxBlur(Transform):
     def __init__(
         self,
-        kernel_size: int | tuple[int, int] = (3, 7),
-        iterations:  int | tuple[int, int] = 1,
-        alpha: float | tuple[float, float] = 1.0,
-        p: float = 0.5
+        kernel_size: int   | tuple[int,   int]   = (3, 7),
+        iterations:  int   | tuple[int,   int]   = 1,
+        alpha:       float | tuple[float, float] = 1.0,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -117,11 +117,11 @@ class BoxBlur(Transform):
 class MotionBlur(Transform):
     def __init__(
         self,
-        kernel_size: int | tuple[int, int] = (3, 7),
-        angle: float | tuple[float, float] = (0.0, 360.0),
-        iterations:  int | tuple[int, int] = 1,
-        alpha: float | tuple[float, float] = 1.0,
-        p: float = 0.5
+        kernel_size: int   | tuple[int,   int]   = (3, 7),
+        angle:       float | tuple[float, float] = (0.0, 360.0),
+        iterations:  int   | tuple[int,   int]   = 1,
+        alpha:       float | tuple[float, float] = 1.0,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -138,7 +138,7 @@ class MotionBlur(Transform):
         if input is None: return input
         
         ks = self._ks
-        k = zeros((ks, ks), device=input.device)
+        k  = zeros((ks, ks), device=input.device)
         center = ks // 2
         for i in range(ks):
             offset = i - center
@@ -147,7 +147,7 @@ class MotionBlur(Transform):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 if 0 <= x < ks and 0 <= y < ks: k[y, x] = 1.0
-        total = k.sum().item()
+        total  = k.sum().item()
         kernel = k / total if total > 0 else k
         
         blurred = input.clone()
@@ -177,9 +177,9 @@ class MotionBlur(Transform):
 class MedianBlur(Transform):
     def __init__(
         self,
-        kernel_size: int | tuple[int, int] = (3, 7),
-        alpha: float | tuple[float, float] = 1.0,
-        p: float = 0.5
+        kernel_size: int   | tuple[int,   int]   = (3, 7),
+        alpha:       float | tuple[float, float] = 1.0,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -220,15 +220,15 @@ class MedianBlur(Transform):
 class RandomBlur(Transform):
     def __init__(
         self,
-        kernel_size:               int | tuple[int, int] = (3, 7),
+        kernel_size:         int   | tuple[int,   int]   = (3, 7),
         alpha:               float | tuple[float, float] = 1.0,
-        iterations:                int | tuple[int, int] = 1,
+        iterations:          int   | tuple[int,   int]   = 1,
         motion_blur_angle:   float | tuple[float, float] = (0.0, 360.0),
         gaussian_blur_sigma: float | tuple[float, float] = 1.0,
-        gaussian_blur: bool = True,
-        box_blur:      bool = True,
-        motion_blur:   bool = True,
-        p:            float = 0.5
+        gaussian_blur:       bool  = True,
+        box_blur:            bool  = True,
+        motion_blur:         bool  = True,
+        p:                   float = 0.5
     ) -> None:
         super().__init__(p=p)
         assert gaussian_blur + box_blur + motion_blur != 0, \
@@ -256,7 +256,7 @@ class RandomBlur(Transform):
         valid_sizes = [
             i for i in range(self.kernel_size[0], self.kernel_size[1]+1)
             if i % 2 != 0]
-        ks = int(self.rng.choice(valid_sizes))
+        ks    = int(self.rng.choice(valid_sizes))
         iters = int(self._random_in_range(self.iterations))
         alpha = self._random_in_range(self.alpha)
         
@@ -275,13 +275,13 @@ class RandomBlur(Transform):
 class Sharpen(Transform):
     def __init__(
         self,
-        alpha: float | tuple[float, float] = 1.0,
-        iterations:  int | tuple[int, int] = 1,
-        kernel_size:     int = 3,
-        sigma:         float = 1.0,
-        blur_iterations: int = 1,
-        method: Literal['gaussian', 'box'] = 'gaussian',
-        p: float = 0.5
+        alpha:           float | tuple[float, float] = 1.0,
+        iterations:      int   | tuple[int,   int]   = 1,
+        kernel_size:     int   = 3,
+        sigma:           float = 1.0,
+        blur_iterations: int   = 1,
+        method:          Literal['gaussian', 'box'] = 'gaussian',
+        p:               float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.alpha = (alpha, alpha) \
@@ -301,11 +301,10 @@ class Sharpen(Transform):
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        max_value = input.max().item()
         output = input.clone()
         for _ in range(self._iters):
             output = output + self._alpha * (output - self.blur(output))
-            output = output.clamp(0.0, max_value)
+            output = output.clamp(0.0, 1.0)
         return output
 
     def _build_parameters(self) -> None:
@@ -325,11 +324,11 @@ class Sharpen(Transform):
 class Emboss(Transform):
     def __init__(
         self,
-        kernel_mode:   int = 0,
+        kernel_mode:   int  = 0,
         rotate_kernel: bool = False,
-        gray_level:    int | tuple[int, int] = 125,
-        alpha:   float | tuple[float, float] = 1.0,
-        p: float = 0.5
+        gray_level:    int   | tuple[int,   int]   = 125,
+        alpha:         float | tuple[float, float] = 1.0,
+        p:             float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.gray_level = (gray_level, gray_level) \
@@ -365,21 +364,18 @@ class Emboss(Transform):
         self.kernel = Tensor(k)
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        max_value = input.max().item()
-        norm = input / max_value
-        
-        kernel = self.kernel.to(input.device, input.dtype)
-        gray = norm.mean(dim=1, keepdim=True)
+        if input is None: return input        
+        kernel   = self.kernel.to(input.device, input.dtype)
+        gray     = input.mean(dim=1, keepdim=True)
         embossed = apply_kernel_2d(gray, kernel)
         embossed = (embossed + self._gray_level).clamp(0.0, 1.0)
-        result = F.cat([embossed, embossed, embossed], dim=1)
-        blend = ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)
-        return blend * max_value
+        result   = F.cat([embossed, embossed, embossed], dim=1)
+        return ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)
+        
 
     def _build_parameters(self) -> None:
         self._gray_level = self._random_in_range(self.gray_level)
-        self._alpha = self._random_in_range(self.alpha)
+        self._alpha      = self._random_in_range(self.alpha)
 
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -394,11 +390,11 @@ class Emboss(Transform):
 class UnsharpMask(Transform):
     def __init__(
         self,
-        kernel_size:    int | tuple[int, int] = (3, 7),
-        sigma:    float | tuple[float, float] = 1.0,
-        iterations:     int | tuple[int, int] = 1,
-        strength: float | tuple[float, float] = (0.5, 1.5),
-        p: float = 0.5
+        kernel_size: int   | tuple[int,   int]   = (3, 7),
+        sigma:       float | tuple[float, float] = 1.0,
+        iterations:  int   | tuple[int,   int]   = 1,
+        strength:    float | tuple[float, float] = (0.5, 1.5),
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
@@ -413,17 +409,12 @@ class UnsharpMask(Transform):
             if isinstance(strength, int | float) else strength
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        max_value = input.max().item()
-        norm = input / max_value
-        
-        sharpened = norm.clone()
+        if input is None: return input        
         for _ in range(self._iters):
-            blurred = self._blur_fn._transform(sharpened)
+            blurred   = self._blur_fn._transform(sharpened)
             sharpened = input + self._strength * (input - blurred)
             sharpened = sharpened.clamp(0.0, 1.0)
-        
-        return sharpened * max_value
+        return sharpened
 
     def _build_parameters(self) -> None:
         valid_sizes = [

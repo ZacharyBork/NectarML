@@ -1,23 +1,23 @@
 import warnings
-from os import PathLike
+from os      import PathLike
 from pathlib import Path
-from typing import Literal
+from typing  import Literal
 from collections.abc import Sequence
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL           import Image, ImageDraw, ImageFont
 from scipy.ndimage import grey_erosion, grey_dilation
 
 import _nectarml
 import nectarml.functional as F
-from nectarml import typing
-from nectarml.tensor import Tensor
+from nectarml          import typing
+from nectarml.tensor   import Tensor
 from nectarml.creation import full, zeros_like, ones_like, linspace
 from nectarml.functional.interpolation import upsample
 
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
-from nectarml.vision.transforms.common import TransformInput
-from nectarml.vision.transforms.format import ToTensor, ToPIL
+from nectarml.vision.transforms.common        import TransformInput
+from nectarml.vision.transforms.format        import ToTensor, ToPIL
 from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 ### DEBUG ###
@@ -191,13 +191,13 @@ class Resample(Transform):
         transform_mask:        bool = True
     ) -> None:
         super().__init__()
-        self.size = size
-        self.scale_factor = scale_factor
-        self.mode = mode
-        self.a = a
+        self.size          = size
+        self.scale_factor  = scale_factor
+        self.mode          = mode
+        self.a             = a
         self.align_corners = align_corners
         self.preserve_aspect_ratio = preserve_aspect_ratio
-        self.transform_mask = transform_mask
+        self.transform_mask        = transform_mask
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -229,7 +229,7 @@ class Derivative(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:        
         if input is None: return input
         if not self.per_channel:
-            t = input.mean(dim=1, keepdim=True)
+              t = input.mean(dim=1, keepdim=True)
         else: t = input
         
         B, C, _, _ = t.shape
@@ -254,11 +254,8 @@ class Derivative(Transform):
             
             if not self.per_channel: channels = channels * input.shape[1]
             outputs.append(F.cat(channels, dim=0))
-
-        out = F.stack(outputs, dim=0)
-        
-        print(out.shape)        
-        return out
+                    
+        return F.stack(outputs, dim=0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -416,20 +413,16 @@ class ApplyLUT(Transform):
         if input is None: return input
         B, C, H, W = input.shape
         assert C == 3, 'LUT application requires RGB input'
-        
-        max_value = input.max().item()
-        norm = input / max_value
         self.lut = self.lut.to(input.device)
         
         if input.device == 'cuda':
             out_data = _nectarml.apply_lut(
-                norm._data_ptr, self.lut._data_ptr,
-                B, H, W, self.lut_size,
-                norm.dtype.cuda)
+                input._data_ptr, self.lut._data_ptr,
+                B, H, W, self.lut_size, input.dtype.cuda)
         else: out_data = self._apply_lut_cpu(input.numpy())
             
         out = Tensor(out_data, input.shape, input.dtype, input.device)
-        return (out * max_value).clamp(0.0, max_value)
+        return out.clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -510,8 +503,8 @@ class Morphological(Transform):
         self,
         scale:       int | tuple[int, int] = (13, 15),
         operation:   Literal['dilation', 'erosion'] = 'dilation',
-        per_channel: bool = False,
-        p:          float = 0.5
+        per_channel: bool  = False,
+        p:           float = 0.5
     ) -> None:
         super().__init__(p=p)
         self.scale = (scale, scale) if isinstance(scale, int) else scale
@@ -528,7 +521,7 @@ class Morphological(Transform):
             else: output = grey_erosion(arr, size=self._scale)
         else:
             channels = input.unbind(dim=1)
-            outputs = []
+            outputs  = []
             for ch in channels:
                 arr = ch.numpy()
                 if self.operation == 'dilation':
@@ -574,7 +567,7 @@ class OverlayElements(Transform):
             if isinstance(location, int | float) else location
         self.scale = (scale, scale) \
             if isinstance(scale, int | float) else scale
-        self.resample_mode = resample_mode
+        self.resample_mode         = resample_mode
         self.preserve_aspect_ratio = preserve_aspect_ratio
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -582,7 +575,7 @@ class OverlayElements(Transform):
         output = input.clone()
         
         element = self.element.to(input.device, input.dtype)
-        B = input.shape[0]
+        B       = input.shape[0]
         for b in range(B):
             _, H, W = input[b].shape
             
@@ -659,15 +652,15 @@ class OverlayText(Transform):
             draw.text(draw_loc, self.text, fill=self.text_color, font=self.font)
             image = image.crop(bbox)
 
-            arr = np.array(image).transpose(2, 0, 1)[np.newaxis]
-            arr = arr.astype(input.dtype.numpy) / 255
+            arr  = np.array(image).transpose(2, 0, 1)[np.newaxis]
+            arr  = arr.astype(input.dtype.numpy) / 255
             text = Tensor(arr, dtype=input.dtype, device=input.device)
 
             start_y = int(self.location[0] * H)
-            end_y = int(self.location[0] * H) + text.shape[-2]
+            end_y   = int(self.location[0] * H) + text.shape[-2]
             
             start_x = int(self.location[1] * W)
-            end_x = int(self.location[1] * W) + text.shape[-1]
+            end_x   = int(self.location[1] * W) + text.shape[-1]
             
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")

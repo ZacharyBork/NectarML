@@ -6,10 +6,10 @@ from scipy.ndimage import map_coordinates, gaussian_filter
 
 import _nectarml
 import nectarml.functional as F
-from nectarml.tensor import Tensor
-from nectarml.typing import Size
+from nectarml.tensor   import Tensor
+from nectarml.typing   import Size
 from nectarml.vision.transforms.transform import Transform
-from nectarml.vision.transforms.common import TransformInput
+from nectarml.vision.transforms.common    import TransformInput
 
 ### PADDING ###
 
@@ -25,8 +25,8 @@ class Pad(Transform):
     ) -> None:
         super().__init__()
         self.padding: tuple[int, ...] = None
-        self.fill = fill
-        self.padding_mode = padding_mode
+        self.fill           = fill
+        self.padding_mode   = padding_mode
         self.transform_mask = transform_mask
         
         self._init_padding(padding)
@@ -87,9 +87,9 @@ class _Crop(Transform):
         B, C, H, W = input.shape
         if H < self.size[0] or W < self.size[1]:
             if self.pad_if_needed:
-                diff_h = int(np.maximum(0, self.size[0] - H))
-                diff_w = int(np.maximum(0, self.size[1] - W))
-                padding = (diff_w, diff_h, diff_w, diff_h)
+                diff_h   = int(np.maximum(0, self.size[0] - H))
+                diff_w   = int(np.maximum(0, self.size[1] - W))
+                padding  = (diff_w, diff_h, diff_w, diff_h)
                 self.pad = Pad(padding, self.fill, self.padding_mode)
                 return self.pad(input)
             else:
@@ -99,10 +99,9 @@ class _Crop(Transform):
         else: return input
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input
-        if self.pad is None: out = self._validate_input_size(input)
-        else: out = self.pad(input)
-        return out
+        if input is None:    return input
+        if self.pad is None: return self._validate_input_size(input)
+        else:                return self.pad(input)
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -199,7 +198,7 @@ class RandomResizedCrop(_Crop):
         crop_size:     int | tuple[int, int],
         output_size:   int | tuple[int, int] | None = None,
         padding:       int | tuple[int, ...] | None = None,
-        pad_if_needed: bool = False,
+        pad_if_needed: bool  = False,
         fill:          float = 0.0,
         padding_mode:  Literal[
             'constant', 'edge', 'reflect', 'symmetric'
@@ -261,11 +260,11 @@ class Resize(Transform):
         transform_mask: bool = True
     ) -> None:
         super().__init__()
-        self.size = size
-        self.scale_factor = scale_factor
-        self.mode = mode
-        self.a = a
-        self.align_corners = align_corners
+        self.size           = size
+        self.scale_factor   = scale_factor
+        self.mode           = mode
+        self.a              = a
+        self.align_corners  = align_corners
         self.transform_mask = transform_mask
             
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -363,10 +362,10 @@ class Transpose(Transform):
 class Rotate(Transform):
     def __init__(
         self,
-        angle:         float = 90.0,
-        fill_value:    float = 0.0,
-        transform_mask: bool = True,
-        p:             float = 1.0
+        angle:          float = 90.0,
+        fill_value:     float = 0.0,
+        transform_mask: bool  = True,
+        p:              float = 1.0
     ) -> None:
         super().__init__(p=p)
         self.angle = angle
@@ -436,10 +435,10 @@ class RandomRotation(Transform):
 class RandomRotate90(Transform):
     def __init__(
         self,
-        mode:          Literal['90', '180', '270', '360'] = '360',
-        fill_value:    float = 0.0,
-        p:             float = 0.5,
-        transform_mask: bool = True
+        mode:           Literal['90', '180', '270', '360'] = '360',
+        fill_value:     float = 0.0,
+        p:              float = 0.5,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         self.fill_value = fill_value
@@ -506,9 +505,9 @@ class RandomAffine(_GridSampleTransform):
         border_mode: Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
-        fill:          float = 0.0,
-        p:             float = 0.5,
-        transform_mask: bool = True
+        fill:           float = 0.0,
+        p:              float = 0.5,
+        transform_mask: bool  = True
     ) -> None:
         super().__init__(p=p)
         self.degrees = (-degrees, degrees) \
@@ -717,7 +716,7 @@ class OpticalDistortion(_GridSampleTransform):
     def _compute_flow(
         self,
         H: int, W: int,
-        k: float,
+        k:  float,
         dx: float,
         dy: float
     ) -> tuple[np.ndarray, np.ndarray]:
