@@ -23,7 +23,7 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.cu")
 
 # Build extension module
 pybind11_add_module(_nectarml
-    bindings.cpp
+    python/bindings.cpp
     ${SOURCES}
 )
 

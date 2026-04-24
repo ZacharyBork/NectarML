@@ -1,7 +1,7 @@
-#include "common/dtype.h"
+#include "include/common/dtype.h"
 #include "ops/common.h"
 #include "ops/system/device/device.h"
-#include "allocator_pool/allocator_pool.h"
+#include "pool/allocator_pool.h"
 
 template<typename T>
 void launch_compute_mean_var_welford(

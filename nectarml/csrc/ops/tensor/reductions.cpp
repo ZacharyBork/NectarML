@@ -1,8 +1,8 @@
-#include "common/dtype.h"
-#include "common/data_structures.h"
+#include "include/common/dtype.h"
+#include "include/common/data_structures.h"
 #include "ops/policies/reductions.h"
 #include "ops/policies/elementwise.h"
-#include "allocator_pool/allocator_pool.h"
+#include "pool/allocator_pool.h"
 
 /* KERNELS */
 

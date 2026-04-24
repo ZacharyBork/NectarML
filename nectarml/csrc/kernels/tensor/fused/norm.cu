@@ -1,6 +1,6 @@
 #include "kernels/common.h"
-#include "common/data_structures.h"
-#include "common/functions.h"
+#include "include/common/data_structures.h"
+#include "include/common/functions.h"
 #include "ops/policies/elementwise.h"
 
 struct WelfordResult {

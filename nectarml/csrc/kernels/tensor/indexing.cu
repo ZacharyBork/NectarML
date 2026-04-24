@@ -1,5 +1,5 @@
 #include "kernels/common.h"
-#include "common/data_structures.h"
+#include "include/common/data_structures.h"
 
 /* GATHER */
 

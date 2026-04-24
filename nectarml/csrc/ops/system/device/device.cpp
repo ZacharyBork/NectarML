@@ -1,6 +1,6 @@
-#include "common/dtype.h"
+#include "include/common/dtype.h"
 #include "ops/system/device/device.h"
-#include "allocator_pool/allocator_pool.h"
+#include "pool/allocator_pool.h"
 
 namespace py = pybind11;
 

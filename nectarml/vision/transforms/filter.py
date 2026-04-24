@@ -594,6 +594,7 @@ class DifferenceOfGaussians(Transform):
                     1 + F.tanh(self._phi * (diff - self.threshold)))
 
         result = (1 - self._alpha) * input + self._alpha * diff
+        if self.gray: result = F.cat([result]*3, dim=1)
         return result.clamp(0.0, 1.0)
             
     def _build_parameters(self) -> None:

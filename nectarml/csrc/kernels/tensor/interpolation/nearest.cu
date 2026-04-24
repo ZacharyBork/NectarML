@@ -1,5 +1,5 @@
 #include "kernels/common.h"
-#include "common/functions.h"
+#include "include/common/functions.h"
 
 __device__ int nearest_1d_in_idx(
     int idx, int C, int L_in, int L_out

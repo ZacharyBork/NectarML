@@ -409,9 +409,9 @@ class UnsharpMask(Transform):
             if isinstance(strength, int | float) else strength
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
-        if input is None: return input        
+        if input is None: return input
         for _ in range(self._iters):
-            blurred   = self._blur_fn._transform(sharpened)
+            blurred   = self._blur_fn._transform(input)
             sharpened = input + self._strength * (input - blurred)
             sharpened = sharpened.clamp(0.0, 1.0)
         return sharpened

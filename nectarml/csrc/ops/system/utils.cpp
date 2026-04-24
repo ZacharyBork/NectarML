@@ -1,7 +1,7 @@
 #include "ops/common.h"
-#include "common/dtype.h"
+#include "include/common/dtype.h"
 #include "ops/policies/reductions.h"
-#include "allocator_pool/allocator_pool.h"
+#include "pool/allocator_pool.h"
 
 /* KERNELS */
 

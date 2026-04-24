@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/dtype.h"
+#include "include/common/dtype.h"
 #include "ops/common.h"
 
 cublasHandle_t get_cublas_handle();
