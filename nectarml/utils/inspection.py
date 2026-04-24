@@ -1,6 +1,6 @@
 import numpy as np
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.cuda.utils import (
     is_inf    as cuda_is_inf,
     is_finite as cuda_is_finite,

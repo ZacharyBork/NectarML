@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.creation import zeros_like
 from nectarml.optim.optimizer import Optimizer
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import nectarml.functional as F
 from nectarml           import typing
-from nectarml.tensor    import Tensor
+from nectarml.core    import Tensor
 from nectarml.creation  import zeros
 from nectarml.nn.module import Module
 from nectarml.nn.linear import Linear

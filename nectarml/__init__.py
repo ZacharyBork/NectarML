@@ -22,7 +22,7 @@ from . import (
     vision
 
 )
-from .tensor   import tensor, Tensor, BoolTensor
+from .core     import tensor, Tensor, BoolTensor
 from .random   import manual_seed, fork_rng
 from .autograd import no_grad
 

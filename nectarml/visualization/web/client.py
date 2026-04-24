@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.vision.transforms import ToPIL, Resample
 
 class Viz:

@@ -1,4 +1,4 @@
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.creation import rand
 
 def dropout(

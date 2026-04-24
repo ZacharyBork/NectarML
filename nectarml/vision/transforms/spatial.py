@@ -6,7 +6,7 @@ from scipy.ndimage import map_coordinates, gaussian_filter
 
 import _nectarml
 import nectarml.functional as F
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml.typing   import Size
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common    import TransformInput

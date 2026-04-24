@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from nectarml.tensor import Tensor
+    from nectarml.core import Tensor
 
 from dataclasses import dataclass
 

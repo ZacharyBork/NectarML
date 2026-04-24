@@ -4,7 +4,7 @@ import numpy as np
 
 import nectarml.functional as F
 from nectarml import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.creation import ones_like
 from nectarml.vision.procedurals import Generator
 from nectarml.vision.transforms.common import lerp

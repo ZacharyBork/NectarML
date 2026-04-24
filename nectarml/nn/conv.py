@@ -5,7 +5,7 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml              import typing
-from nectarml.tensor       import Tensor
+from nectarml.core       import Tensor
 from nectarml.nn.module    import Module
 from nectarml.creation     import empty
 from nectarml.nn.init      import kaiming_uniform_, uniform_

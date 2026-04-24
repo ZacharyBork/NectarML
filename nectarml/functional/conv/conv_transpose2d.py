@@ -1,7 +1,7 @@
 from typing import Literal
 
 from nectarml              import cpu, cuda, typing
-from nectarml.tensor       import Tensor
+from nectarml.core       import Tensor
 from nectarml.amp.autocast import autocast_state
 
 

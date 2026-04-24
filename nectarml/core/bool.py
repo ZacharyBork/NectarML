@@ -8,7 +8,7 @@ from typing import Self
 import numpy as np
 
 from nectarml                import typing, cpu, cuda
-from nectarml.tensor._tensor import tensor
+from nectarml.core._tensor import tensor
 from nectarml.cuda.memory    import CudaBuffer
    
 class BoolTensor(tensor):    

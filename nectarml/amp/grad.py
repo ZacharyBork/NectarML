@@ -2,7 +2,7 @@ from __future__ import annotations
 import builtins
 
 from nectarml                 import typing
-from nectarml.tensor          import Tensor
+from nectarml.core          import Tensor
 from nectarml.optim.optimizer import Optimizer
 from nectarml.utils           import inspection
 from nectarml.cuda.amp        import unscale_and_check_grad as cuda_unscale_

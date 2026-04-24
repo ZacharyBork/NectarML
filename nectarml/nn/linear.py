@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from nectarml           import typing
-from nectarml.tensor    import Tensor
+from nectarml.core    import Tensor
 from nectarml.nn.module import Module
 from nectarml.nn.init   import kaiming_normal_
 from nectarml.creation  import empty, zeros

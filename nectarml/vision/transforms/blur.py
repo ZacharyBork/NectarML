@@ -5,7 +5,7 @@ import numpy as np
 from scipy.ndimage import median_filter
 
 import nectarml.functional as F
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml.creation import linspace, ones, zeros
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform

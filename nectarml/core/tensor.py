@@ -11,7 +11,7 @@ import numpy as np
 
 from nectarml import typing, return_types, cpu, cuda
 from nectarml.constants      import FLOAT_MIN, FLOAT_MAX
-from nectarml.tensor._tensor import tensor
+from nectarml.core._tensor import tensor
 from nectarml.cuda.memory    import CudaBuffer
 from nectarml.amp.autocast   import autocast_state
 

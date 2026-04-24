@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import nectarml.functional as F
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.nn.module import Module
 
 class Dropout(Module):

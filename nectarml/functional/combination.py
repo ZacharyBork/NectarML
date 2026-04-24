@@ -1,4 +1,4 @@
-from nectarml.tensor       import Tensor
+from nectarml.core       import Tensor
 from nectarml.cuda         import combination as cuda
 from nectarml.cpu          import combination as cpu
 from nectarml.amp.autocast import autocast_state

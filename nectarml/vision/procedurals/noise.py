@@ -9,7 +9,7 @@ from pyfastnoiselite.pyfastnoiselite import (
 )
 
 from nectarml import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.vision.procedurals import Generator
 
 class Noise(Generator):

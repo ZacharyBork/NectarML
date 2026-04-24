@@ -1,6 +1,6 @@
 from typing import Literal
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml import cuda, cpu, typing
 
 ### UTILS ###

@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy as np
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.typing import int32, float32
 import nectarml.functional as F
 

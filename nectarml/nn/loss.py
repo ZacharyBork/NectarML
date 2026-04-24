@@ -4,7 +4,7 @@ import builtins
 from typing import Literal
 
 import nectarml.functional as F
-from nectarml.tensor    import Tensor
+from nectarml.core    import Tensor
 from nectarml.nn.module import Module
 
 ### REGRESSION ###

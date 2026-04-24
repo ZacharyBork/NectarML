@@ -1,7 +1,7 @@
 import builtins
 from typing import Literal
 
-from nectarml.tensor              import Tensor
+from nectarml.core              import Tensor
 from nectarml.typing              import float32, int32
 from nectarml.functional          import math
 from nectarml.functional.indexing import where, gather

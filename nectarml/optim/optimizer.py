@@ -4,7 +4,7 @@ from typing          import Any
 from collections.abc import Callable
 from dataclasses     import dataclass
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 @dataclass
 class HookHandle:

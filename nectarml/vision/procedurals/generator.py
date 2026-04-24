@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from nectarml        import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.random import RNG
             
 class Generator():

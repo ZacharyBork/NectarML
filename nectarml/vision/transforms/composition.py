@@ -7,7 +7,7 @@ from pathlib         import Path
 from contextlib      import nullcontext
 from collections.abc import Iterator
 
-from nectarml.tensor                      import Tensor
+from nectarml.core                      import Tensor
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common    import TransformInput
 from nectarml.vision.transforms           import format, utility

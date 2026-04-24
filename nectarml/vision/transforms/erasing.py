@@ -8,7 +8,7 @@ from pyfastnoiselite.pyfastnoiselite import \
 
 import nectarml.functional as F
 from nectarml          import typing
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml.creation import zeros, rand, ones, linspace
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.common    import TransformInput, lerp

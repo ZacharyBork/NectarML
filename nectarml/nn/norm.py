@@ -4,7 +4,7 @@ from collections.abc import Sequence, Callable
 
 import nectarml.functional as F
 from nectarml           import typing
-from nectarml.tensor    import Tensor
+from nectarml.core    import Tensor
 from nectarml.nn.module import Module
 from nectarml.creation  import ones, zeros
 

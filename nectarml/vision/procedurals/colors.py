@@ -3,7 +3,7 @@ from typing import Literal
 import numpy as np
 
 from nectarml import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.vision.procedurals import Generator
 from nectarml.vision.transforms.common import gradient_mask, lerp
 

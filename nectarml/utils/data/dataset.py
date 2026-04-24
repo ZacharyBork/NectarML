@@ -7,7 +7,7 @@ from typing          import Any
 from collections.abc import Iterable
 
 from nectarml                   import typing
-from nectarml.tensor            import Tensor
+from nectarml.core            import Tensor
 from nectarml.vision.transforms import Transform
 from nectarml.vision.utils      import load_image
 

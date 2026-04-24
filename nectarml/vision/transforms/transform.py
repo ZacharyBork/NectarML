@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TypeVar, Generic
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.random import RNG
 from nectarml.vision.transforms.common import TransformInput
 

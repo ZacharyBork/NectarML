@@ -3,7 +3,7 @@ import numpy as np
 
 from nectarml        import typing
 from nectarml.random import RNG, Random
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 # CREATION / DUPLICATION
 

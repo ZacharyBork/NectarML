@@ -4,7 +4,7 @@ import math
 import warnings
 from typing import Literal
 
-from nectarml.tensor     import Tensor
+from nectarml.core     import Tensor
 from nectarml.nn.module  import Module
 from nectarml.functional import upsample
 

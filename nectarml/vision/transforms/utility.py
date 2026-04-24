@@ -11,7 +11,7 @@ from scipy.ndimage import grey_erosion, grey_dilation
 import _nectarml
 import nectarml.functional as F
 from nectarml          import typing
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml.creation import full, zeros_like, ones_like, linspace
 from nectarml.functional.interpolation import upsample
 

@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from PIL import Image
 import numpy as np
 
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml          import typing
 from nectarml.creation import full
 import nectarml.functional as F

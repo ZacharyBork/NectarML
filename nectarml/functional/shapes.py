@@ -1,4 +1,4 @@
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 def reshape(input: Tensor, shape: tuple[int, ...]) -> Tensor:
     return input.reshape(shape)

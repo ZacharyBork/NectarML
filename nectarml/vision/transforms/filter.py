@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.functional as F
-from nectarml.tensor   import Tensor
+from nectarml.core   import Tensor
 from nectarml.creation import zeros, ones_like
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform

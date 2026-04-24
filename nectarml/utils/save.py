@@ -7,7 +7,7 @@ from os      import PathLike
 from pathlib import Path
 from typing  import Any
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 ### UTILS ###
 

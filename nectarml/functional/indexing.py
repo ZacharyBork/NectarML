@@ -1,7 +1,7 @@
 import builtins
 
 from nectarml import typing
-from nectarml.tensor import Tensor, BoolTensor
+from nectarml.core import Tensor, BoolTensor
 
 def gather(input: Tensor, dim: builtins.int, index: Tensor) -> Tensor:
     return input.gather(dim, index)

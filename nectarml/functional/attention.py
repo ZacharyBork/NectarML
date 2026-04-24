@@ -1,6 +1,6 @@
 import math
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.typing import bool_, float16
 from nectarml.creation import tril
 from nectarml.functional import activation

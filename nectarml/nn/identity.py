@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from nectarml.nn.module import Module
 from nectarml        import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 class Identity(Module):
     def __init__(

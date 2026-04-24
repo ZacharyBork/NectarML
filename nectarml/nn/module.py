@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Self
 
 from nectarml        import typing
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 
 class Module:
     _class_type_nectar_module = True

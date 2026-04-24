@@ -3,12 +3,12 @@ from __future__ import annotations
 import pickle
 import tarfile
 
-from os      import PathLike
-from pathlib import Path
-from typing  import Any
+from os              import PathLike
+from pathlib         import Path
+from typing          import Any
 from collections.abc import Callable
 
-from nectarml.tensor          import Tensor
+from nectarml.core          import Tensor
 from nectarml.nn.module       import Module
 from nectarml.optim.optimizer import Optimizer
 from nectarml.utils.save      import _save_tarfile, _load_tarfile
@@ -46,6 +46,36 @@ class Lambda(Module):
     ) -> Tensor:
         return self.func(*args, **kwargs)
     
+### EMA ###
+
+class EMA:
+    def __init__(
+        self:  EMA, 
+        model: Module, 
+        decay: float = 0.999
+    ) -> None:
+        self.model  = model
+        self.decay  = decay
+        self.shadow = {}
+        
+        for name, param in model.list_parameters():
+            self.shadow[name] = param.detach().clone()
+    
+    def update(self):
+        for name, param in self.model.list_parameters():
+            self.shadow[name] = (
+                self.decay * self.shadow[name] + 
+                (1 - self.decay) * param.detach())
+    
+    def apply(self):
+        self._backup = {}
+        for name, param in self.model.list_parameters():
+            self._backup[name] = param.detach().clone()
+            
+    
+    def restore(self):
+        pass
+
 
 ### CHECKPOINTING ###
 

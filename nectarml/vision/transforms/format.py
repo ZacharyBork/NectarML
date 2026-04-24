@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from nectarml.tensor import Tensor
+from nectarml.core import Tensor
 from nectarml.typing import DeviceLikeType, dtype, float32
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.common    import TransformInput
