@@ -8,7 +8,7 @@ from pathlib         import Path
 from typing          import Any
 from collections.abc import Callable
 
-from nectarml.core          import Tensor
+from nectarml.core            import Tensor
 from nectarml.nn.module       import Module
 from nectarml.optim.optimizer import Optimizer
 from nectarml.utils.save      import _save_tarfile, _load_tarfile
@@ -258,7 +258,7 @@ class checkpoint:
         else:   loaded = _load_tarfile(self.checkpoint_path)
 
         self._target_device = 'cpu'
-        for _, p in self.model.list_parameters():
+        for _, p in self.model.parameters():
             self._target_device = p.device
             break
 

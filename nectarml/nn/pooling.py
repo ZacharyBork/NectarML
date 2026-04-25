@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nectarml.core     import Tensor
+from nectarml.core       import Tensor
 from nectarml.nn.module  import Module
 from nectarml.functional import pooling
 
@@ -16,10 +16,10 @@ class AvgPool1d(Module):
         count_include_pad: bool = True
     ) -> None:
         super().__init__()
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.ceil_mode = ceil_mode
+        self.kernel_size       = kernel_size
+        self.stride            = stride
+        self.padding           = padding
+        self.ceil_mode         = ceil_mode
         self.count_include_pad = count_include_pad
         
     def forward(self: AvgPool1d, x: Tensor) -> Tensor:

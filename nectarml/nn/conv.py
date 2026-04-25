@@ -5,7 +5,7 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml              import typing
-from nectarml.core       import Tensor
+from nectarml.core         import Tensor
 from nectarml.nn.module    import Module
 from nectarml.creation     import empty
 from nectarml.nn.init      import kaiming_uniform_, uniform_
@@ -29,7 +29,7 @@ class Conv1d(Module):
         ] = 'zeros',
         dtype: typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.in_channels  = in_channels
         self.out_channels = out_channels
         self.kernel_size  = kernel_size
@@ -41,7 +41,7 @@ class Conv1d(Module):
 
         self.weight = empty(
             (out_channels, in_channels // groups, kernel_size),
-            dtype=self.dtype, device='cpu', requires_grad=True)
+            dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
             self.weight, mode='fan_in', 
             nonlinearity='leaky_relu', a=math.sqrt(5))
@@ -51,7 +51,7 @@ class Conv1d(Module):
             bound = 1.0 / k ** 0.5
             
             self.bias = empty(
-                (out_channels,), dtype=self.dtype, 
+                (out_channels,), dtype=dtype, 
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
         else: self.bias = None
@@ -69,11 +69,11 @@ class Conv1d(Module):
             bias   = self.bias
         out = F.conv1d(
             x, weight, bias,
-            stride=self.stride,
-            padding=self.padding,
-            dilation=self.dilation,
-            groups=self.groups,
-            padding_mode=self.padding_mode)
+            stride       = self.stride,
+            padding      = self.padding,
+            dilation     = self.dilation,
+            groups       = self.groups,
+            padding_mode = self.padding_mode)
         return out.to(dtype=input_dtype)
 
 class ConvTranspose1d(Module):
@@ -90,7 +90,7 @@ class ConvTranspose1d(Module):
         bias:          bool = True,
         dtype: typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.in_channels    = in_channels
         self.out_channels   = out_channels
         self.kernel_size    = kernel_size
@@ -102,7 +102,7 @@ class ConvTranspose1d(Module):
 
         self.weight = empty(
             (in_channels, out_channels // groups, kernel_size),
-            dtype=self.dtype, device='cpu', requires_grad=True)
+            dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
             self.weight, mode='fan_in', 
             nonlinearity='leaky_relu', a=math.sqrt(5))
@@ -112,7 +112,7 @@ class ConvTranspose1d(Module):
             bound = 1.0 / k ** 0.5
             
             self.bias = empty(
-                (out_channels,), dtype=self.dtype, 
+                (out_channels,), dtype=dtype, 
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
         else: self.bias = None
@@ -130,12 +130,12 @@ class ConvTranspose1d(Module):
             bias   = self.bias
         out = F.conv_transpose1d(
             x, weight, bias,
-            stride=self.stride,
-            padding=self.padding,
-            output_padding=self.output_padding,
-            dilation=self.dilation,
-            groups=self.groups,
-            padding_mode='zeros')
+            stride         = self.stride,
+            padding        = self.padding,
+            output_padding = self.output_padding,
+            dilation       = self.dilation,
+            groups         = self.groups,
+            padding_mode   = 'zeros')
         return out.to(dtype=input_dtype)
     
 ### 2-Dimensional ###
@@ -156,7 +156,7 @@ class Conv2d(Module):
         ] = 'zeros',
         dtype: typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.in_channels  = in_channels
         self.out_channels = out_channels
         self.stride       = stride
@@ -170,7 +170,7 @@ class Conv2d(Module):
 
         self.weight = empty(
             (out_channels, in_channels // groups) + self.kernel_size,
-            dtype=self.dtype, device='cpu', requires_grad=True)
+            dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
             self.weight, mode='fan_in', 
             nonlinearity='leaky_relu', a=math.sqrt(5))
@@ -181,7 +181,7 @@ class Conv2d(Module):
               * self.kernel_size[1]
             bound = 1.0 / k ** 0.5
             self.bias = empty(
-                (out_channels,), dtype=self.dtype,
+                (out_channels,), dtype=dtype,
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
         else: self.bias = None
@@ -189,11 +189,11 @@ class Conv2d(Module):
     def forward(self, x: Tensor) -> Tensor:
         return F.conv2d(
             x, self.weight, self.bias,
-            stride=self.stride,
-            padding=self.padding,
-            dilation=self.dilation,
-            groups=self.groups,
-            padding_mode=self.padding_mode)
+            stride       = self.stride,
+            padding      = self.padding,
+            dilation     = self.dilation,
+            groups       = self.groups,
+            padding_mode = self.padding_mode)
         
 class ConvTranspose2d(Module):
     def __init__(
@@ -209,7 +209,7 @@ class ConvTranspose2d(Module):
         bias:          bool = True,
         dtype: typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.in_channels    = in_channels
         self.out_channels   = out_channels
         self.stride         = stride
@@ -223,7 +223,7 @@ class ConvTranspose2d(Module):
 
         self.weight = empty(
             (in_channels, out_channels // groups) + self.kernel_size,
-            dtype=self.dtype, device='cpu', requires_grad=True)
+            dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
             self.weight, mode='fan_in', 
             nonlinearity='leaky_relu', a=math.sqrt(5))
@@ -234,7 +234,7 @@ class ConvTranspose2d(Module):
               * self.kernel_size[1]
             bound = 1.0 / k ** 0.5
             self.bias = empty(
-                (out_channels,), dtype=self.dtype,
+                (out_channels,), dtype=dtype,
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
         else: self.bias = None
@@ -242,11 +242,11 @@ class ConvTranspose2d(Module):
     def forward(self, x: Tensor) -> Tensor:
         return F.conv_transpose2d(
             x, self.weight, self.bias,
-            stride=self.stride,
-            padding=self.padding,
-            output_padding=self.output_padding,
-            dilation=self.dilation,
-            groups=self.groups,
+            stride         = self.stride,
+            padding        = self.padding,
+            output_padding = self.output_padding,
+            dilation       = self.dilation,
+            groups         = self.groups,
             padding_mode='zeros')
 
 ### 3-Dimensional ###
@@ -268,7 +268,7 @@ class Conv3d(Module):
         dtype: typing.dtype = typing.float32
     ) -> None:
         raise NotImplementedError('3D convolution is not currently supported.')
-        super().__init__(dtype)
+        super().__init__()
 
     def forward(self: Conv3d, x: Tensor) -> Tensor:        
         raise NotImplementedError
@@ -291,7 +291,7 @@ class ConvTranspose3d(Module):
         dtype: typing.dtype = typing.float32
     ) -> None:
         raise NotImplementedError('3D convolution is not currently supported.')
-        super().__init__(dtype)
+        super().__init__()
         
 
     def forward(self: ConvTranspose3d, x: Tensor) -> Tensor:        

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from nectarml           import typing
-from nectarml.core    import Tensor
+from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 from nectarml.nn.init   import kaiming_normal_
 from nectarml.creation  import empty, zeros
@@ -14,13 +14,13 @@ class Linear(Module):
         bias:         bool  = True,
         dtype:        typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
-        self.in_features = in_features
+        super().__init__()
+        self.in_features  = in_features
         self.out_features = out_features
         
         self.weight = empty(
             (self.out_features, self.in_features),
-            dtype=self.dtype, device='cpu', requires_grad=True)
+            dtype=dtype, device='cpu', requires_grad=True)
         kaiming_normal_(
             weights=self.weight, mode='fan_in', nonlinearity='linear')
         

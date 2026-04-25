@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import colorsys
 from warnings    import warn
-from typing      import Literal
+from typing      import Self, Any, Literal
 from dataclasses import dataclass
 
 import numpy as np
@@ -24,16 +24,21 @@ class TransformInput:
     boxes:     Tensor | np.ndarray | Image.Image | None = None
     keypoints: Tensor | np.ndarray | Image.Image | None = None
 
-    def __post_init__(self):
+    def _istensor(self: TransformInput, value: Any) -> bool:
+        return value is not None and isinstance(value, Tensor)
+
+    def __post_init__(self: TransformInput) -> None:
         assert self.image is not None, \
             'nectarml.vision.transforms require an image tensor.'
             
-        dims_msg = ('nectarml.vision.transforms expect input image tensors '
-                    'to have 4 dimensions (B, C, H, W), but found tensor '
-                    'with [{}] dimensions.')
-        assert self.image.ndim == 4, dims_msg.format(self.image.ndim)
-        if self.image2 is not None:
-            assert self.image2.ndim == 4, dims_msg.format(self.image2.ndim)
+        if self._istensor(self.image):
+            dims_msg = ('nectarml.vision.transforms expect input image '
+                        'tensors to have 4 dimensions (B, C, H, W), but found '
+                        'tensor with [{}] dimensions.')
+            assert self.image.ndim == 4, dims_msg.format(self.image.ndim)
+            
+            if self._istensor(self.image2):
+                assert self.image2.ndim == 4, dims_msg.format(self.image2.ndim)
             
         support_msg = ('nectarml.vision.transforms does not currently support '
                        '{}. Most operations will pass them through unaltered.')
@@ -43,7 +48,7 @@ class TransformInput:
         
     @classmethod
     def from_args(
-        cls,
+        cls:    type[Self],
         args:   tuple[Tensor, ...],
         kwargs: dict[str, Tensor]
     ) -> TransformInput:
@@ -65,7 +70,7 @@ class TransformInput:
                     f'or keyword args, got {len(args)}')
 
     def to_output(
-        self,
+        self:            TransformInput,
         original_args:   tuple,
         original_kwargs: dict
     ) -> Tensor | tuple[Tensor, ...]:
@@ -80,7 +85,7 @@ class TransformInput:
             case 2: return self.image, self.mask
             case 3: return self.image, self.image2, self.mask
             
-    def as_dict(self) -> dict[str, Tensor | None]:
+    def as_dict(self: TransformInput) -> dict[str, Any | None]:
         return {
             'image':     self.image,
             'image2':    self.image2,

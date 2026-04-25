@@ -4,11 +4,11 @@ if TYPE_CHECKING:
     from nectarml import Tensor
 
 import builtins
-from typing import Literal
+from   typing import Literal
 
 import numpy as np
 
-from nectarml import cuda
+from nectarml        import cuda
 from nectarml.random import RNG
     
 ### UTILS ###
@@ -174,7 +174,8 @@ def orthogonal_(weights: Tensor, gain: builtins.float = 1.0) -> None:
 def sparse_(
     weights:  Tensor, 
     sparsity: builtins.float, 
-    std:      builtins.float = 0.01) -> None: 
+    std:      builtins.float = 0.01
+) -> None: 
     assert 0 <= sparsity <= 1, 'Sparsity must be between 0 and 1.'
     data = np.zeros(weights.shape, dtype=weights.dtype.cpu)
     rows, cols = weights.shape[0], weights.shape[1]

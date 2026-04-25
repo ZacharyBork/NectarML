@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import builtins
-from typing import Literal
+from   typing import Literal
 
 import nectarml.functional as F
-from nectarml.core    import Tensor
+from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 
 ### REGRESSION ###

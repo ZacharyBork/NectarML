@@ -4,7 +4,7 @@ from typing          import Any
 from collections     import OrderedDict
 from collections.abc import Iterable, Iterator, ItemsView, KeysView, ValuesView
 
-from nectarml.core    import Tensor
+from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 
 class ModuleDict(Module):

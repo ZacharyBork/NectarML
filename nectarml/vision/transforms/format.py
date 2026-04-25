@@ -1,3 +1,4 @@
+from warnings import warn
 from typing import Any
 
 import numpy as np
@@ -7,7 +8,6 @@ from nectarml.core   import Tensor
 from nectarml.typing import DeviceLikeType, dtype, float32
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.common    import TransformInput
-from nectarml.vision.transforms.normalization import MinMaxNormalize
 
 class ToTensor(Transform):
     def __init__(self, normalize: bool = True) -> None:
@@ -49,32 +49,35 @@ class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
         value_range: tuple[int, int] = (0, 255)
     ) -> None:
         super().__init__()
-        if not normalize: self.norm = None
-        else: self.norm = MinMaxNormalize(value_range[0], value_range[1])
+        self.normalize   = normalize
+        self.value_range = value_range
+
+    def _remap(self, input: np.ndarray) -> np.ndarray:
+        vmin, vmax = input.min(), input.max()
+        rmin, rmax = self.value_range
+        if vmin == vmax: return input * 0.0 + rmin + (rmax - rmin) * 0.5
+        return (input - vmin) * ((rmax - rmin) / (vmax - vmin)) + rmin
     
     def forward(self, input: Tensor | np.ndarray) -> Image.Image:
-        if isinstance(input, Image.Image): return input
+        if   isinstance(input, Image.Image): return input
+        elif isinstance(input, np.ndarray):  pass
+        elif isinstance(input, Tensor): input = input.cpu().numpy()
+        else: raise ValueError(
+            f'ToPIL recieved invalid input type: {type(input)}')
         
-        assert input.ndim in [3, 4], \
-            'ToPIL expects input to be 3D ([C, H, W]) or 4D ([B, C, H, W])'
+        assert input.ndim == 4, \
+            'ToPIL expects input to have ndim=4 (B, C, H, W).'
+        assert input.shape[0] == 1, \
+            'ToPIL expects input to have only 1 batch ([1, C, H, W])'
 
-        if isinstance(input, np.ndarray):
-            output = Tensor(input, input.shape, input.dtype)
-        elif isinstance(input, Tensor): output = input.clone()
-        else: raise ValueError(f'Unsupported input type: {type(input)}')
+        output = np.ascontiguousarray(input.squeeze(axis=0))
+        output = output.transpose((1, 2, 0))
+        if self.normalize: output = self._remap(output)
         
-        if input.ndim == 4:
-            assert input.shape[0] == 1, \
-                'ToPIL expects input to have only 1 batch ([1, H, W])'
-            output = output.squeeze(0) 
-        
-        output = output.permute((1, 2, 0)).contiguous()
-        if self.norm is not None: output = self.norm(output)
-        
-        arr = output.numpy()
-        if np.any(~np.isfinite(arr)):
-            arr = np.nan_to_num(arr, nan=0.0, posinf=255.0, neginf=0.0)
-        return Image.fromarray(arr.astype(np.uint8), 'RGB')
+        if np.any(~np.isfinite(output)):
+            warn('ToPIL encountered non-finite value during image conversion.')
+            output = np.nan_to_num(output, nan=0.0, posinf=255.0, neginf=0.0)
+        return Image.fromarray(output.astype(np.uint8), 'RGB')
 
 class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
@@ -242,9 +245,8 @@ class ToContiguous(Transform):
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
-            mask      = self._transform(input.mask) \
-                        if self.transform_mask else input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
         )
 

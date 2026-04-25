@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import nectarml.functional as F
 from nectarml           import typing
-from nectarml.core    import Tensor
+from nectarml.core      import Tensor
 from nectarml.creation  import zeros
 from nectarml.nn.module import Module
 from nectarml.nn.linear import Linear
@@ -13,24 +13,24 @@ class MultiheadAttention(Module):
         embed_dim:     int,
         num_heads:     int,
         dropout:       float = 0.0,
-        bias:          bool = True,
-        add_bias_kv:   bool = False,
-        add_zero_attn: bool = False,
+        bias:          bool  = True,
+        add_bias_kv:   bool  = False,
+        add_zero_attn: bool  = False,
         kdim:          int | None = None,
         vdim:          int | None = None,
-        batch_first:   bool = False,
+        batch_first:   bool  = False,
         dtype:         typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.dropout = dropout
-        self.bias = bias
-        self.add_bias_kv = add_bias_kv
+        super().__init__()
+        self.embed_dim     = embed_dim
+        self.num_heads     = num_heads
+        self.dropout       = dropout
+        self.bias          = bias
+        self.add_bias_kv   = add_bias_kv
         self.add_zero_attn = add_zero_attn
-        self.kdim = kdim or embed_dim
-        self.vdim = vdim or embed_dim
-        self.batch_first = batch_first
+        self.kdim          = kdim or embed_dim
+        self.vdim          = vdim or embed_dim
+        self.batch_first   = batch_first
         
         self.W_q = Linear(embed_dim, embed_dim, bias=bias, dtype=dtype)
         self.W_k = Linear(self.kdim, embed_dim, bias=bias, dtype=dtype)

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import math
 import warnings
-from typing import Literal
+from   typing import Literal
 
-from nectarml.core     import Tensor
+from nectarml.core       import Tensor
 from nectarml.nn.module  import Module
 from nectarml.functional import upsample
 
@@ -80,7 +80,7 @@ class Upsample(Module):
         
     def _compute_dimensions(self: Upsample, x: Tensor) -> None:
         if self.input_dims is not None and self.output_dims is not None: return
-        self.input_dims = x.shape[2:]
+        self.input_dims  = x.shape[2:]
         self.output_dims = tuple(
             int(math.floor(s * f)) 
             for s, f in zip(self.input_dims, self._scale))

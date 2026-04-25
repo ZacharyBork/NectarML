@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import nectarml.functional as F
-from nectarml.core import Tensor
+from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 
 class Dropout(Module):
@@ -11,7 +11,7 @@ class Dropout(Module):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.p = p
+        self.p       = p
         self.inplace = inplace
         
     def forward(self: Dropout, x: Tensor) -> Tensor:
@@ -37,7 +37,7 @@ class FeatureAlphaDropout(Module):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.p = p
+        self.p       = p
         self.inplace = inplace
         
     def forward(self: FeatureAlphaDropout, x: Tensor) -> Tensor:
@@ -50,7 +50,7 @@ class Dropout1d(Module):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.p = p
+        self.p       = p
         self.inplace = inplace
         
     def forward(self: Dropout1d, x: Tensor) -> Tensor:
@@ -63,7 +63,7 @@ class Dropout2d(Module):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.p = p
+        self.p       = p
         self.inplace = inplace
         
     def forward(self: Dropout2d, x: Tensor) -> Tensor:
@@ -76,7 +76,7 @@ class Dropout3d(Module):
         inplace: bool  = False
     ) -> None:
         super().__init__()
-        self.p = p
+        self.p       = p
         self.inplace = inplace
         
     def forward(self: Dropout3d, x: Tensor) -> Tensor:

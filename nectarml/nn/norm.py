@@ -4,7 +4,7 @@ from collections.abc import Sequence, Callable
 
 import nectarml.functional as F
 from nectarml           import typing
-from nectarml.core    import Tensor
+from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 from nectarml.creation  import ones, zeros
 
@@ -23,7 +23,7 @@ class _BatchNorm(Module):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.norm_dims = norm_dims
         self.norm_func = norm_func
         
@@ -33,8 +33,8 @@ class _BatchNorm(Module):
         self.fused               = fused
                 
         if affine:
-            self.gamma = ones(parameter_shape, dtype=dtype, requires_grad=True)
-            self.beta = zeros(parameter_shape, dtype=dtype, requires_grad=True)
+              self.gamma =  ones(parameter_shape, dtype, 'cpu', True)
+              self.beta  = zeros(parameter_shape, dtype, 'cpu', True)
         else: self.gamma = self.beta = None
         
         if track_running_stats:
@@ -63,8 +63,8 @@ class _BatchNorm(Module):
                 x_norm = (x - self.running_mean) 
                 x_norm = x_norm / (self.running_var + self.eps).sqrt()
             else:
-                mean = x.mean(dim=self.norm_dims, keepdims=True)
-                var = ((x - mean) ** 2).mean(dim=self.norm_dims, keepdims=True)
+                mean   = x.mean(dim=self.norm_dims, keepdim=True)
+                var    = ((x - mean)**2).mean(dim=self.norm_dims, keepdim=True)
                 x_norm = (x - mean) / (var + self.eps).sqrt()
             if self.gamma is not None: x_norm = self.gamma * x_norm
             if self.beta is not None: x_norm = self.beta + x_norm
@@ -174,17 +174,13 @@ class GroupNorm(Module):
         affine:       bool  = True,
         dtype: typing.dtype = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.num_groups = num_groups
-        self.eps = eps
+        self.eps        = eps
         
         if affine:
-            self.gamma = ones(
-                (1, num_channels, 1, 1), 
-                dtype=dtype, device='cpu', requires_grad=True)
-            self.beta = zeros(
-                (1, num_channels, 1, 1),
-                dtype=dtype, device='cpu', requires_grad=True)
+              self.gamma =  ones((1, num_channels, 1, 1), dtype, 'cpu', True)
+              self.beta  = zeros((1, num_channels, 1, 1), dtype, 'cpu', True)
         else: self.gamma = self.beta = None
         
     def forward(self: GroupNorm, x: Tensor) -> Tensor:
@@ -203,18 +199,14 @@ class LayerNorm(Module):
         bias:               bool  = True,
         dtype:      typing.dtype  = typing.float32
     ) -> None:
-        super().__init__(dtype)
+        super().__init__()
         self.normalized_shape = normalized_shape
-        self.eps = eps
+        self.eps              = eps
         
         if elementwise_affine:
-            self.gamma = ones(
-                normalized_shape, dtype=dtype, 
-                device='cpu', requires_grad=True)
+            self.gamma = ones(normalized_shape, dtype, 'cpu', True)
             if bias:
-                self.beta = zeros(
-                    normalized_shape, dtype=dtype, 
-                    device='cpu', requires_grad=True)
+                  self.beta = zeros(normalized_shape, dtype, 'cpu', True)
             else: self.beta = None
         else: self.gamma = self.beta = None
         
