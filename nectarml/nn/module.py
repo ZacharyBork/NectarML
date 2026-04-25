@@ -12,7 +12,7 @@ class ModuleState(Enum):
 
 class Module:
     _class_type_nectar_module = True
-    _training = ModuleState.TRAINING
+    _module_state             = ModuleState.TRAINING
     
     _submodules:           dict[str, Module]
     _parameters:           dict[str, Tensor]
@@ -30,8 +30,23 @@ class Module:
     # PROPERTIES
     
     @property
+    def state(self: Module) -> ModuleState:
+        '''Module state property access.
+        
+        Returns:
+            ModuleState : Returns the module's current state.
+        '''
+        return self._module_state
+    
+    @property
     def training(self: Module) -> bool:
-        return self._training == ModuleState.TRAINING
+        '''Module training attribute property access.
+        
+        Returns:
+            bool : True if the module's state is ModuleState.TRAINING, 
+                otherwise False.
+        '''
+        return self._module_state == ModuleState.TRAINING
             
     # REGISTRATION
     
@@ -103,10 +118,9 @@ class Module:
         if '_buffers' in self.__dict__ and name in self._buffers:
             self._buffers[name] = value
             return
-        if isinstance(value, Module):
-            self.register_submodule(name, value)
-        elif isinstance(value, Tensor):
-            self.register_parameter(name, value)
+        
+        if   isinstance(value, Module): self.register_submodule(name, value)
+        elif isinstance(value, Tensor): self.register_parameter(name, value)
         else: super().__setattr__(name, value)
         
     def __getattr__(self: Module, name: str) -> Any:
@@ -266,13 +280,13 @@ class Module:
         '''Enables training mode on the module when called.'''
         modules = self._walk_module_tree()
         for _, module in modules:
-            module._training = ModuleState.TRAINING
+            module._module_state = ModuleState.TRAINING
     
     def eval(self: Module) -> None:
         '''Enables eval mode on the module when called.'''
         modules = self._walk_module_tree()
         for _, module in modules:
-            module._training = ModuleState.EVAL
+            module._module_state = ModuleState.EVAL
         
     # INSPECTION
     
