@@ -18,6 +18,7 @@ class Client:
         port: int = 8097
     ) -> None:
         self.url = f'{host}:{port}/push'
+        self._post({'type': 'connection'})
 
     def _post(
         self, 
@@ -131,5 +132,20 @@ class Client:
             'opts':         opts or {}
         })
 
-
+def start_client(
+    host: str = 'http://localhost', 
+    port: int = 8097
+) -> Client:
+    '''Starts a web visualizer client at the given host and port.
+    
+    Args:
+        host : The host for the web visualizer application.
+        port : The port to open for the web visualizer application.
+        
+    Returns:
+        Client : A web visualizer client instance connected to the given host
+            and port, which can be used to update the web visualizer app.
+    '''
+    return Client(host, port)    
+    
 

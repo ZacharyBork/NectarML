@@ -30,18 +30,21 @@ class Server:
 
     async def _push_handler(self, request: web.BaseRequest) -> web.Response:
         data = await request.json()
-        type = data['type']
+        post_type = data['type']
+        if post_type == 'connection':
+            print(f'request POST: ["type": "{post_type}"]')
+            return web.json_response({'ok': True})
+        
         win  = data.get('win', 'default')
+        print(f'request POST: ["type": "{post_type}", "win": "{win}"]')
         
-        print(f'request POST: ["type": "{type}", "win": "{win}"]')
-        
-        if type == 'clear':
+        if post_type == 'clear':
             self._state.clear()
             for ws in self._clients:
                 await ws.send_str(json.dumps({'type': 'clear'}))
             return web.json_response({'ok': True})
         
-        if type == 'line_update' and win in self._state:
+        if post_type == 'line_update' and win in self._state:
             existing = self._state[win]
             existing['X'].extend(data['X'])
             for i, series in enumerate(data['Y']):
