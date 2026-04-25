@@ -13,14 +13,12 @@ class CNNBlock(nn.Module):
         super().__init__()
         
         # CNN block contains a single layer as a nectarml.nn.Sequential.
-        # Layer is defined as: Conv2d -> BatchNorm -> LeakyRelu.
+        # Layer is defined as: Conv2d -> InstanceNorm2d -> LeakyRelu.
        
         self.conv = nn.Sequential(
-            nn.Conv2d(
-                in_channels, out_channels, 
-                kernel_size=4, stride=stride, bias=False,
-                padding_mode='reflect'),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=stride, 
+                      bias=False, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2)
         )
         
@@ -53,10 +51,8 @@ class Discriminator(nn.Module):
         # size by a factor of 2.
         
         self.initial = nn.Sequential(
-            nn.Conv2d(
-                in_channels*2, features[0],
-                kernel_size=4, stride=2, padding=1, 
-                padding_mode='reflect'),
+            nn.Conv2d(in_channels*2, features[0], kernel_size=4, stride=2, 
+                      padding=1, padding_mode='reflect'),
             nn.LeakyReLU(0.2)
         )
         
@@ -68,9 +64,8 @@ class Discriminator(nn.Module):
         in_channels = features[0]
         for out_channels in features[1:]:
             layers.append(
-                CNNBlock(
-                    in_channels, out_channels, 
-                    stride=1 if out_channels == features[-1] else 2)
+                CNNBlock(in_channels, out_channels, 
+                         stride=1 if out_channels == features[-1] else 2)
             )
             in_channels = out_channels
             
@@ -79,9 +74,8 @@ class Discriminator(nn.Module):
         # network's final prediction.
         
         layers.append(
-            nn.Conv2d(
-                in_channels, 1, kernel_size=4, stride=1, 
-                padding=1, padding_mode='reflect')
+            nn.Conv2d(in_channels, 1, kernel_size=4, stride=1, 
+                      padding=1, padding_mode='reflect')
         )
         
         # Finally we unpack our layers list into a nectarml.nn.Sequential.

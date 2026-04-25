@@ -253,9 +253,9 @@
     ✅ 11. CyclicLR
     ✅ 12. OneCycleLR
 
-### 🟡  Data Utils
+### ✅  Data Utils
 
-    🟡 1. Dataloader
+    ✅ 1. Dataloader
     ✅ 2. Default Collate Function
     ✅ 3. Dataset
         ✅ 1. Base Dataset Classes
@@ -287,19 +287,19 @@
     ✅ 4. Save Image
     ✅ 5. Make Grid
 
-### 🟡  Image Transform/Augmentation Utilities
+### ✅  Image Transform/Augmentation Utilities
 
     ✅ 1. Base Transform Class
-    🟡 2. Categories
-        ❌ 1.  Blur
-        🟡 2.  Color
+    ✅ 2. Categories
+        ✅ 1.  Blur
+        ✅ 2.  Color
         ✅ 3.  Composition
-        🟡 4.  Erasing
+        ✅ 4.  Erasing
         ✅ 5.  Filter
         ✅ 6.  Format
         ✅ 7.  Noise
         ✅ 8.  Normalization
-        🟡 9.  Spatial
+        ✅ 9.  Spatial
         ✅ 10. Utility
 
 ### 🟡  CUDA
@@ -354,7 +354,7 @@
     🟡 4. Checkpoint save and load
     ✅ 5. AMP flags for functions/methods
     ❌ 6. Ensure all Transform classes work on both RGB and mono Tensors
-    ❌ 7. Investigate why the GeLU and Hardsigmoid functionals produce difference results than PyTorch
+    ✅ 7. Investigate why the GeLU and Hardsigmoid functionals produce difference results than PyTorch
 
 ### 🟡  Compatibility Layersc
 

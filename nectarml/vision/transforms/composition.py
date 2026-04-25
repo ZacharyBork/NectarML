@@ -5,9 +5,9 @@ from os              import PathLike
 from typing          import Any
 from pathlib         import Path
 from contextlib      import nullcontext
-from collections.abc import Iterator
+from collections.abc import Iterator, Iterable
 
-from nectarml.core                      import Tensor
+from nectarml.core                        import Tensor
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common    import TransformInput
 from nectarml.vision.transforms           import format, utility
@@ -16,9 +16,16 @@ from nectarml.utils.benchmark             import benchmark_time
 class Compose(Transform):
     def __init__(
         self, 
-        transforms: list[Transform]
+        *transforms: Transform | Iterable[Transform]
     ) -> None:
         super().__init__()
+        
+        if len(transforms) == 1:
+            if isinstance(transforms[0], Transform): transforms = [transforms]
+            if isinstance(transforms[0], list | tuple):
+                transforms = list(transforms[0])
+        else: transforms = list(transforms)
+        
         self.transforms = transforms
     
     ### List-like methods ###

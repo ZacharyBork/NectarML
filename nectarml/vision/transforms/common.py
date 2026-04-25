@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import colorsys
-from typing import Literal
+from warnings    import warn
+from typing      import Literal
 from dataclasses import dataclass
 
 import numpy as np
@@ -9,7 +10,7 @@ from PIL import Image
 
 import _nectarml
 import nectarml.functional as F
-from nectarml.core   import Tensor
+from nectarml.core     import Tensor
 from nectarml.typing   import Size
 from nectarml.creation import linspace
 
@@ -25,8 +26,21 @@ class TransformInput:
 
     def __post_init__(self):
         assert self.image is not None, \
-            'TransformInput requires at least an image.'
-
+            'nectarml.vision.transforms require an image tensor.'
+            
+        dims_msg = ('nectarml.vision.transforms expect input image tensors '
+                    'to have 4 dimensions (B, C, H, W), but found tensor '
+                    'with [{}] dimensions.')
+        assert self.image.ndim == 4, dims_msg.format(self.image.ndim)
+        if self.image2 is not None:
+            assert self.image2.ndim == 4, dims_msg.format(self.image2.ndim)
+            
+        support_msg = ('nectarml.vision.transforms does not currently support '
+                       '{}. Most operations will pass them through unaltered.')
+        if self.mask is not None:      warn(support_msg.format('masks'))
+        if self.boxes is not None:     warn(support_msg.format('boxes'))
+        if self.keypoints is not None: warn(support_msg.format('keypoints'))
+        
     @classmethod
     def from_args(
         cls,
@@ -83,6 +97,9 @@ def hsv_adjust(
     saturation: float = 1.0,
     value:      float = 1.0
 ) -> Tensor:
+    assert input.shape[1] == 3, \
+        'hsv_adjust is only valid for 3-channel tensors (R, G, B).'
+        
     if input.device == 'cuda':
         out_data = _nectarml.hsv_adjust(
             input._data_ptr, list(input.shape),
@@ -101,7 +118,7 @@ def hsv_adjust(
         out_data = np.clip(np.stack(rgb, axis=-1), 0, 255)
         out_data = out_data.transpose((0, 3, 1, 2)).astype(input.dtype.numpy)
         
-    return Tensor(
+    return Tensor._new(
         out_data, input.shape, input.dtype, input.device, input.requires_grad
     )
 

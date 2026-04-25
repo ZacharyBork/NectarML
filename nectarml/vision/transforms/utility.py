@@ -11,7 +11,7 @@ from scipy.ndimage import grey_erosion, grey_dilation
 import _nectarml
 import nectarml.functional as F
 from nectarml          import typing
-from nectarml.core   import Tensor
+from nectarml.core     import Tensor
 from nectarml.creation import full, zeros_like, ones_like, linspace
 from nectarml.functional.interpolation import upsample
 
@@ -85,36 +85,42 @@ class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
         pad_value:   float = 0.0
     ) -> None:
         super().__init__()
-        self.nrow = nrow
-        self.padding = padding
+        self.nrow        = nrow
+        self.padding     = padding
         self.value_range = value_range
-        self.scale_each = scale_each
-        self.pad_value = pad_value
+        self.scale_each  = scale_each
+        self.pad_value   = pad_value
         
         if not normalize: self.norm = None
-        else: self.norm = MinMaxNormalize(value_range[0], value_range[1])
+        else: self.norm = MinMaxNormalize(
+            value_range[0], value_range[1], per_batch=scale_each)
         
     def forward(self, input: Tensor | Sequence[Tensor]) -> Tensor:
-        if isinstance(input, Sequence): input = F.cat(input, dim=0)
-        
-        if self.scale_each:
-            split = F.unbind(input, dim=0)
-            if self.norm is not None: split = [self.norm(i) for i in split]
+        if isinstance(input, Tensor):
+            assert input.ndim == 4, \
+                'MakeGrid expects input tensor to have ndim=4 (B, C, H, W).'
+            input = input.unbind(dim=0, keepdim=True)
         else:
-            if self.norm is not None: input = self.norm(input)
-            split = F.unbind(input, dim=0)
-        split = [i.unsqueeze(dim=0) for i in split]
-                        
-        count = len(split)
-        rows = int(np.ceil(count / self.nrow))
-        cols = int(np.minimum(count, self.nrow))
-        size_h = split[0].shape[-2] + (self.padding * 2)
-        size_w = split[0].shape[-1] + (self.padding * 2)
+            match input[0].ndim:
+                case 3: input = [i.unsqueeze(0) for i in input]
+                case 4: pass
+                case _: raise ValueError(
+                    'MakeGrid expects input tensors to be 3D (C, H, W) or '
+                    '4D (B, C, H, W).')
+            
+        if self.norm is not None:
+            input = [i for i in self.norm(F.cat(input)).unbind(keepdim=True)]
+            
+        count  = len(input)
+        rows   = int(np.ceil(count / self.nrow))
+        cols   = int(np.minimum(count, self.nrow))
+        size_h = input[0].shape[-2] + (self.padding * 2)
+        size_w = input[0].shape[-1] + (self.padding * 2)
                 
         canvas = full(
             (1, 3, size_h * rows, size_w * cols), 
             fill_value=self.pad_value)
-        canvas = canvas.to(split[0].device, split[0].dtype)
+        canvas = canvas.to(input[0].device, input[0].dtype)
             
         curr_row = curr_col = 0
         for i in range(count):        
@@ -127,10 +133,10 @@ class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
             
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i]
+                canvas[:, :, start[0]:end[0], start[1]:end[1]] = input[i]
             
             if curr_col > cols - 2:
-                curr_col = 0
+                curr_col  = 0
                 curr_row += 1
             else: curr_col += 1
         

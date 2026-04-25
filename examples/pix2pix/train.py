@@ -1,8 +1,10 @@
 import os
 from   pathlib import Path
+from   typing  import Literal
 
 import nectarml
 from   nectarml import nn, optim, utils
+from   nectarml.viz.web import Client
 
 from generator     import Generator
 from discriminator import Discriminator
@@ -12,41 +14,46 @@ from dataset       import Pix2pixDataset
 # CONFIGURATION
 ###############################################################################
 
-### MODEL SETTINGS ###
+### MODEL / TRAINING SETTINGS ###
 
 DEVICE            = 'cuda'
-BATCH_SIZE        = 1
-LR                = 0.0002
+LR                = 0.002
 NUM_EPOCHS        = 100
 NUM_EPOCHS_DECAY  = 100
 L1_LAMBDA         = 100.0
-AUTOCAST_ENABLED  = True
-
-### OUTPUT SETTINGS ###
-
-OUTPUT_DIRECTORY  = ''
-ALLOW_EXISTING    = True
-MODEL_SAVE_RATE   = 999999
-EXAMPLE_SAVE_RATE = 1
 
 ### CHECKPOINT LOADING ###
 
 CHECKPOINT_G = ''
 CHECKPOINT_D = ''
 
-### DATASET SETTINGS ###
+### DATALOADING SETTINGS ###
+
+DIRECTION: Literal['AtoB', 'BtoA'] = 'BtoA'
+BATCH_SIZE  = 1
+NUM_WORKERS = 0
 
 TRAIN_SET_PATH = ''
 VAL_SET_PATH   = ''
 
-### CONSOLE SETTINGS ###
+### OUTPUT SETTINGS ###
 
-CONSOLE_UPDATE_FREQ = 10
+OUTPUT_DIRECTORY  = ''
+ALLOW_EXISTING    = True
+MODEL_SAVE_RATE   = 10
+EXAMPLE_SAVE_RATE = 1
+
+### VISUALIZATION SETTINGS ###
+
+UPDATE_FREQ = 50
+
+ENABLE_WEB_VISUALIZER = False
+VISUALIZER            = Client(host='http://localhost', port=8097)
 
 ###############################################################################
 # TRAIN LOOP FUNCTION
 ###############################################################################
-
+         
 def train_fn(
     disc:         Discriminator, 
     gen:          Generator, 
@@ -56,7 +63,8 @@ def train_fn(
     d_scaler:     nectarml.amp.GradScaler,
     train_loader: utils.data.Dataloader, 
     L1_LOSS:      nn.L1Loss, 
-    BCE:          nn.BCELoss
+    BCE:          nn.BCELoss,
+    epoch:        int
 ) -> None:
     loss_totals = { 'd_real': 0, 'd_fake': 0, 'g_gan': 0, 'g_l1': 0 }
     for idx, (x, y) in enumerate(train_loader): 
@@ -65,11 +73,11 @@ def train_fn(
         ### DATALOADING ###
 
         x, y = x.to(DEVICE), y.to(DEVICE)
-                                            
+        
         ### GENERATOR INFERENCE ###
                         
         with nectarml.amp.autocast('cuda'): y_fake = gen(x)
-                
+
         ### DISCRIMINATOR (FORWARD) ###
             
         with nectarml.amp.autocast('cuda'):
@@ -100,17 +108,16 @@ def train_fn(
         ### GENERATOR (BACKWARD) ###
 
         opt_gen.zero_grad()
-        
+
         g_scaler.scale(G_loss).backward()
         g_scaler.unscale_(opt_gen)
         g_scaler.step(opt_gen)
         g_scaler.update()         
 
-        # ### POST-ITER ###
-
-        if iteration != 0 and iteration % CONSOLE_UPDATE_FREQ == 0: 
-            for loss in loss_totals:
-                loss_totals[loss] /= CONSOLE_UPDATE_FREQ
+        ### POST-ITER ###
+        
+        if iteration != 0 and iteration % UPDATE_FREQ == 0: 
+            for loss in loss_totals: loss_totals[loss] /= UPDATE_FREQ
             print(f'{'='*os.get_terminal_size()[0]}\n'
                   f'Iteration: {iteration}\n'
                   f'Loss:\n'
@@ -118,6 +125,21 @@ def train_fn(
                   f'    D_fake: {loss_totals['d_fake']:.4f}\n'
                   f'    G_GAN:  {loss_totals['g_gan']:.4f}\n'
                   f'    G_L1:   {loss_totals['g_l1']:.4f}\n')
+            
+            if ENABLE_WEB_VISUALIZER:
+                examples = [i[0].detach().cpu() for i in [x, y_fake, y]]
+                VISUALIZER.images(
+                    examples, size=256, normalize=True,
+                    window='images', title='Input | Fake | Target')
+                VISUALIZER.line(
+                    X      = epoch + idx / len(train_loader),
+                    Y      = [_ for _ in loss_totals.values()],
+                    legend = [_ for _ in loss_totals],
+                    window = 'loss', 
+                    title  = 'Loss', 
+                    v_axis_label='Value', h_axis_label='Epoch'
+                )
+            
             for loss in loss_totals: loss_totals[loss] = 0
         else:
             loss_totals['d_real'] += D_real_loss.mean().item()
@@ -267,14 +289,15 @@ def train() -> None:
 
     ### BUILD DATASETS / DATALOADERS ###
     
-    train_dataset = Pix2pixDataset(TRAIN_SET_PATH)
+    train_dataset = Pix2pixDataset(TRAIN_SET_PATH, DIRECTION, DEVICE)
     train_loader  = utils.data.Dataloader(
-        train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        train_dataset, BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
     
-    val_dataset = Pix2pixDataset(VAL_SET_PATH)
+    val_dataset = Pix2pixDataset(
+        VAL_SET_PATH, DIRECTION, DEVICE, training=False)
     
     ### RUN TRAINING LOOP ###
-
+    
     for idx in range(start_epoch, NUM_EPOCHS + NUM_EPOCHS_DECAY):
         epoch = idx + 1
         print(f'{'='*os.get_terminal_size()[0]}\nBeginning epoch {epoch}...')
@@ -284,9 +307,9 @@ def train() -> None:
         with utils.benchmark_time(f'Finished epoch {epoch}', new_line=True):
             train_fn(
                 disc, gen, opt_disc, opt_gen, g_scaler, d_scaler,
-                train_loader, L1_LOSS, BCE
+                train_loader, L1_LOSS, BCE, epoch
             )
-            
+
         ### STEP SCHEDULERS ###
         
         last_lr_g, last_lr_d = sched_g.get_lr(), sched_d.get_lr()
@@ -311,6 +334,7 @@ def train() -> None:
             nn.utils.checkpoint(disc, opt_disc).save(path_d, epoch=epoch)
         
 if __name__ == '__main__':
+    if ENABLE_WEB_VISUALIZER: VISUALIZER.clear()
     train()
 
 

@@ -19,7 +19,8 @@ from . import (
     optim,
     functional,
     utils,
-    vision
+    vision,
+    viz
 
 )
 from .core     import tensor, Tensor, BoolTensor

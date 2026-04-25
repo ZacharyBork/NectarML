@@ -1,6 +1,6 @@
 import _nectarml
 from nectarml        import typing, cuda
-from nectarml.core import Tensor
+from nectarml.core   import Tensor
 from nectarml.typing import float32
 
 ### BATCH ###

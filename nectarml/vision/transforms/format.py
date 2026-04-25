@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from nectarml.core import Tensor
+from nectarml.core   import Tensor
 from nectarml.typing import DeviceLikeType, dtype, float32
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.common    import TransformInput
@@ -150,12 +150,10 @@ class ConvertDtype(Transform):
 class ChangeDevice(Transform):
     def __init__(
         self,
-        new_device:     DeviceLikeType = 'cpu',
-        transform_mask: bool = False
+        new_device: DeviceLikeType = 'cpu'
     ) -> None:
         super().__init__()
         self.new_device = new_device
-        self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input  
@@ -165,16 +163,14 @@ class ChangeDevice(Transform):
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
-            mask      = self._transform(input.mask) \
-                        if self.transform_mask else input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
         )
     
 class ToCPU(Transform):
-    def __init__(self, transform_mask: bool = False) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.transform_mask = transform_mask
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -184,16 +180,14 @@ class ToCPU(Transform):
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
-            mask      = self._transform(input.mask) \
-                        if self.transform_mask else input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
         )
     
 class ToCUDA(Transform):
-    def __init__(self, transform_mask: bool = False) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.transform_mask = transform_mask
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
@@ -203,10 +197,9 @@ class ToCUDA(Transform):
         return TransformInput(
             image     = self._transform(input.image),
             image2    = self._transform(input.image2),
-            mask      = self._transform(input.mask) \
-                        if self.transform_mask else input.mask,
-            boxes     = input.boxes,
-            keypoints = input.keypoints
+            mask      = self._transform(input.mask),
+            boxes     = self._transform(input.boxes),
+            keypoints = self._transform(input.keypoints)
         )
     
 class Cast(Transform):
@@ -238,9 +231,8 @@ class Cast(Transform):
         )
 
 class ToContiguous(Transform):
-    def __init__(self, transform_mask: bool = False) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.transform_mask = transform_mask
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input

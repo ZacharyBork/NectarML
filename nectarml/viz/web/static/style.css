@@ -121,10 +121,11 @@ button {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    width: fit-content;
     min-width: 200px;
+    
 }
 
 .image-pane img {
     display: block;
-    max-width: none;
 }

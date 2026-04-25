@@ -53,7 +53,7 @@ function applySmoothing(chart, raw, factor, colors, labels) {
                 label: label,
                 data: series.map((y, j) => ({ x: raw.X[j], y })),
                 borderWidth: 2,
-                pointRadius: 2,
+                pointRadius: 0,
                 tension: 0.1,
                 borderColor: color,
             });
@@ -175,9 +175,8 @@ function createChartPane(win, title, v_axis_label, h_axis_label) {
 
 function updateLine(msg) {
     const {
-        win, title,
-        X, Y,
-        v_axis_label, h_axis_label,
+        win, title, X, Y,
+        legend, v_axis_label, h_axis_label,
         opts = {}
     } = msg;
 
@@ -191,7 +190,7 @@ function updateLine(msg) {
         pane.colors = Y.map((_, i) => COLORS[i % COLORS.length]);
     }
     if (!pane.labels) {
-        pane.labels = Y.map((_, i) => (opts.legend || [])[i] ?? `series ${i}`);
+        pane.labels = Y.map((_, i) => (legend || [])[i] ?? `series ${i}`);
     }
 
     pane.raw = { X: [...X], Y: Y.map(s => [...s]) };

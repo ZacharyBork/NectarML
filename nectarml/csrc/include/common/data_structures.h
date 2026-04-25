@@ -1,6 +1,8 @@
 #pragma once
 
 #include "include/constants.h"
+#include <cuda_runtime.h>
+#include <stdint.h>
 #include <vector>
 
 /* TENSOR INDEX */

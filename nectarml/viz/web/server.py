@@ -1,12 +1,11 @@
-import asyncio
 import json
 import weakref
-from pathlib import Path
-from aiohttp import web
+from   pathlib import Path
+from   aiohttp import web
 
 STATIC_DIR = Path(__file__).parent / 'static'
 
-class VizServer:
+class Server:
     def __init__(
         self, 
         host: str = '0.0.0.0', 
@@ -31,15 +30,18 @@ class VizServer:
 
     async def _push_handler(self, request: web.BaseRequest) -> web.Response:
         data = await request.json()
-        win = data.get('win', 'default')
+        type = data['type']
+        win  = data.get('win', 'default')
         
-        if data['type'] == 'clear':
+        print(f'request POST: ["type": "{type}", "win": "{win}"]')
+        
+        if type == 'clear':
             self._state.clear()
             for ws in self._clients:
                 await ws.send_str(json.dumps({'type': 'clear'}))
             return web.json_response({'ok': True})
         
-        if data['type'] == 'line_update' and win in self._state:
+        if type == 'line_update' and win in self._state:
             existing = self._state[win]
             existing['X'].extend(data['X'])
             for i, series in enumerate(data['Y']):
@@ -73,6 +75,3 @@ class VizServer:
         app.router.add_static('/', STATIC_DIR)
         web.run_app(app, host=self.host, port=self.port)
 
-if __name__ == '__main__':
-    server = VizServer()
-    server.run()

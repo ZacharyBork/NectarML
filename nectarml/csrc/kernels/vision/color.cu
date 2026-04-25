@@ -44,11 +44,9 @@ __device__ void hsv_to_rgb(
     }
 }
 
-#include <iostream>
-
 template<typename T>
 __global__ void hsv_adjust_kernel(
-    T* d_in,
+    const T* d_in, T* d_out,
     int B, int C, int H, int W,
     float hue_shift, float saturation, float value
 ) {
@@ -79,14 +77,14 @@ __global__ void hsv_adjust_kernel(
 
     hsv_to_rgb(h, s, v, rc, gc, bc);
 
-    d_in[r_idx] = static_cast<T>(rc * scale);
-    d_in[g_idx] = static_cast<T>(gc * scale);
-    d_in[b_idx] = static_cast<T>(bc * scale);
+    d_out[r_idx] = static_cast<T>(rc * scale);
+    d_out[g_idx] = static_cast<T>(gc * scale);
+    d_out[b_idx] = static_cast<T>(bc * scale);
 }
 
 template<typename T>
 void launch_hsv_adjust(
-    T* d_in,
+    T* d_in, T* d_out,
     int B, int C, int H, int W,
     float hue_shift, float saturation, float value
 ) {
@@ -94,12 +92,12 @@ void launch_hsv_adjust(
     dim3 block(BS2D, BS2D, 1);
     dim3 grid((W + BS2D - 1) / BS2D, (H + BS2D - 1) / BS2D, B);
     hsv_adjust_kernel<T><<<grid, block>>>(
-        d_in, B, C, H, W,
+        d_in, d_out, B, C, H, W,
         hue_shift, saturation, value);
 }
 
-template void launch_hsv_adjust<float>(float*, int, int, int, int, float, float, float);
-template void launch_hsv_adjust<half>(half*, int, int, int, int, float, float, float);
-template void launch_hsv_adjust<uint8_t>(uint8_t*, int, int, int, int, float, float, float);
-template void launch_hsv_adjust<int32_t>(int32_t*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<float>(float*, float*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<half>(half*, half*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<uint8_t>(uint8_t*, uint8_t*, int, int, int, int, float, float, float);
+template void launch_hsv_adjust<int32_t>(int32_t*, int32_t*, int, int, int, int, float, float, float);
 

@@ -1,33 +1,48 @@
 from os       import PathLike
 from pathlib  import Path
+from typing   import Literal
 
-from nectarml import Tensor, vision, utils
+from   nectarml import Tensor, vision, utils
+import nectarml.vision.transforms as xforms
 
 class Pix2pixDataset(utils.data.Dataset):
     def __init__(
         self, 
         root_directory: PathLike, 
+        direction:      Literal['AtoB', 'BtoA'] = 'AtoB',
+        device:         Literal['cpu',  'cuda'] = 'cpu',
         training:       bool = True
     ) -> None:
         super().__init__()
-        # First get all the dataset files in our root directory
+        self.training = training
+        
+        # First get all the dataset files in our root directory.
         self.root_directory = Path(root_directory)
         self.list_files     = list(self.root_directory.iterdir())
+        self.reverse        = direction.strip().casefold() == 'btoa'
         
-        # Then we define a transform stack. This is used for input and target.
-        self.transforms = vision.transforms.Compose([
-            vision.transforms.Normalize(
-                mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])
+        # Then we define an augmentation setup for the data.
         
-        # If training, add some variation with random crop / h-flip
-        if training:
-            self.transforms.extend([
-                vision.transforms.RandomHorizontalFlip(p=0.5),
-                vision.transforms.Resize(size=(286, 286), mode='bilinear'),
-                vision.transforms.RandomCrop(size=(256, 256))
-            ])
+        self.transforms = xforms.Compose( # For input & target
+            # Many NectarML transforms can run natively on the GPU. Useful for
+            # expensive transforms when high worker count isn't required.
+            xforms.ToCUDA() if device == 'cuda' else xforms.NoOp(),
+            
+            # Add variation to input & target
+            xforms.RandomHorizontalFlip(p=0.5),
+            xforms.Resize(size=(286, 286), mode='bilinear'),
+            xforms.RandomCrop(size=(256, 256))
+        )
         
+        # Then define a colorjitter module for the target image.
+        self.colorjitter = xforms.ColorJitter(
+            brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
+        )
+        
+        # And finally, define a Normalize transform to normalize both
+        # input and target to [-1:1] to match tanh output range.
+        self.normalize = xforms.Normalize(mean=0.5, std=0.5)
+
     def __len__(self) -> int:
         # Dataset classes must define __len__. 
         return len(self.list_files)
@@ -36,22 +51,28 @@ class Pix2pixDataset(utils.data.Dataset):
         # Order is slightly different than other transforms libraries.
         # nectarml.vision.transforms are intended to work on tensors.
         # So first we load the current image file as a tensor:
-        image_path   = self.list_files[index]
-        image        = vision.utils.load_image(image_path, normalize=True)
+        image_path = self.list_files[index]
+        image      = vision.utils.load_image(image_path, normalize=True)
                 
         # Then we slice in half to create input and target tensors.
-        width        = image.shape[-1] // 2
-        input_image  = image[:, :, :, width:]
-        target_image = image[:, :, :, :width]
+        width = image.shape[-1] // 2
+        a     = image[:, :, :, width:]
+        b     = image[:, :, :, :width]
+        
+        # Decide input vs. target from dataset "direction".
+        input, target = (a, b) if self.reverse else (b, a)
 
-        # Run our transforms on input and target.
-        input_image, target_image = self.transforms(
-            image=input_image, image2=target_image)
+        # Run our transforms.
+        if self.training: # All transforms if training.
+            input, target = self.transforms(image=input, image2=target)
+            target        = self.colorjitter(target)
+            input, target = self.normalize(image=input, image2=target)
+        else: # Otherwise we just normalize the data [-1:1]
+            input, target = self.normalize(image=input, image2=target)
         
         # Squeeze the two tensors to remove the batch dimension.
-        input_image  = input_image.squeeze(0)
-        target_image = target_image.squeeze(0)
+        input, target = input.squeeze(0), target.squeeze(0)
 
-        # And finally, return them as a tuple.
-        return input_image, target_image
+        # And finally, return the result as a tuple.
+        return input, target
 

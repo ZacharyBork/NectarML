@@ -1250,19 +1250,30 @@ class tensor:
     ### COMBINATION ###
     
     def select(
-        self:  tensor, 
-        dim:   builtins.int, 
-        index: builtins.int
+        self:    tensor, 
+        dim:     builtins.int, 
+        index:   builtins.int,
+        keepdim: builtins.bool = False
     ) -> Self:
         dim = tensor._normalize_dim(dim, self.ndim)
         idx = [index if i == dim else slice(None) for i in range(self.ndim)]
-        return self[tuple(idx)]
+        out = self[tuple(idx)]
+        if keepdim: out = out.unsqueeze(dim)
+        return out
 
-    def unstack(self: tensor, dim: builtins.int = 0) -> list[tensor]:
-        return [self.select(dim, i) for i in range(self.shape[dim])]
+    def unstack(
+        self:    tensor, 
+        dim:     builtins.int  = 0,
+        keepdim: builtins.bool = False
+    ) -> list[tensor]:
+        return [self.select(dim, i, keepdim) for i in range(self.shape[dim])]
         
-    def unbind(self: tensor, dim: builtins.int = 0) -> list[tensor]:
-        return self.unstack(dim)
+    def unbind(
+        self:    tensor, 
+        dim:     builtins.int  = 0,
+        keepdim: builtins.bool = False
+    ) -> list[tensor]:
+        return self.unstack(dim, keepdim)
         
     def split(
         self:       tensor, 

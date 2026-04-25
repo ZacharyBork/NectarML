@@ -18,19 +18,18 @@ class Block(nn.Module):
         # The if down=True, the layer uses a Conv2d, if False, it uses a
         # ConvTranspose2d. 
         
-        # This is followed by batch normalization, then a non-linear 
+        # This is followed by instance normalization, then a non-linear 
         # activation function, the type of which is defined by "activation":
         # ("relu"=nn.ReLU(), "leaky"=nn.LeakyRelu(negative_slope=0.2))
         
         self.conv = nn.Sequential(
-            nn.Conv2d(
-                in_channels, out_channels,
-                4, 2, 1, bias=False, padding_mode='reflect')
+            nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, 
+                      padding=1, bias=False, padding_mode='reflect')
             if down
             else nn.ConvTranspose2d(
-                in_channels, out_channels,
-                4, 2, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
+                in_channels, out_channels, kernel_size=4, 
+                stride=2, padding=1, bias=False),
+            nn.InstanceNorm2d(out_channels),
             nn.ReLU() if activation == 'relu' else nn.LeakyReLU(0.2)
         )
         
@@ -121,19 +120,20 @@ class Generator(nn.Module):
         # Generator.forward() takes the input image tensor and first runs it
         # through the encode path layer by layer, feeding the output of one 
         # layer into the next.
-         
-        d1 = self.initial_down(x)
-        d2 = self.down1(d1)
-        d3 = self.down2(d2)
-        d4 = self.down3(d3)
-        d5 = self.down4(d4)
-        d6 = self.down5(d5)
-        d7 = self.down6(d6)
+        
+        x  = self.initial_down(x)
+        
+        d1 = self.down1(x)
+        d2 = self.down2(d1)
+        d3 = self.down3(d2)
+        d4 = self.down4(d3)
+        d5 = self.down5(d4)
+        d6 = self.down6(d5)
     
         # We then run the resulf of the encoder path through the bottleneck
         # layer, and pass the output through to the decoder path.
     
-        bottleneck = self.bottleneck(d7)
+        bottleneck = self.bottleneck(d6)
         
         # Next we work our way up through the decoder path. The first decoder
         # layer recieves the output of the bottleneck, then every subsequent
@@ -141,15 +141,15 @@ class Generator(nn.Module):
         # concatenated with the output of the corresponding encoder layer.
         
         up1 = self.up1(bottleneck)
-        up2 = self.up2(nectarml.cat([up1, d7], dim=1))
-        up3 = self.up3(nectarml.cat([up2, d6], dim=1))
-        up4 = self.up4(nectarml.cat([up3, d5], dim=1))
-        up5 = self.up5(nectarml.cat([up4, d4], dim=1))
-        up6 = self.up6(nectarml.cat([up5, d3], dim=1))
-        up7 = self.up7(nectarml.cat([up6, d2], dim=1))
+        up2 = self.up2(nectarml.cat([up1, d6], dim=1))
+        up3 = self.up3(nectarml.cat([up2, d5], dim=1))
+        up4 = self.up4(nectarml.cat([up3, d4], dim=1))
+        up5 = self.up5(nectarml.cat([up4, d3], dim=1))
+        up6 = self.up6(nectarml.cat([up5, d2], dim=1))
+        up7 = self.up7(nectarml.cat([up6, d1], dim=1))
         
         # And lastly, we run the tensor through the final upsampling layer
         # and return the result.
         
-        return self.final_up(nectarml.cat([up7, d1], dim=1))
+        return self.final_up(nectarml.cat([up7, x], dim=1))
 

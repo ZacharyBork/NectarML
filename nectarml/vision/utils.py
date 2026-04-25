@@ -1,11 +1,11 @@
-from os import PathLike
-from pathlib import Path
+from os              import PathLike
+from pathlib         import Path
 from collections.abc import Sequence
 
 from PIL import Image
 import numpy as np
 
-from nectarml.core   import Tensor
+from nectarml.core     import Tensor
 from nectarml          import typing
 from nectarml.creation import full
 import nectarml.functional as F
@@ -87,7 +87,7 @@ def load_image(
         path      : The system path to the image file to load.
         dtype     : The dtype for the new tensor.
         normalize : Whether to normalize the output data. If True, the tensor
-            will be divided by it's max item (plus a small epsilon value), 
+            will be divided by its max item (plus a small epsilon value), 
             resulting in tensor with a saturated [0:1] range.
         batch_dim : Whether to add a batch dimension to the new tensor. If 
             True, the resulting tensor will have shape (B, C, H, W), if False,
