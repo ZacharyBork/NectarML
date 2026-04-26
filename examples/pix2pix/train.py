@@ -29,7 +29,7 @@ CHECKPOINT_D = ''
 
 ### DATALOADING SETTINGS ###
 
-DIRECTION: Literal['AtoB', 'BtoA'] = 'BtoA'
+DIRECTION: Literal['AtoB', 'BtoA'] = 'AtoB'
 BATCH_SIZE  = 1
 NUM_WORKERS = 0
 
@@ -45,10 +45,11 @@ EXAMPLE_SAVE_RATE = 1
 
 ### VISUALIZATION SETTINGS ###
 
-UPDATE_FREQ = 50
-
+UPDATE_FREQ           = 50
 ENABLE_WEB_VISUALIZER = False
-VISUALIZER            = Client(host='http://localhost', port=8097)
+
+if ENABLE_WEB_VISUALIZER:
+    VISUALIZER = Client(host='http://localhost', port=8097)
 
 ###############################################################################
 # TRAIN LOOP FUNCTION
@@ -77,7 +78,7 @@ def train_fn(
         ### GENERATOR INFERENCE ###
                         
         with nectarml.amp.autocast('cuda'): y_fake = gen(x)
-
+        
         ### DISCRIMINATOR (FORWARD) ###
             
         with nectarml.amp.autocast('cuda'):
@@ -104,16 +105,16 @@ def train_fn(
             G_fake_loss = BCE(D_fake, nectarml.ones_like(D_fake))
             L1          = L1_LOSS(y_fake, y) * L1_LAMBDA
             G_loss      = G_fake_loss + L1
-
+            
         ### GENERATOR (BACKWARD) ###
 
         opt_gen.zero_grad()
-
+        
         g_scaler.scale(G_loss).backward()
         g_scaler.unscale_(opt_gen)
         g_scaler.step(opt_gen)
-        g_scaler.update()         
-
+        g_scaler.update()  
+        
         ### POST-ITER ###
         
         if iteration != 0 and iteration % UPDATE_FREQ == 0: 

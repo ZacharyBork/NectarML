@@ -1,18 +1,18 @@
 import numpy as np
 
-from nectarml.core import Tensor
+from nectarml.core   import Tensor
 from nectarml.typing import int32, float32
-from nectarml.cpu import pooling as cpu_pool
-from nectarml.cuda import pooling as cuda_pool
+from nectarml.cpu    import pooling as cpu_pool
+from nectarml.cuda   import pooling as cuda_pool
 
 ### AVERAGE POOL ###
 
 def avg_pool1d(
-    input: Tensor,
-    kernel_size: int | tuple[int],
-    stride: int | tuple[int] | None = None,
-    padding: int | tuple[int] = 0,
-    ceil_mode: bool = False,
+    input:             Tensor,
+    kernel_size:       int | tuple[int],
+    stride:            int | tuple[int] | None = None,
+    padding:           int | tuple[int] = 0,
+    ceil_mode:         bool = False,
     count_include_pad: bool = True
 ) -> Tensor:
     K = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
@@ -53,13 +53,13 @@ def avg_pool1d(
     return out
 
 def avg_pool2d(
-    input: Tensor,
-    kernel_size: int | tuple[int, int],
-    stride: int | tuple[int, int] | None = None,
-    padding: int | tuple[int, int] = 0,
-    ceil_mode: bool = False,
+    input:             Tensor,
+    kernel_size:       int | tuple[int, int],
+    stride:            int | tuple[int, int] | None = None,
+    padding:           int | tuple[int, int] = 0,
+    ceil_mode:         bool = False,
     count_include_pad: bool = True,
-    divisor_override: int | float | None = None
+    divisor_override:  int | float | None = None
 ) -> Tensor:
     KH, KW = (kernel_size, kernel_size) \
         if isinstance(kernel_size, int) else kernel_size
@@ -111,13 +111,13 @@ def avg_pool2d(
 
 
 def avg_pool3d(
-    input: Tensor,
-    kernel_size: int | tuple[int, int, int],
-    stride: int | tuple[int, int, int] | None = None,
-    padding: int | tuple[int, int, int] = 0,
-    ceil_mode: bool = False,
+    input:             Tensor,
+    kernel_size:       int | tuple[int, int, int],
+    stride:            int | tuple[int, int, int] | None = None,
+    padding:           int | tuple[int, int, int] = 0,
+    ceil_mode:         bool = False,
     count_include_pad: bool = True,
-    divisor_override: int | float | None = None
+    divisor_override:  int | float | None = None
 ) -> Tensor:
     KD, KH, KW = (kernel_size,)*3 \
         if isinstance(kernel_size, int) else kernel_size
@@ -174,12 +174,12 @@ def avg_pool3d(
 ### MAX POOL ###
 
 def max_pool1d(
-    input: Tensor,
-    kernel_size: int | tuple[int],
-    stride: int | tuple[int] | None = None,
-    padding: int | tuple[int] = 0,
-    dilation: int = 1,
-    ceil_mode: bool = False,
+    input:          Tensor,
+    kernel_size:    int | tuple[int],
+    stride:         int | tuple[int] | None = None,
+    padding:        int | tuple[int] = 0,
+    dilation:       int  = 1,
+    ceil_mode:      bool = False,
     return_indices: bool = False
 ) -> Tensor | tuple[Tensor, Tensor]:
     K = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
@@ -224,12 +224,12 @@ def max_pool1d(
     return out
 
 def max_pool2d(
-    input: Tensor,
-    kernel_size: int | tuple[int, int],
-    stride: int | tuple[int, int] | None = None,
-    padding: int | tuple[int, int] = 0,
-    dilation: int = 1,
-    ceil_mode: bool = False,
+    input:          Tensor,
+    kernel_size:    int | tuple[int, int],
+    stride:         int | tuple[int, int] | None = None,
+    padding:        int | tuple[int, int] = 0,
+    dilation:       int  = 1,
+    ceil_mode:      bool = False,
     return_indices: bool = False
 ) -> Tensor | tuple[Tensor, Tensor]:
     KH, KW = (kernel_size, kernel_size) if isinstance(kernel_size, int) \
@@ -282,12 +282,12 @@ def max_pool2d(
     return out
 
 def max_pool3d(
-    input: Tensor,
-    kernel_size: int | tuple[int, int, int],
-    stride: int | tuple[int, int, int] | None = None,
-    padding: int | tuple[int, int, int] = 0,
-    dilation: int = 1,
-    ceil_mode: bool = False,
+    input:          Tensor,
+    kernel_size:    int | tuple[int, int, int],
+    stride:         int | tuple[int, int, int] | None = None,
+    padding:        int | tuple[int, int, int] = 0,
+    dilation:       int  = 1,
+    ceil_mode:      bool = False,
     return_indices: bool = False
 ) -> Tensor | tuple[Tensor, Tensor]:
     KD, KH, KW = (kernel_size,)*3 \

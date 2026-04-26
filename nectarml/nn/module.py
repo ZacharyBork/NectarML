@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from enum   import Enum
-from typing import Any, Self
+from enum            import Enum
+from typing          import Any, Self
+from collections.abc import Callable
 
 from nectarml      import typing
 from nectarml.core import Tensor
@@ -162,6 +163,23 @@ class Module:
                 full_name = f'{name}.{subname}' if subname else name
                 result.append((full_name, submodule))
         return result
+        
+    def apply(self: Module, fn: Callable[[Module], None]) -> Self:
+        '''Recursively applies a given function to module and all submodules.
+        
+        Args:
+            fn : The function to apply to the modules. The function should 
+                accept a nectarml.nn.Module as an input arg, and should
+                have no return. The function can modify the module instances
+                directly.
+        
+        Returns:
+            Self : A reference to the module the function was called from
+                for chaining.
+        '''
+        
+        for _, module in self._walk_module_tree(): fn(module)
+        return self
         
     # GRADIENTS
     

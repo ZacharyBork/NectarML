@@ -1,5 +1,5 @@
-
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -37,7 +37,8 @@ button {
     margin: 0px -5px 0px -10px;
 }
 
-#graph-dropdown, #image-dropdown {
+#graph-dropdown,
+#image-dropdown {
     background-color: rgb(50 50 50);
     padding: 15px;
     border-radius: 15px;
@@ -45,7 +46,8 @@ button {
     user-select: none;
 }
 
-#graph-dropdown-label, #image-dropdown-label {
+#graph-dropdown-label,
+#image-dropdown-label {
     background-color: rgb(65 65 65);
     padding: 15px;
     border-radius: 15px;
@@ -64,6 +66,7 @@ button {
     background-color: rgb(65 65 65);
     padding: 5px;
     margin: -5px;
+    margin-top: 10px;
     border-radius: 10px;
     resize: vertical;
     display: flex;
@@ -88,6 +91,44 @@ button {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+#graph-smoothing {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+#graph-smoothing::-webkit-slider-runnable-track {
+    background: rgb(50 50 50);
+    height: 8px;
+}
+
+#graph-smoothing::-moz-range-track {
+    background: rgb(50 50 50);
+    height: 8px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -6px;
+    background-color: rgb(200 200 200);
+    height: 16px;
+    width: 16px;
+    border-radius: 8px;
+}
+
+input[type="range"]::-moz-range-thumb {
+    border: none;
+    border-radius: 0;
+    background-color: rgb(200 200 200);
+    height: 16px;
+    width: 16px;
+    border-radius: 8px;
 }
 
 .zoom-hint {
@@ -123,7 +164,7 @@ button {
     overflow: hidden;
     width: fit-content;
     min-width: 200px;
-    
+
 }
 
 .image-pane img {

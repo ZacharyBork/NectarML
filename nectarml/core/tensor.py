@@ -11,7 +11,7 @@ import numpy as np
 
 from nectarml import typing, return_types, cpu, cuda
 from nectarml.constants      import FLOAT_MIN, FLOAT_MAX
-from nectarml.core._tensor import tensor
+from nectarml.core._tensor   import tensor
 from nectarml.cuda.memory    import CudaBuffer
 from nectarml.amp.autocast   import autocast_state
 
@@ -290,7 +290,7 @@ class Tensor(tensor):
             tensor : A reference to the tensor that this method was called on.
                 Useful for chaining ops.
         '''
-        self.requires_grad = value
+        self._requires_grad = value
         return self
     
     def fill_(

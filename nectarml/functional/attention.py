@@ -1,20 +1,20 @@
 import math
 
-from nectarml.core import Tensor
-from nectarml.typing import bool_, float16
-from nectarml.creation import tril
+from nectarml.core       import Tensor
+from nectarml.typing     import bool_, float16
+from nectarml.creation   import tril
 from nectarml.functional import activation
 from nectarml.functional.dropout import dropout as dropout_fn
 
 def scaled_dot_product_attention(
-    Q: Tensor,
-    K: Tensor,
-    V: Tensor,
-    attn_mask: Tensor | None = None,
+    Q:                Tensor,
+    K:                Tensor,
+    V:                Tensor,
+    attn_mask:        Tensor | None = None,
     key_padding_mask: Tensor | None = None,
-    dropout: float = 0.0,
-    is_causal: bool = False,
-    training: bool = True
+    dropout:          float = 0.0,
+    is_causal:         bool = False,
+    training:          bool = True
 ) -> tuple[Tensor, Tensor]:
     '''Scaled dot product attention mechanism.
     

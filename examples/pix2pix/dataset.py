@@ -22,8 +22,7 @@ class Pix2pixDataset(utils.data.Dataset):
         self.reverse        = direction.strip().casefold() == 'btoa'
         
         # Then we define an augmentation setup for the data.
-        
-        self.transforms = xforms.Compose( # For input & target
+        self.transforms = xforms.Compose(
             # Many NectarML transforms can run natively on the GPU. Useful for
             # expensive transforms when high worker count isn't required.
             xforms.ToCUDA() if device == 'cuda' else xforms.NoOp(),
@@ -31,12 +30,7 @@ class Pix2pixDataset(utils.data.Dataset):
             # Add variation to input & target
             xforms.RandomHorizontalFlip(p=0.5),
             xforms.Resize(size=(286, 286), mode='bilinear'),
-            xforms.RandomCrop(size=(256, 256))
-        )
-        
-        # Then define a colorjitter module for the target image.
-        self.colorjitter = xforms.ColorJitter(
-            brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
+            xforms.RandomCrop(size=(256, 256))            
         )
         
         # And finally, define a Normalize transform to normalize both
@@ -50,11 +44,15 @@ class Pix2pixDataset(utils.data.Dataset):
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         # Order is slightly different than other transforms libraries.
         # nectarml.vision.transforms are intended to work on tensors.
-        # So first we load the current image file as a tensor:
+        
+        # So first we get our image filepath:
         image_path = self.list_files[index]
-        image      = vision.utils.load_image(image_path, normalize=True)
+        
+        # Then we load it directly as a tensor. "normalize=True" will 
+        # normalize the loaded image to a saturated [0:1] range.
+        image = vision.utils.load_image(image_path, normalize=True)
                 
-        # Then we slice in half to create input and target tensors.
+        # Then slice in half to create a/b tensors.
         width = image.shape[-1] // 2
         a     = image[:, :, :, width:]
         b     = image[:, :, :, :width]
@@ -65,14 +63,13 @@ class Pix2pixDataset(utils.data.Dataset):
         # Run our transforms.
         if self.training: # All transforms if training.
             input, target = self.transforms(image=input, image2=target)
-            target        = self.colorjitter(target)
             input, target = self.normalize(image=input, image2=target)
-        else: # Otherwise we just normalize the data [-1:1]
+        else: # Otherwise we just normalize the data [-1:1].
             input, target = self.normalize(image=input, image2=target)
         
         # Squeeze the two tensors to remove the batch dimension.
         input, target = input.squeeze(0), target.squeeze(0)
 
-        # And finally, return the result as a tuple.
+        # And return the result as a tuple.
         return input, target
 

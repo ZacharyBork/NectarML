@@ -195,6 +195,10 @@ __global__ void batch_norm_backward_kernel(
     int reduce_N, int reduce_H, int reduce_W,
     float eps
 ) {
+    __shared__ float sh_dgamma[32], sh_dbeta[32],
+                     sh_dxhat[32],  sh_xhat_dxhat[32];
+    __shared__ float sh_sum_dxhat, sh_sum_xhat_dxhat;
+
     int nc = blockIdx.x;
     int n  = reduce_N ? 0   : nc / C;
     int c  = reduce_N ? nc  : nc % C;
@@ -209,13 +213,13 @@ __global__ void batch_norm_backward_kernel(
     float sig_inv = 1.0f / sqrtf(var[stat_idx] + eps);
     float g       = gamma ? gamma[c] : 1.0f;
     
-    float sum_dgamma = 0.0f;
-    float sum_dbeta  = 0.0f;
-    float sum_dxhat  = 0.0f;
+    float sum_dgamma     = 0.0f;
+    float sum_dbeta      = 0.0f;
+    float sum_dxhat      = 0.0f;
     float sum_xhat_dxhat = 0.0f;
     
     for (int i = threadIdx.x; i < reduce_size; i += blockDim.x) {
-        int tmp = i;
+        int tmp   = i;
         int w_idx = reduce_W ? tmp % W : 0; tmp /= (reduce_W ? W : 1);
         int h_idx = reduce_H ? tmp % H : 0; tmp /= (reduce_H ? H : 1);
         int n_idx = reduce_N ? tmp % N : n;
@@ -237,8 +241,6 @@ __global__ void batch_norm_backward_kernel(
         sum_xhat_dxhat += __shfl_down_sync(0xffffffff, sum_xhat_dxhat, offset);
     }
     
-    __shared__ float sh_dgamma[32], sh_dbeta[32], 
-                     sh_dxhat[32],  sh_xhat_dxhat[32];
     int lane = threadIdx.x % warpSize;
     int warp = threadIdx.x / warpSize;
     if (lane == 0) {
@@ -265,21 +267,17 @@ __global__ void batch_norm_backward_kernel(
         if (threadIdx.x == 0) {
             if (dgamma) dgamma[c] = sum_dgamma;
             if (dbeta)  dbeta[c]  = sum_dbeta;
+            sh_sum_dxhat      = sum_dxhat;
+            sh_sum_xhat_dxhat = sum_xhat_dxhat;
         }
-    }
-    
-    __shared__ float sh_sum_dxhat, sh_sum_xhat_dxhat;
-    if (threadIdx.x == 0) {
-        sh_sum_dxhat      = sum_dxhat;
-        sh_sum_xhat_dxhat = sum_xhat_dxhat;
     }
     __syncthreads();
 
     for (int i = threadIdx.x; i < reduce_size; i += blockDim.x) {
-        int tmp = i;
+        int tmp   = i;
         int w_idx = reduce_W ? tmp % W : 0; tmp /= (reduce_W ? W : 1);
         int h_idx = reduce_H ? tmp % H : 0; tmp /= (reduce_H ? H : 1);
-        int n_idx = reduce_N ? tmp % N : 0;
+        int n_idx = reduce_N ? tmp % N : n;
         
         int flat   = n_idx * C*H*W + c * H*W + h_idx * W + w_idx;
         float go   = static_cast<float>(grad_out[flat]);

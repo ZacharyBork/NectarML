@@ -69,7 +69,9 @@ class Generator(nn.Module):
         # and downsamples the spatial resolution by a factor of 2.
         
         self.initial_down = nn.Sequential(
-            nn.Conv2d(in_channels, features, 4, 2, 1, padding_mode='reflect'),
+            nn.Conv2d(in_channels, features, 
+                      kernel_size=4, stride=2, padding=1, 
+                      bias=True, padding_mode='reflect'),
             nn.LeakyReLU(0.2)
         )
         
@@ -87,7 +89,9 @@ class Generator(nn.Module):
         # Then we define a bottleneck layer as Conv2d -> ReLU
         
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(features*8, features*8, 4, 2, 1, padding_mode='reflect'),
+            nn.Conv2d(features*8, features*8, 
+                      kernel_size=4, stride=2, padding=1, 
+                      bias=True, padding_mode='reflect'),
             nn.ReLU()
         )
         
@@ -107,14 +111,32 @@ class Generator(nn.Module):
         self.up6 = Block(features*4*2, features*2, down=False)
         self.up7 = Block(features*2*2, features,   down=False)
     
-        # Lastly, we define a final upsampling layer, which return the tensor
+        # The we will define a final upsampling layer, which return the tensor
         # to its original shape, and applies a Tanh activation, giving it an
         # output range of [-1:1].
     
         self.final_up = nn.Sequential(
-            nn.ConvTranspose2d(features*2, in_channels, 4, 2, 1),
+            nn.ConvTranspose2d(features*2, in_channels, 
+                               kernel_size=4, stride=2, padding=1,
+                               bias=True),
             nn.Tanh()
         )
+        
+        # And finally, we will apply the weights for our convolution modules.
+        
+        self.apply(self._init_weights)
+        
+    def _init_weights(self, module: nn.Module) -> None:
+        # self.apply runs this method recursively on all submodules, passing
+        # the submodule itself to the method. So here we can filter by module
+        # type and apply our initial weights.
+        
+        if isinstance(module, nn.Conv2d | nn.ConvTranspose2d):
+            # Conv/ConvTranspose use use normal distribution weights with 
+            # mean=0.0, std=0.02, per the Pix2Pix paper.
+            nn.init.normal_(module.weight, 0.0, 0.02)
+            if module.bias is not None:
+                nn.init.constant_(module.bias, 0)
         
     def forward(self, x: nectarml.Tensor) -> nectarml.Tensor:
         # Generator.forward() takes the input image tensor and first runs it
@@ -148,8 +170,8 @@ class Generator(nn.Module):
         up6 = self.up6(nectarml.cat([up5, d2], dim=1))
         up7 = self.up7(nectarml.cat([up6, d1], dim=1))
         
-        # And lastly, we run the tensor through the final upsampling layer
-        # and return the result.
+        # And lastly, we run the tensor through the final upsampling 
+        # layer and return the result.
         
         return self.final_up(nectarml.cat([up7, x], dim=1))
 

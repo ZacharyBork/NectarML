@@ -1,10 +1,10 @@
 from typing import Literal
 
+from nectarml      import cpu, cuda
 from nectarml.core import Tensor
-from nectarml import cpu, cuda
 
 def _normalize_padding(
-    pad: int | tuple[int, ...], 
+    pad:  int | tuple[int, ...], 
     ndim: int
 ) -> tuple[list[int], list[int]]:
     if isinstance(pad, int): return [pad] * (ndim - 2), [pad] * (ndim - 2)
@@ -18,8 +18,8 @@ def _normalize_padding(
   
 def _compute_pad_output_shape(
     input_shape: tuple[int, ...],
-    pad_before: list[int],
-    pad_after: list[int]
+    pad_before:  list[int],
+    pad_after:   list[int]
 ) -> tuple[int, ...]:
     spatial_out = tuple(
         s + b + a 
@@ -28,8 +28,10 @@ def _compute_pad_output_shape(
     
 def pad(
     input: Tensor, 
-    pad: int | tuple[int, ...],
-    mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
+    pad:   int | tuple[int, ...],
+    mode:  Literal[
+        'constant', 'reflect', 'replicate', 'circular'
+    ] = 'constant',
     value: float = 0.0
 ) -> Tensor:
     if input.device == 'cuda':

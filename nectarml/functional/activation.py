@@ -1,8 +1,9 @@
 import builtins
 
-from nectarml.core import Tensor
-from nectarml.typing import float32
+from nectarml.core                import Tensor
+from nectarml.typing              import float32
 from nectarml.functional.indexing import where
+from nectarml.amp.autocast        import autocast_state
 
 ### RELU ###
 
@@ -188,7 +189,10 @@ def sigmoid(input: Tensor) -> Tensor:
     input_dtype = input.dtype
     x           = input.to(dtype=float32)
     out         = 1 / (1 + (-x).exp())
-    return out.to(dtype=input_dtype)
+    state = autocast_state()
+    if not (state.enabled and state.context == 'cuda'):
+        out = out.to(dtype=input_dtype)
+    return out
 
 def sigmoid_(input: Tensor) -> Tensor:
     '''In-place sigmoid activation function.
@@ -229,8 +233,10 @@ def tanh(input: Tensor) -> Tensor:
     x            = input.to(dtype=float32)
     exp, inv_exp = x.exp(), (-x).exp()
     out          = (exp - inv_exp) / (exp + inv_exp)
-    return out.to(dtype=input_dtype)
-
+    state = autocast_state()
+    if not (state.enabled and state.context == 'cuda'):
+        out = out.to(dtype=input_dtype)
+    return out
     
     
 def tanh_(input: Tensor) -> Tensor:
@@ -274,7 +280,10 @@ def softmax(input: Tensor, dim: builtins.int = -1) -> Tensor:
     x           = x - x.amax(dim=dim, keepdim=True)
     exp_x       = x.exp()
     out         = exp_x / exp_x.sum(dim=dim, keepdim=True)
-    return out.to(dtype=input_dtype)
+    state = autocast_state()
+    if not (state.enabled and state.context == 'cuda'):
+        out = out.to(dtype=input_dtype)
+    return out
 
 def softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''In-place softmax activation function.
@@ -356,7 +365,10 @@ def log_softmax(input: Tensor, dim: builtins.int = -1) -> Tensor:
     exp_x       = (x - x.max(dim=dim, keepdim=True).values).exp()
     softmax_x   = exp_x / exp_x.sum(dim=dim, keepdim=True)
     out         = softmax_x.log()
-    return out.to(dtype=input_dtype)
+    state = autocast_state()
+    if not (state.enabled and state.context == 'cuda'):
+        out = out.to(dtype=input_dtype)
+    return out
 
 def log_softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
     '''In-place log softmax activation function.

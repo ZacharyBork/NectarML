@@ -2,10 +2,10 @@ import builtins
 
 import numpy as np
 
-from .tensor import Tensor
-from .bool import BoolTensor
+from .tensor             import Tensor
+from .bool               import BoolTensor
 from nectarml.cuda.utils import cast_tensor
-from nectarml import typing
+from nectarml            import typing
 
 def to_bool_tensor(
     input:  Tensor,

@@ -27,6 +27,18 @@ class TransformInput:
     def _istensor(self: TransformInput, value: Any) -> bool:
         return value is not None and isinstance(value, Tensor)
 
+    def _all_inputs(self: TransformInput) -> list[Any]:
+        return [
+            self.image, 
+            self.image2, 
+            self.mask, 
+            self.keypoints, 
+            self.boxes
+        ]
+
+    def _all_tensors(self: TransformInput) -> list[Tensor]:
+        return [t for t in self._all_inputs() if self._istensor(t)]
+
     def __post_init__(self: TransformInput) -> None:
         assert self.image is not None, \
             'nectarml.vision.transforms require an image tensor.'
@@ -45,6 +57,13 @@ class TransformInput:
         if self.mask is not None:      warn(support_msg.format('masks'))
         if self.boxes is not None:     warn(support_msg.format('boxes'))
         if self.keypoints is not None: warn(support_msg.format('keypoints'))
+        
+        for tensor in self._all_tensors():
+            if tensor.requires_grad:
+                warn('vision.transforms module found input tensor with '
+                     'requires_grad=True. Autograd is not currently supported '
+                     'for all transforms, and using them on tensors connected '
+                     'to the compute graph may lead to unexpected results.')
         
     @classmethod
     def from_args(

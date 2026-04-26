@@ -124,8 +124,8 @@ class InstanceNorm1d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool  = True,
-        track_running_stats: bool  = True,
+        affine:              bool  = False,
+        track_running_stats: bool  = False,
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
@@ -139,8 +139,8 @@ class InstanceNorm2d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool  = True,
-        track_running_stats: bool  = True,
+        affine:              bool  = False,
+        track_running_stats: bool  = False,
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
@@ -154,8 +154,8 @@ class InstanceNorm3d(_BatchNorm):
         num_features:        int,
         eps:                 float = 0.00001,
         momentum:            float = 0.1,
-        affine:              bool  = True,
-        track_running_stats: bool  = True,
+        affine:              bool  = False,
+        track_running_stats: bool  = False,
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:

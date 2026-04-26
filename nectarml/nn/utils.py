@@ -54,22 +54,26 @@ class EMA:
         model: Module, 
         decay: float = 0.999
     ) -> None:
+        '''
+        Not currently functional!!
+        '''
+        
         self.model  = model
         self.decay  = decay
         self.shadow = {}
         
-        for name, param in model.list_parameters():
+        for name, param in model.named_parameters():
             self.shadow[name] = param.detach().clone()
     
     def update(self):
-        for name, param in self.model.list_parameters():
+        for name, param in self.model.named_parameters():
             self.shadow[name] = (
                 self.decay * self.shadow[name] + 
                 (1 - self.decay) * param.detach())
     
     def apply(self):
         self._backup = {}
-        for name, param in self.model.list_parameters():
+        for name, param in self.model.named_parameters():
             self._backup[name] = param.detach().clone()
             
     
@@ -91,7 +95,7 @@ class checkpoint:
     ### SAVING ###
     
     def _serialize_parameters(self: checkpoint) -> None:
-        for name, param in self.model.list_parameters():
+        for name, param in self.model.named_parameters():
             self._model_state[name] = {
                 'data':  param.numpy(),
                 'dtype': param.dtype,
