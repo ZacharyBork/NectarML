@@ -13,10 +13,10 @@ def _bn_fused(
     eps:   float = 0.00001
 ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
     input_dtype = x.dtype
-    x_f32       = x._as_fp32()
+    x_f32       = Tensor._fake(x, float32)
     
-    gamma_f32 = gamma._as_fp32() if gamma is not None else None
-    beta_f32  =  beta._as_fp32() if beta  is not None else None
+    gamma_f32 = Tensor._fake(gamma, float32) if gamma is not None else None
+    beta_f32  = Tensor._fake(beta, float32) if beta  is not None else None
     
     N = x_f32.shape[0]
     C = x_f32.shape[1]

@@ -97,7 +97,8 @@ def _conv1d_cuda(
     
         if input_requires_grad:
             grad_input_ptr = cuda.conv.conv1d_backward_input(
-                out_grad, weight._as_fp32(), B, C_in, L_in, C_out, K, L_out,
+                out_grad, Tensor._fake(weight, typing.float32), 
+                B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation, groups)
             grad_tensor = Tensor._new(
                 grad_input_ptr, input.shape, typing.float32, input.device)
@@ -106,7 +107,8 @@ def _conv1d_cuda(
         
         if weight_requires_grad:
             grad_weight_ptr = cuda.conv.conv1d_backward_weight(
-                out_grad, weight._as_fp32(), B, C_in, L_in, C_out, K, L_out,
+                out_grad, Tensor._fake(input, typing.float32), 
+                B, C_in, L_in, C_out, K, L_out,
                 stride, padding, dilation)
             weight.grad += Tensor._new(
                 grad_weight_ptr, weight.shape, typing.float32, weight.device)

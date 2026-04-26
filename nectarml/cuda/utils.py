@@ -86,7 +86,7 @@ def cast_tensor(input: Tensor, new_dtype: typing.dtype) -> builtins.int:
     return _nectarml.cast_tensor(
         input._data_ptr, input.size, input.dtype.cuda, new_dtype.cuda)
 
-def cast_tensor_by_reference(
+def cast_ptr(
     device_ptr:     builtins.int, 
     size:           builtins.int,
     original_dtype: typing.dtype,
@@ -117,6 +117,14 @@ def to_cpu(
         input._data_ptr, [int(i) for i in input.shape], input.dtype.cuda)
     return data.astype(cast_dtype.cpu)
 
+def ptr_to_cpu(
+    device_ptr:  np.ndarray, 
+    shape:       typing.Size,
+    host_dtype:  typing.dtype
+) -> np.ndarray:
+    data = _nectarml.to_cpu(device_ptr, shape, host_dtype.cuda)
+    return data.astype(host_dtype.cpu)
+
 def inspect_cuda_data(
     device_ptr: builtins.int, 
     dtype:      typing.dtype,
@@ -128,7 +136,14 @@ def inspect_cuda_data(
 
 def clone(input: Tensor) -> builtins.int:
     return _nectarml.clone(input._data_ptr, input.size, input.dtype.cuda)
-    
+
+def clone_ptr(
+    device_ptr: builtins.int,
+    size:       builtins.int,
+    dtype:      typing.dtype
+) -> builtins.int:
+    return _nectarml.clone(device_ptr, size, dtype.cuda)
+
 def compute_tensor_min(input: Tensor) -> builtins.float:
     return _nectarml.compute_tensor_min(
         input._data_ptr, input.size, input.dtype.cuda)

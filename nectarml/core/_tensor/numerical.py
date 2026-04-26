@@ -5,11 +5,12 @@ if TYPE_CHECKING:
     
 import time
 import builtins
-from typing import Literal, Self
+from   typing import Literal, Self
 
 import numpy as np
 
 from nectarml import typing, return_types, cpu, cuda
+from nectarml.typing         import float32
 from nectarml.constants      import FLOAT_MIN, FLOAT_MAX
 from nectarml.core._tensor   import tensor
 from nectarml.cuda.memory    import CudaBuffer
@@ -20,7 +21,7 @@ class Tensor(tensor):
         self:          Tensor,
         data:          typing.ArrayLike,
         shape:         typing.ShapeType | None = None,
-        dtype:         typing.dtype = typing.float32,
+        dtype:         typing.dtype = float32,
         device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
@@ -168,22 +169,22 @@ class Tensor(tensor):
             if node.requires_grad and node is not self:
                 if node.device == 'cuda':
                     ptr = cuda.memory.alloc_cuda_full(
-                        node.size, typing.float32, 0.0)
+                        node.size, float32, 0.0)
                     node.grad = Tensor._new(
-                        ptr, node.shape, typing.float32, node.device)
+                        ptr, node.shape, float32, node.device)
                 else: 
                     node.grad = Tensor._new(
-                        np.zeros(node.shape, typing.float32.numpy), 
-                        node.shape, typing.float32, node.device)
+                        np.zeros(node.shape, float32.numpy), 
+                        node.shape, float32, node.device)
         
         if self.device == 'cuda':
             self.grad = Tensor._new(
-                cuda.memory.alloc_cuda_full(self.size, typing.float32, 1.0),
-                self.shape, typing.float32, self.device)
+                cuda.memory.alloc_cuda_full(self.size, float32, 1.0),
+                self.shape, float32, self.device)
         else:
             self.grad = Tensor._new(
-                np.ones(self.shape, typing.float32.numpy), 
-                self.shape, typing.float32, self.device)
+                np.ones(self.shape, float32.numpy), 
+                self.shape, float32, self.device)
         
     def _debug_backward(self, graph: list[tensor]) -> None:
         times = {}
@@ -822,12 +823,12 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad:
-                other_fp32 = other._as_fp32() \
+                other_fp32 = Tensor._fake(other, float32) \
                           if isinstance(other, Tensor) else other 
                 grad = other_fp32 * out.grad
                 self.grad += Tensor._broadcast_grad(grad, self.shape)
             if other_requires_grad: 
-                self_fp32 = self._as_fp32() \
+                self_fp32 = Tensor._fake(self, float32) \
                          if isinstance(self, Tensor) else self 
                 grad = self_fp32 * out.grad
                 other.grad += Tensor._broadcast_grad(grad, other.shape)
@@ -883,10 +884,12 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad:
-                grad       = out.grad @ other._as_fp32().transpose(-2, -1)
+                other_fp32 = Tensor._fake(other, float32)
+                grad       = out.grad @ other_fp32.transpose(-2, -1)
                 self.grad += self._broadcast_grad(grad, self.shape)
             if other_requires_grad:
-                grad        = self._as_fp32().transpose(-2, -1) @ out.grad
+                self_fp32   = Tensor._fake(self, float32)
+                grad        = self_fp32.transpose(-2, -1) @ out.grad
                 other.grad += other._broadcast_grad(grad, other.shape)
                 
         out._backward = _backward
@@ -917,26 +920,26 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.pow(x, float(exponent))
         else: out_data =  cpu.math.pow(x, float(exponent))
         
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
         
         def _backward() -> None:
             if self_requires_grad: 
                 self.grad += (
                     exponent 
-                  * (self._as_fp32()**(exponent-1)) 
+                  * (Tensor._fake(self, float32)**(exponent-1)) 
                   * out_fp32.grad)
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def __rpow__(
@@ -988,7 +991,7 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += self._as_fp32().sign() * out.grad
+                self.grad += Tensor._fake(self, float32).sign() * out.grad
         
         out._backward = _backward
         return out
@@ -1032,14 +1035,16 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad or other_requires_grad:
-                self_fp32  =  self._as_fp32()
-                other_fp32 = other._as_fp32() \
-                          if isinstance(other, Tensor) else other
+                self_fp32  = Tensor._fake(self,  float32)
+                other_fp32 = Tensor._fake(other, float32) \
+                          if isinstance(other, Tensor) else other 
             if self_requires_grad:
-                grad = (self_fp32 <= other_fp32)._as_fp32() * out.grad
+                mask = Tensor._fake((self_fp32 <= other_fp32), float32)
+                grad = mask * out.grad
                 self.grad += Tensor._broadcast_grad(grad, self.shape) 
             if other_requires_grad:
-                grad = (other_fp32 <= self_fp32)._as_fp32() * out.grad
+                mask = Tensor._fake((other_fp32 <= self_fp32), float32)
+                grad = mask * out.grad
                 other.grad += Tensor._broadcast_grad(grad, other.shape) 
         
         out._backward = _backward
@@ -1082,14 +1087,16 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad or other_requires_grad:
-                self_fp32  =  self._as_fp32()
-                other_fp32 = other._as_fp32() \
-                          if isinstance(other, Tensor) else other
+                self_fp32  = Tensor._fake(self,  float32)
+                other_fp32 = Tensor._fake(other, float32) \
+                          if isinstance(other, Tensor) else other 
             if self_requires_grad:
-                grad = (self_fp32 >= other_fp32)._as_fp32() * out.grad
+                mask = Tensor._fake(self_fp32 >= other_fp32, float32)
+                grad = mask * out.grad
                 self.grad += Tensor._broadcast_grad(grad, self.shape) 
             if other_requires_grad:
-                grad = (other_fp32 >= self_fp32)._as_fp32() * out.grad
+                mask = Tensor._fake(other_fp32 >= self_fp32, float32)
+                grad = mask * out.grad
                 other.grad += Tensor._broadcast_grad(grad, other.shape)
         
         out._backward = _backward
@@ -1123,11 +1130,11 @@ class Tensor(tensor):
                     
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32 = self._as_fp32()
+                self_fp32 = Tensor._fake(self, float32)
                 lo = min_value if min_value is not None else FLOAT_MIN
                 hi = max_value if max_value is not None else FLOAT_MAX
-                mask = (self_fp32 >= lo)._as_fp32() \
-                     * (self_fp32 <= hi)._as_fp32()
+                mask = Tensor._fake(self_fp32 >= lo, float32) \
+                     * Tensor._fake(self_fp32 <= hi, float32)
                 self.grad += mask * out.grad
                 
         out._backward = _backward
@@ -1153,13 +1160,13 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.exp(x)
         else: out_data =  cpu.math.exp(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
@@ -1167,7 +1174,7 @@ class Tensor(tensor):
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
       
     ### LOG ###
@@ -1180,22 +1187,22 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.log(x)
         else: out_data =  cpu.math.log(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += (1 / self._as_fp32()) * out_fp32.grad
+                self.grad += (1 / Tensor._fake(self, float32)) * out_fp32.grad
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def log2(self: Tensor) -> Tensor:
@@ -1206,22 +1213,23 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.log2(x)
         else: out_data =  cpu.math.log2(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += out_fp32.grad / (self._as_fp32() * np.log(2))
+                self.grad += out_fp32.grad \
+                          / (Tensor._fake(self, float32) * np.log(2))
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def log10(self: Tensor) -> Tensor:
@@ -1232,22 +1240,23 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.log10(x)
         else: out_data =  cpu.math.log10(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += out_fp32.grad / (self._as_fp32() * np.log(10))
+                self.grad += out_fp32.grad \
+                          / (Tensor._fake(self, float32) * np.log(10))
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
           
     ### SQRT ###
@@ -1260,13 +1269,13 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda':
               out_data = cuda.math.sqrt(x)
         else: out_data =  cpu.math.sqrt(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
@@ -1275,7 +1284,7 @@ class Tensor(tensor):
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def rsqrt(self: Tensor) -> Tensor:
@@ -1287,13 +1296,13 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda':
               out_data = cuda.math.rsqrt(x)
         else: out_data =  cpu.math.rsqrt(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
@@ -1302,7 +1311,7 @@ class Tensor(tensor):
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     ### SIN / COS ###
@@ -1315,22 +1324,22 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.sin(x)
         else: out_data =  cpu.math.sin(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += self._as_fp32().cos() * out_fp32.grad
+                self.grad += Tensor._fake(self, float32).cos() * out_fp32.grad
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def asin(self: Tensor) -> Tensor:
@@ -1341,23 +1350,24 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.asin(x)
         else: out_data =  cpu.math.asin(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
         
         def _backward() -> None:
             if self_requires_grad:
-                denom = (1 - self._as_fp32() ** 2).sqrt().clamp(min_value=1e-7)
+                self_fp32 = Tensor._fake(self, float32)
+                denom = (1 - self_fp32 ** 2).sqrt().clamp(min_value=1e-7)
                 self.grad += out_fp32.grad / denom
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def sinh(self: Tensor) -> Tensor:
@@ -1368,22 +1378,22 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.sinh(x)
         else: out_data =  cpu.math.sinh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += self._as_fp32().cosh() * out_fp32.grad
+                self.grad += Tensor._fake(self, float32).cosh() * out_fp32.grad
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def asinh(self: Tensor) -> Tensor:
@@ -1394,22 +1404,23 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.asinh(x)
         else: out_data =  cpu.math.asinh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += out_fp32.grad / (self._as_fp32()**2 + 1).sqrt()
+                self.grad += out_fp32.grad \
+                          / (Tensor._fake(self, float32)**2 + 1).sqrt()
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
         
     def cos(self: Tensor) -> Tensor: 
@@ -1420,24 +1431,24 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.cos(x)
         else: out_data =  cpu.math.cos(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             # NOTE: This builds unneeded graph nodes. Eventually, this should
             # be replaced with something akin to torch.no_grad()
             if self_requires_grad:
-                self.grad += -self._as_fp32().sin() * out_fp32.grad
+                self.grad += -Tensor._fake(self, float32).sin() * out_fp32.grad
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def acos(self: Tensor) -> Tensor:
@@ -1448,23 +1459,24 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda':
               out_data = cuda.math.acos(x)
         else: out_data =  cpu.math.acos(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad:
-                grad = (1 - self._as_fp32()**2).sqrt().clamp(min_value=1e-7)
+                self_fp32  = Tensor._fake(self, float32)
+                grad       = (1 - self_fp32**2).sqrt().clamp(min_value=1e-7)
                 self.grad += -out.grad / grad
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def cosh(self: Tensor) -> Tensor:
@@ -1475,22 +1487,22 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.cosh(x)
         else: out_data =  cpu.math.cosh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
         
         def _backward() -> None:
             if self_requires_grad:
-                self.grad += self._as_fp32().sinh() * out_fp32.grad
+                self.grad += Tensor._fake(self, float32).sinh() * out_fp32.grad
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def acosh(self: Tensor) -> Tensor:
@@ -1501,24 +1513,25 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         x                  = x.clamp(min_value=1.0)
         
         if x.device == 'cuda': 
               out_data = cuda.math.acosh(x)
         else: out_data =  cpu.math.acosh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad:
-                grad = (self._as_fp32()**2 - 1).sqrt().clamp(min_value=1e-7)
+                self_fp32  = Tensor._fake(self, float32)
+                grad       = (self_fp32**2 - 1).sqrt().clamp(min_value=1e-7)
                 self.grad += out_fp32.grad / grad
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     ### TAN / ATAN ###
@@ -1531,13 +1544,13 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.tan(x)
         else: out_data =  cpu.math.tan(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward() -> None:
@@ -1546,7 +1559,7 @@ class Tensor(tensor):
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
         
     def tanh(self: Tensor) -> Tensor:
@@ -1557,13 +1570,13 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda':
               out_data = cuda.math.tanh(x)
         else: out_data =  cpu.math.tanh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward():
@@ -1572,7 +1585,7 @@ class Tensor(tensor):
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def atan(self: Tensor) -> Tensor:
@@ -1583,22 +1596,23 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.atan(x)
         else: out_data =  cpu.math.atan(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward():
             if self_requires_grad: 
-                self.grad += out_fp32.grad / (1 + self._as_fp32()**2)
+                self_fp32  = Tensor._fake(self, float32)
+                self.grad += out_fp32.grad / (1 + self_fp32**2)
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def atanh(self: Tensor) -> Tensor:
@@ -1610,23 +1624,24 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda': 
               out_data = cuda.math.atanh(x)
         else: out_data =  cpu.math.atanh(x)
-        out_fp32 = Tensor._new(out_data, self.shape, typing.float32, 
+        out_fp32 = Tensor._new(out_data, self.shape, float32, 
             self.device, self.requires_grad, _children=(self,))
 
         def _backward():
             if self_requires_grad: 
-                divisor  = (1 - self._as_fp32()**2).clamp(min_value=1e-7)
+                self_fp32  = Tensor._fake(self, float32)
+                divisor    = (1 - self_fp32**2).clamp(min_value=1e-7)
                 self.grad += out_fp32.grad / divisor
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def atan2(self: Tensor, other: Tensor) -> Tensor:
@@ -1639,24 +1654,25 @@ class Tensor(tensor):
         self_requires_grad  = self.requires_grad
         other_requires_grad = other.requires_grad
         input_dtype         = self.dtype
-        x                   = self.to(dtype=typing.float32) \
-                              if input_dtype != typing.float32 else self
-        y                   = other.to(dtype=typing.float32) \
-                              if input_dtype != typing.float32 else other
+        x                   = self.to(dtype=float32) \
+                              if input_dtype != float32 else self
+        y                   = other.to(dtype=float32) \
+                              if input_dtype != float32 else other
         out_shape = tensor._broadcast_shape(self.shape, other.shape)
         
         if x.device == 'cuda': 
               out_data = cuda.math.atan2(y, x, out_shape)
         else: out_data =  cpu.math.atan2(y, x)
         out_fp32 = Tensor._new(
-            out_data, out_shape, typing.float32, self.device,
+            out_data, out_shape, float32, self.device,
             requires_grad=self_requires_grad or other_requires_grad,
             _children=(self, other))
         
         def _backward() -> None:
             if self_requires_grad or other_requires_grad:
-                self_fp32  =  self._as_fp32()
-                other_fp32 = other._as_fp32()
+                self_fp32  = Tensor._fake(self,  float32)
+                other_fp32 = Tensor._fake(other, float32) \
+                          if isinstance(other, Tensor) else other 
                 denom = (self_fp32**2 + other_fp32**2).clamp(min_value=1e-7)
             if self_requires_grad:
                 grad = out_fp32.grad * other_fp32 / denom
@@ -1667,7 +1683,7 @@ class Tensor(tensor):
                                 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     ### SIGN ###
@@ -1731,16 +1747,16 @@ class Tensor(tensor):
         
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32 = self._as_fp32()
-                min_fp32  =  out._as_fp32()
+                self_fp32 = Tensor._fake(self, float32)
+                min_fp32  = Tensor._fake(out,  float32)
                 min_vals  = min_fp32 if keepdim else \
                         min_fp32.unsqueeze(dim) if dim is not None else \
                         min_fp32.reshape([1] * self.ndim)
-                mask = self_fp32 == min_vals.expand(self.shape)
+                mask = Tensor._fake(self_fp32 == min_vals, float32)
                 grad = out.grad if keepdim else \
                     out.grad.unsqueeze(dim) if dim is not None else \
                     out.grad.reshape([1] * self.ndim)
-                self.grad += mask._as_fp32() * grad.expand(self.shape)
+                self.grad += mask.expand(self.shape) * grad.expand(self.shape)
 
         out._backward = _backward
 
@@ -1780,16 +1796,16 @@ class Tensor(tensor):
 
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32 = self._as_fp32()
-                min_fp32  =  out._as_fp32()
+                self_fp32 = Tensor._fake(self, float32)
+                min_fp32  = Tensor._fake(out,  float32)
                 min_vals  = min_fp32 if keepdim else \
                             min_fp32.unsqueeze(dim) if dim is not None else \
                             min_fp32.reshape([1] * self.ndim)
-                mask = self_fp32 == min_vals.expand(self.shape)
+                mask = Tensor._fake(self_fp32 == min_vals, float32)
                 grad = out.grad if keepdim else \
                     out.grad.unsqueeze(dim) if dim is not None else \
                     out.grad.reshape([1] * self.ndim)
-                self.grad += mask._as_fp32() * grad.expand(self.shape)
+                self.grad += mask.expand(self.shape) * grad.expand(self.shape)
 
         out._backward = _backward
         return out
@@ -1812,16 +1828,16 @@ class Tensor(tensor):
 
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32 = self._as_fp32()
-                max_fp32  =  out._as_fp32()
+                self_fp32 = Tensor._fake(self, float32)
+                max_fp32  = Tensor._fake(out,  float32)
                 max_vals  = max_fp32 if keepdim else \
                             max_fp32.unsqueeze(dim) if dim is not None else \
                             max_fp32.reshape([1] * self.ndim)
-                mask = self_fp32 == max_vals.expand(self.shape)
+                mask = Tensor._fake(self_fp32 == max_vals, float32)
                 grad = out.grad if keepdim else \
                     out.grad.unsqueeze(dim) if dim is not None else \
                     out.grad.reshape([1] * self.ndim)
-                self.grad += mask._as_fp32() * grad.expand(self.shape)
+                self.grad += mask.expand(self.shape) * grad.expand(self.shape)
 
         out._backward = _backward
 
@@ -1861,16 +1877,16 @@ class Tensor(tensor):
 
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32 = self._as_fp32()
-                max_fp32  =  out._as_fp32()
+                self_fp32 = Tensor._fake(self, float32)
+                max_fp32  = Tensor._fake(out,  float32)
                 max_vals  = max_fp32 if keepdim else \
                             max_fp32.unsqueeze(dim) if dim is not None else \
                             max_fp32.reshape([1] * self.ndim)
-                mask = self_fp32 == max_vals.expand(self.shape)
+                mask = Tensor._fake(self_fp32 == max_vals, float32)
                 grad = out.grad if keepdim else \
                     out.grad.unsqueeze(dim) if dim is not None else \
                     out.grad.reshape([1] * self.ndim)
-                self.grad += mask._as_fp32() * grad.expand(self.shape)
+                self.grad += mask.expand(self.shape) * grad.expand(self.shape)
 
         out._backward = _backward
         return out
@@ -1925,8 +1941,8 @@ class Tensor(tensor):
         dim                = tensor._normalize_dim(dim, self.ndim)
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         if x.device == 'cuda':
             if isinstance(dim, (tuple, list)):
@@ -1941,7 +1957,7 @@ class Tensor(tensor):
         else: data = cpu.reductions.mean(x, dim, keepdim)
 
         output_shape = self.shape.reduce(dim, keepdim)
-        out_fp32 = Tensor._new(data, output_shape, typing.float32, self.device,
+        out_fp32 = Tensor._new(data, output_shape, float32, self.device,
             self.requires_grad, _children=(self,))
         
         def _backward() -> None:
@@ -1956,7 +1972,7 @@ class Tensor(tensor):
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def sum(
@@ -1968,8 +1984,8 @@ class Tensor(tensor):
         dim                = tensor._normalize_dim(dim, self.ndim)
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
 
         if x.device == 'cuda':
             if isinstance(dim, (tuple, list)):
@@ -1983,7 +1999,7 @@ class Tensor(tensor):
         else: data = cpu.reductions.sum(x, dim, keepdim, initial)
 
         output_shape = self.shape.reduce(dim, keepdim)
-        out_fp32 = Tensor._new(data, output_shape, typing.float32, self.device,
+        out_fp32 = Tensor._new(data, output_shape, float32, self.device,
             self.requires_grad, _children=(self,))
         
         def _backward() -> None:
@@ -1995,14 +2011,14 @@ class Tensor(tensor):
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
     
     def cumsum(self: Tensor, dim: builtins.int) -> Tensor:
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         dim = dim if dim >= 0 else x.ndim + dim
 
@@ -2010,7 +2026,7 @@ class Tensor(tensor):
               out_data = cuda.reductions.cumsum(x, dim)
         else: out_data =  cpu.reductions.cumsum(x, dim)
 
-        out_fp32 = Tensor._new(out_data, x.shape, typing.float32, x.device,
+        out_fp32 = Tensor._new(out_data, x.shape, float32, x.device,
             self.requires_grad, _children=(self,))
 
         def _backward() -> None:
@@ -2021,7 +2037,7 @@ class Tensor(tensor):
 
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
         
     def prod(
@@ -2032,8 +2048,8 @@ class Tensor(tensor):
     ) -> Tensor:
         self_requires_grad = self.requires_grad
         input_dtype        = self.dtype
-        x                  = self.to(dtype=typing.float32) \
-                             if input_dtype != typing.float32 else self
+        x                  = self.to(dtype=float32) \
+                             if input_dtype != float32 else self
         
         dim = tensor._normalize_dim(dim, self.ndim)
         if x.device == 'cuda':
@@ -2045,16 +2061,16 @@ class Tensor(tensor):
                         result = result.squeeze(d)
                 return result
             
-            data = cuda.reductions.prod(x, dim, initial)
+            data  = cuda.reductions.prod(x, dim, initial)
         else: data = cpu.reductions.prod(x, dim, keepdim, initial)
         
         output_shape = self.shape.reduce(dim, keepdim)
-        out_fp32 = Tensor._new(data, output_shape, typing.float32, self.device, 
+        out_fp32 = Tensor._new(data, output_shape, float32, self.device, 
             self.requires_grad, _children=(self,))
             
         def _backward() -> None:
             if self_requires_grad:
-                self_fp32    = self._as_fp32()
+                self_fp32    = Tensor._fake(self, float32)
                 out_expanded = out_fp32 if keepdim \
                           else out_fp32.unsqueeze(dim) if dim is not None \
                           else out_fp32.reshape([1] * self.ndim)
@@ -2064,15 +2080,15 @@ class Tensor(tensor):
                 
                 out_full = out_expanded.expand(self.shape)
                 grad_full = grad_expanded.expand(self.shape)
-
-                sign = (self_fp32 >= 0.0)._as_fp32() \
-                     - (self_fp32 <  0.0)._as_fp32()
+                sign = Tensor._fake(self_fp32 >= 0.0, float32) \
+                     * Tensor._fake(self_fp32 <  0.0, float32)
+                     
                 safe_self = self_fp32.abs().clamp(min_value=1e-7) * sign
                 self.grad += (out_full / safe_self) * grad_full
         
         out_fp32._backward = _backward
         out = out_fp32.to(dtype=input_dtype) \
-           if input_dtype != typing.float32 else out_fp32
+           if input_dtype != float32 else out_fp32
         return out
 
     def std(
@@ -2082,8 +2098,8 @@ class Tensor(tensor):
         correction: builtins.int = 1
     ) -> Tensor:
         input_dtype = self.dtype
-        x           = self.to(dtype=typing.float32) \
-                      if input_dtype != typing.float32 else self
+        x           = self.to(dtype=float32) \
+                      if input_dtype != float32 else self
         mean = x.mean(dim=dim, keepdim=True) if dim is not None \
           else x.mean().reshape([1] * x.ndim)
         
@@ -2100,8 +2116,8 @@ class Tensor(tensor):
         keepdim: bool = False
     ) -> Tensor:
         input_dtype = self.dtype
-        x           = self.to(dtype=typing.float32) \
-                      if input_dtype != typing.float32 else self
+        x           = self.to(dtype=float32) \
+                      if input_dtype != float32 else self
           
         match p:
             case 'fro': # L2/Frobenius norm
@@ -2143,7 +2159,7 @@ class Tensor(tensor):
             if self_requires_grad:
                 grad_input = Tensor._new(
                     np.zeros(self.grad.shape, np.float32),
-                    self.grad.shape, typing.float32, self.grad.device)
+                    self.grad.shape, float32, self.grad.device)
                 grad_input = grad_input.scatter(dim, indices, values.grad)
                 self.grad += grad_input
         

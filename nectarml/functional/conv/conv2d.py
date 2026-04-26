@@ -108,7 +108,7 @@ def _conv2d_cuda(
 
         if input_requires_grad:
             grad_input_ptr = cuda.conv.conv2d_backward_input(
-                out_grad, weight._as_fp32(), 
+                out_grad, Tensor._fake(weight, typing.float32), 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w, groups)
@@ -117,7 +117,7 @@ def _conv2d_cuda(
         
         if weight_requires_grad:
             grad_weight_ptr = cuda.conv.conv2d_backward_weight(
-                out_grad, input._as_fp32(), 
+                out_grad, Tensor._fake(input, typing.float32), 
                 B, C_in, H, W, C_out, KH, KW, H_out, W_out,
                 stride_h, stride_w, padding_h, padding_w, 
                 dilation_h, dilation_w)

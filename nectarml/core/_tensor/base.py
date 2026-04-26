@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing     import TYPE_CHECKING, Any, Literal, Self
+if TYPE_CHECKING:
+    from nectarml.core import utils
 
 import types
 import builtins
-from   typing          import Any, Literal, Self
 from   collections.abc import Callable
 
 import numpy as np
@@ -11,25 +13,14 @@ from nectarml             import typing, cpu, cuda
 from nectarml.cuda.memory import CudaBuffer
 from nectarml.autograd    import is_grad_enabled
 
-def _reconstruct_tensor(
-    data:  np.ndarray, 
-    shape: list[int], 
-    dtype: typing.dtype
-) -> tensor:
-    import nectarml
-    return nectarml.Tensor(
-        data=data, 
-        shape=shape,
-        dtype=dtype, 
-        device='cpu',
-        requires_grad=False
-    )
-
 class tensor:
     _class_type_nectar_tensor  = True
     _subclasses: builtins.dict = {}
     _device:     typing.device = None
     _dtype:      typing.dtype  = None
+    
+    _fake:      utils._to_fake = None
+    _reconstruct:     Callable = None
     
     def __init__(
         self:          tensor,
@@ -406,8 +397,7 @@ class tensor:
                 src = self if self.is_contiguous else self.contiguous()
                 tmp_ptr = cuda.to_cuda(src)
                 if dtype != self.dtype:
-                    data = cuda.cast_tensor_by_reference(
-                        tmp_ptr, self.size, self.dtype, dtype)
+                    data = cuda.cast_ptr(tmp_ptr, self.size, self.dtype, dtype)
                     cuda.free_cuda(tmp_ptr, self.size, self.dtype)
                 else: data = tmp_ptr
             else: data = cuda.cast_tensor(self, dtype)
@@ -523,67 +513,6 @@ class tensor:
             tensor : The resulting int tensor from the cast operation.
         '''
         return self.int()
-        
-    ### AUTOGRAD UTILITIES ###
-          
-    def _as_dtype(
-        self:  tensor,
-        dtype: typing.dtype
-    ) -> Self:
-        '''Creates a detached copy of a tensor, cast to a new dtype.
-        
-        While this works for CPU tensors, it is primarily used to speed up 
-        autograd for CUDA tensors. It bypasses a lot of the wiring in 
-        tensor.to(), and casts the dtype using the given tensor's device ptr
-        directly.
-        
-        NOTE: If the given tensor's dtype already matches the input dtype, a 
-        reference to the original tensor is returned instead (since there's
-        nothing to be gained from casting). If not, the returned tensor will
-        be completely detached from the computation graph.
-        
-        Args:
-            dtype : The typing.dtype for the new tensor.
-            
-        Returns:
-            Self : The new tensor. The type of the return tensor is determined
-                by the type of the tensor this method was called from.
-        '''
-        if self.dtype == dtype: return self
-        
-        out = object.__new__(self._subclasses['Tensor'])
-        out.__setattr__('_device', self._device)
-        out.__setattr__('_dtype',  dtype)
-        
-        out.shape          = self.shape
-        out._requires_grad = False
-        out.grad           = None
-        out._prev          = set()
-        out._backward      = lambda: None
-
-        if self._device.type == 'cuda':
-            ptr = cuda.utils.cast_tensor_by_reference(
-                self._data_ptr, self.size, self.dtype, dtype)
-            out._buffer = CudaBuffer(ptr, self.size, dtype)
-            out.data = None
-        else:
-            out._buffer = None
-            out.data = self.data.astype(dtype.numpy)
-
-        return out
-        
-    def _as_fp32 (self: tensor) -> Self: 
-        '''Convenience wrapper. See tensor._as_dtype().'''
-        return self._as_dtype(typing.float32)
-    def _as_fp16 (self: tensor) -> Self: 
-        '''Convenience wrapper. See tensor._as_dtype().'''
-        return self._as_dtype(typing.float16)
-    def _as_int32(self: tensor) -> Self: 
-        '''Convenience wrapper. See tensor._as_dtype().'''
-        return self._as_dtype(typing.int32)
-    def _as_uint8(self: tensor) -> Self: 
-        '''Convenience wrapper. See tensor._as_dtype().'''
-        return self._as_dtype(typing.uint8)
 
     ### DATA UTILS ###
     
@@ -979,11 +908,12 @@ class tensor:
     
     def __reduce__(self: tensor) -> tuple[Callable, tuple[Any, ...]]:
         return (
-            _reconstruct_tensor,
-            (
+            tensor._reconstruct, (
                 self.cpu().numpy(),
                 list(self.shape),
-                self.dtype
+                self.dtype,
+                self.device,
+                self.requires_grad
             )
         )
     

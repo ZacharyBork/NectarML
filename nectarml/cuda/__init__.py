@@ -12,8 +12,8 @@ from .utils import (
     
     is_inf, is_finite, is_nan, has_inf, has_nan,
     
-    cast_tensor, cast_tensor_by_reference, 
-    to_cuda, data_to_cuda, to_cpu, clone,
+    cast_tensor, cast_ptr, to_cuda, data_to_cuda, to_cpu, ptr_to_cpu, 
+    clone, clone_ptr
 )
 
 from .memory import (

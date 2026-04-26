@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .tensor import Tensor
+    from .numerical import Tensor
     
 from typing import Self
 
@@ -13,10 +13,10 @@ from nectarml.cuda.memory  import CudaBuffer
    
 class BoolTensor(tensor):    
     def __init__(
-        self:          Tensor,
+        self:          BoolTensor,
         data:          typing.ArrayLike,
         shape:         typing.ShapeType | None = None,
-        dtype:         typing.dtype = typing.float32,
+        dtype:         typing.dtype = typing.bool_,
         device:        typing.DeviceLikeType = 'cpu',
         requires_grad: bool = False,
         _children:     tuple[tensor, ...] = ()
