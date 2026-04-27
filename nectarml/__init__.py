@@ -61,7 +61,7 @@ from .functional.math import (
     maximum, abs, exp, log, log2, log10, sqrt, rsqrt, sin, asin, asinh, cos,
     acos, cosh, acosh, tan, atan, atanh, atan2)
 
-from .functional.normalization import (
+from .functional.norm import (
     batch_norm1d, batch_norm2d, batch_norm3d,
     instance_norm1d, instance_norm2d, instance_norm3d,
     layer_norm, group_norm)

@@ -36,7 +36,7 @@ from .math import (
     minimum, maximum, abs, exp, log, log2, log10, sqrt, rsqrt, sin, asin, sinh,
     asinh, cos, acos, cosh, acosh, tan, tanh, atan, atanh, atan2, sigmoid)
 
-from .normalization import (
+from .norm import (
     batch_norm1d, batch_norm2d, batch_norm3d,
     instance_norm1d, instance_norm2d, instance_norm3d,
     layer_norm, group_norm)
