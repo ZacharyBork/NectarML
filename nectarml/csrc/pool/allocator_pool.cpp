@@ -4,7 +4,7 @@ void CudaMemoryPool::initialize_pool() {
     size_t free, total;
     cudaMemGetInfo(&free, &total);
     max_pool_bytes = (size_t)((float)total * max_pool_vram_percent);
-    initialized    = true;
+    _initialized    = true;
 }
 
 size_t CudaMemoryPool::bucket(size_t bytes) {
@@ -14,17 +14,26 @@ size_t CudaMemoryPool::bucket(size_t bytes) {
 }
 
 void CudaMemoryPool::enable()  { 
-    if (!initialized) initialize_pool();
-    enabled = true;
+    if (!_initialized) initialize_pool();
+    _enabled = true;
 }
 void CudaMemoryPool::disable(const bool release_pool) { 
-    enabled = false;
+    _enabled = false;
     if (release_pool) release();
 }
 
+void CudaMemoryPool::set_vram_percent(float percent) {
+    max_pool_vram_percent = percent;
+    initialize_pool();
+}
+
+void CudaMemoryPool::set_evict_on_oom(const bool enabled) {
+    evict_on_oom = enabled;
+}
+
 void* CudaMemoryPool::alloc(size_t bytes) {
-    if (!initialized) initialize_pool();
-    if (!enabled) {
+    if (!_initialized) initialize_pool();
+    if (!_enabled) {
         void* ptr;
         cudaMalloc(&ptr, bytes);
         return ptr;
@@ -74,7 +83,7 @@ void CudaMemoryPool::free(void* ptr, size_t bytes) {
         std::lock_guard<std::mutex> lock(mtx);
         if (pool_allocated.count(uptr) == 0) {
             should_hard_free = true;
-        } else if (!enabled || pool_bytes + b > max_pool_bytes) {
+        } else if (!_enabled || pool_bytes + b > max_pool_bytes) {
             pool_allocated.erase(uptr);
             should_hard_free = true;
         } else {

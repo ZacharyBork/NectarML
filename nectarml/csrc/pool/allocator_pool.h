@@ -11,8 +11,8 @@ class CudaMemoryPool {
     std::unordered_map<size_t, std::vector<void*>> pool;
     std::unordered_set<uintptr_t> pool_allocated;
     std::mutex mtx;
-    bool enabled     = false;
-    bool initialized = false;
+    bool _enabled     = false;
+    bool _initialized = false;
 
     size_t pool_bytes            = 0;
     size_t max_pool_bytes        = 0;
@@ -25,10 +25,14 @@ class CudaMemoryPool {
 public:
     void  enable();
     void  disable(const bool release_pool = true);
+    
     void* alloc(size_t bytes);
     void  free(void* ptr, size_t bytes);
     void  release_unlocked();
     void  release();
+
+    void set_vram_percent(float percent);
+    void set_evict_on_oom(const bool enabled);
 };
 
 static CudaMemoryPool g_pool;
