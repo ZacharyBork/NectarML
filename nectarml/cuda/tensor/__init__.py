@@ -1,6 +1,7 @@
 from . import (
     combination, 
     conv, 
+    fused,
     indexing, 
     interpolation,
     masking,

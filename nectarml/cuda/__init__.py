@@ -6,8 +6,8 @@ from . import amp, memory, utils
 ### RAISE TOP-LEVEL IMPORTS ###
 
 from .tensor import (
-    combination, conv, indexing, interpolation, masking, math, matmul,
-    padding, pooling, reductions, shapes, sorting
+    combination, conv, fused, indexing, interpolation, masking, math, 
+    matmul, padding, pooling, reductions, shapes, sorting
 )
 
 from .utils import (

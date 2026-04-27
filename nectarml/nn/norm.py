@@ -67,7 +67,7 @@ class _BatchNorm(Module):
                 var    = ((x - mean)**2).mean(dim=self.norm_dims, keepdim=True)
                 x_norm = (x - mean) / (var + self.eps).sqrt()
             if self.gamma is not None: x_norm = self.gamma * x_norm
-            if self.beta is not None: x_norm = self.beta + x_norm
+            if self.beta  is not None: x_norm = self.beta  + x_norm
         
         return x_norm.to(dtype=x.dtype)
 
