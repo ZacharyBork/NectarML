@@ -936,6 +936,21 @@ class tensor:
         self:   tensor, 
         *shape: typing.ShapeType
     ) -> Self:
+        '''Changes the shape of a tensor without altering its data.
+        
+        The reshaped output tensor will point to the same underlying data 
+        (numpy.ndarray or CudaBuffer) as the original tensor. As such, changes 
+        made to either will be reflected in the other. 
+        
+        Gradients will flow unaltered from the output tensor to the original 
+        tensor during backpropagation if the original tensor requires grad.
+        
+        Args:
+            shape : The shape for the new tensor.
+            
+        Returns:
+            tensor : The resulting reshaped tensor.
+        '''
         shape = tensor._normalize_shape_input(*shape)
         if -1 in shape:
             shape = list(shape)
@@ -969,6 +984,22 @@ class tensor:
         self:   tensor,
         *shape: typing.ShapeType
     ) -> Self:
+        '''Returns a view on a given tensor with a new shape.
+        
+        The resulting output tensor will point to the same underlying data 
+        (numpy.ndarray or CudaBuffer) as the original tensor. As such, changes
+        made to either will be reflected in the other. 
+        
+        Gradients will flow unaltered from the output tensor to the original
+        tensor during backpropagation if the original tensor requires grad.
+
+        Args:
+            shape : The shape for the new tensor.
+            
+        Returns:
+            tensor : A new tensor providing a view of the original tensor's 
+                     data.
+        '''
         shape = tensor._normalize_shape_input(*shape)
         
         total = self.numel()
@@ -1008,6 +1039,23 @@ class tensor:
         start_dim: builtins.int = 0,
         end_dim:   builtins.int = -1
     ) -> Self:
+        '''Returns a view of the given tensor, flattened to a single dimension.
+        
+        The resulting output tensor will point to the same underlying data 
+        (numpy.ndarray or CudaBuffer) as the original tensor. As such, changes
+        made to either will be reflected in the other. 
+        
+        Gradients will flow unaltered from the output tensor to the original
+        tensor during backpropagation if the original tensor requires grad.
+
+        Args:
+            start_dim : The first dimension to flatten.
+            end_dim   : The last dimension to flatten.
+            
+        Returns:
+            tensor : A new tensor providing a flattened view of the original
+                     tensor.
+        '''
         end_dim = end_dim if end_dim >= 0 else self.ndim + end_dim
         new_shape = (
             self.shape[:start_dim]
@@ -1016,6 +1064,23 @@ class tensor:
         return self.reshape(new_shape)
         
     def squeeze(self: tensor, dim: builtins.int | None = None) -> Self:
+        '''Removes dimensions with length one from a tensor.
+    
+        The resulting output tensor will point to the same underlying data 
+        (numpy.ndarray or CudaBuffer) as the original tensor. As such, changes 
+        made to either will be reflected in the other. 
+        
+        Gradients will flow unaltered from the output tensor to the original 
+        tensor during backpropagation if the original tensor requires grad.
+        
+        Args:
+            dim : The dimension(s) to squeeze, or None to squeeze all length 
+                  1 dimensions from the tensor.
+            
+        Returns:
+            tensor : A new tensor providing a view of the original tensor with 
+                    all length 1 dimensions removed.
+        '''
         if dim is None: new_shape = tuple(s for s in self.shape if s != 1)
         else:
             if self.shape[dim] != 1: return self 
@@ -1023,6 +1088,22 @@ class tensor:
         return self.reshape(new_shape)
 
     def unsqueeze(self: tensor, dim: builtins.int) -> Self:
+        '''Adds a new lenth one dimension to a given tensor's shape.
+        
+        The resulting output tensor will point to the same underlying data 
+        (numpy.ndarray or CudaBuffer) as the original tensor. As such, changes 
+        made to either will be reflected in the other. 
+        
+        Gradients will flow unaltered from the output tensor to the original 
+        tensor during backpropagation if the original tensor requires grad.
+
+        Args:
+            dim : The dimension(s) to unsqueeze along.
+        
+        Returns:
+            tensor : A new tensor providing a view of the original tensor with 
+                     the newly added dimensions.
+        '''
         dim = dim if dim >= 0 else self.ndim + dim + 1
         new_shape = self.shape[:dim] + (1,) + self.shape[dim:]
         return self.reshape(new_shape)
@@ -1031,6 +1112,24 @@ class tensor:
         self:  tensor, 
         *dims: typing.DimsType | None
     ) -> Self:
+        '''Rearranges a given tensors dimensions by a given order.
+    
+        Args:
+            dims : A tuple of ints defining the order to rearrange the tensor's
+                   dimensions in.
+            
+        Returns:
+            tensor : A new tensor object containing the original tensor's data 
+                     the with the permuted shape.
+                    
+        Examples:
+            ```  
+            x = nectarml.rand((3, 256, 256))
+            y = F.permute(input, (1, 2, 0))
+            print(y.shape)
+            ```
+            Result: `nectarml.Size(256, 256, 3)`
+        '''
         dims = tensor._normalize_dim(dims, self.ndim)
         self_requires_grad = self.requires_grad
     
@@ -1057,6 +1156,16 @@ class tensor:
         dim1: builtins.int, 
         dim2: builtins.int
     ) -> Self:
+        '''Swaps two dimensions of a given tensor and returns as a new tensor.
+    
+        Args:
+            dim1 : The first dimension to transpose.
+            dim2 : The second dimension to transpose.
+            
+        Returns:
+            tensor : A new tensor object containing the original tensors data
+                     with dim1 and dim2 swapped.
+        '''
         dims = list(range(self.ndim))
         dims[dim1], dims[dim2] = dims[dim2], dims[dim1]
         return self.permute(tuple(dims))
@@ -1066,6 +1175,16 @@ class tensor:
         dim1: builtins.int, 
         dim2: builtins.int
     ) -> Self: 
+        '''Swaps two dimensions of a given tensor and returns as a new tensor.
+    
+        Args:
+            dim1 : The first dimension to transpose.
+            dim2 : The second dimension to transpose.
+            
+        Returns:
+            tensor : A new tensor object containing the original tensors data
+                     with dim1 and dim2 swapped.
+        '''
         return self.transpose(dim1, dim2)
 
     def expand(
