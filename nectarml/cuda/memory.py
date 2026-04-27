@@ -158,15 +158,6 @@ def free_cuda(
     '''
     _nectarml.free_cuda(device_ptr, n_elements, dtype.cuda)
 
-def memcpy_to_cuda(dst_ptr: builtins.int, data: np.ndarray) -> None:
-    '''Copies numpy data in host memory directly to CUDA.
-    
-    Args:
-        dst_ptr : The ptr to the address in device memory to copy the data to.
-        data    : The numpy array data to copy to device memory.
-    '''
-    _nectarml.memcpy_to_cuda(dst_ptr, data.ctypes.data, data.nbytes)
-
 def alloc_cuda_empty(
     n_elements: builtins.int, 
     dtype:      typing.dtype,
