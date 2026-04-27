@@ -26,6 +26,30 @@ class ColorJitter(Transform):
         hue:        float | tuple[float, float] = (-0.1, 0.1),
         p:          float = 0.5
     ) -> None:
+        '''Adds random HSV and contrast variation to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            brightness : The range for the value adjustment. If only a single 
+                         value is provided, the range will be defined as 
+                         (1-brightness, 1+brightness).
+            
+            contrast   : The range for the contrast adjustment. If only a 
+                         single value is provided, the range will be defined as 
+                         (1-contrast, 1+contrast).
+                         
+            saturation : The range for the saturation adjustment. If only a 
+                         single value is provided, the range will be defined as 
+                         (1-saturation, 1+saturation).
+                         
+            hue        : The range for the hue adjustment. If only a single 
+                         value is provided, the range will be defined as 
+                         (-hue, +hue).
+                    
+            p          : The chance (0-1) of the augmentation being applied to
+                         any given sample.
+        '''
         super().__init__(p=p)
         if isinstance(brightness, float): 
             brightness = (1.0 - brightness, 1.0 + brightness)
@@ -71,6 +95,15 @@ class RandomBrightness(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p:           float = 0.5
     ) -> None:
+        '''Adds random brightness variation to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            value_range : The range for the value adjustment.
+            p           : The chance (0-1) of the augmentation being applied to
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.value_range = value_range
     
@@ -97,6 +130,15 @@ class RandomContrast(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p:           float = 0.5
     ) -> None:
+        '''Adds random contrast variation to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            value_range : The range for the value adjustment.
+            p           : The chance (0-1) of the augmentation being applied to
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.value_range = value_range
         
@@ -124,6 +166,15 @@ class RandomSaturation(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p:           float = 0.5
     ) -> None:
+        '''Adds random saturation variation to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            value_range : The range for the saturation adjustment.
+            p           : The chance (0-1) of the augmentation being applied to
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.value_range = value_range
         
@@ -150,6 +201,15 @@ class RandomHue(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p:           float = 0.5
     ) -> None:
+        '''Adds random hue shifting to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            value_range : The range for the hue adjustment.
+            p           : The chance (0-1) of the augmentation being applied to
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.value_range = value_range
         
@@ -176,6 +236,15 @@ class RandomGamma(Transform):
         value_range: tuple[float, float] = (0.9, 1.1),
         p:           float = 0.5
     ) -> None:
+        '''Adds gamma adjustment to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            value_range : The range for the gamma adjustment.
+            p           : The chance (0-1) of the augmentation being applied to
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.value_range = value_range
         
@@ -199,6 +268,18 @@ class RandomGamma(Transform):
 
 class ToGrayscale(Transform):
     def __init__(self, p: float = 0.5) -> None:
+        '''Randomly converts inputs to grayscale.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        NOTE: The tensors will retain their original channel count, the 
+        grayscale data will just be duplicated to each channel of the output 
+        tensor.
+        
+        Args:
+            p : The chance (0-1) of the augmentation being applied to any 
+                given sample.
+        '''
         super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -223,6 +304,19 @@ class ToBlackAndWhite(Transform):
         white_point: int   = 125,
         p:           float = 0.5
     ) -> None:
+        '''Randomly converts inputs to black and white (two-tone).
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        NOTE: The tensors will retain their original channel count, the 
+        black and white data will just be duplicated to each channel of the
+        output tensor.
+        
+        Args:
+            white_point : The cutoff point for the transition (0-255).
+            p           : The chance (0-1) of the augmentation being applied to 
+                          any given sample.
+        '''
         super().__init__(p=p)
         self.white_point = white_point / 255
         
@@ -244,6 +338,14 @@ class ToBlackAndWhite(Transform):
 
 class ToSepia(Transform):
     def __init__(self, p: float = 0.5) -> None:
+        '''Randomly applies a sepia filter to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            p : The chance (0-1) of the augmentation being applied to any 
+                given sample.
+        '''
         super().__init__(p=p)
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -270,6 +372,21 @@ class Equalize(Transform):
         by_channel: bool  = True,
         p:          float = 0.5
     ) -> None:
+        '''Equalizes inputs using either PIL or CV2.
+        
+        Currently the compute for this augmentation happens on the CPU,
+        regardless on input device. Output tensors will still be returned on 
+        the same device as input, however.
+        
+        Args:
+            mode       : What equalization algorithm to use ['cv2', 'pil'].
+            by_channel : If True, the input will be split by channel, each 
+                         channel will be equalized independently, and then
+                         recombined to create the output. If False, all 
+                         channels will be equalized at once.
+            p          : The chance (0-1) of the augmentation being applied to 
+                         any given sample.
+        '''
         super().__init__(p=p)
         self.mode = mode
         self.by_channel = by_channel
@@ -351,6 +468,14 @@ class AutoContrast(Transform):
         method: Literal['cdf', 'pil'] = 'pil',
         p:      float = 0.5
     ) -> None:
+        '''Applies automatic contrast adjustment to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Args:
+            p : The chance (0-1) of the augmentation being applied to any 
+                given sample.
+        '''
         super().__init__(p=p)
         assert 0.0 <= cutoff <= 1.0, \
             'AutoContrast cutoff should be in 0-1 range.'
@@ -386,16 +511,29 @@ class AutoContrast(Transform):
         ) 
 
 class Solarize(Transform):
-    '''
-    Reference:
-        - https://msameeruddin.hashnode.dev/solarizing-the-image-with-numpy
-    '''
     def __init__(
         self,
         threshold_range: tuple[float, float] = (0.3, 0.7),
-        per_channel: bool = False,
-        p: float = 0.5
+        per_channel:     bool = False,
+        p:              float = 0.5
     ) -> None:
+        '''Randomly applies a solarization effect to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+        
+        Reference:
+            - https://msameeruddin.hashnode.dev/solarizing-the-image-with-numpy
+            
+        Args:
+            threshold_range : The range for the inversion threshold.
+            per_channel     : If True, the input will be split by channel and
+                              each channel will have the effect applied
+                              separately, then they will be recombined. If 
+                              False, the effect will be applied to all channels
+                              at once.
+            p               : The chance (0-1) of the augmentation being 
+                              applied to any given sample.
+        '''
         super().__init__(p=p)
         self.threshold_range = threshold_range
         self.per_channel = per_channel
@@ -428,6 +566,15 @@ class Solarize(Transform):
 
 class Posterize(Transform):
     def __init__(self, levels: int = 10, p: float = 0.5) -> None:
+        '''Randomly applies a posterization effect to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            levels : The number of quantization steps to use for the effect.
+            p      : The chance (0-1) of the augmentation being applied to any 
+                     given sample.
+        '''
         super().__init__(p=p)
         assert levels >= 2, 'levels must be >= 2'
         self.levels = levels
@@ -448,6 +595,14 @@ class Posterize(Transform):
 
 class Invert(Transform):
     def __init__(self, p: float = 0.5) -> None:
+        '''Randomly inverts inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            p : The chance (0-1) of the augmentation being applied to any 
+                given sample.
+        '''
         super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -562,6 +717,14 @@ class CLAHE(Transform):
 
 class ChannelShuffle(Transform):
     def __init__(self, p: float = 0.5) -> None:
+        '''Randomly shuffles the channels of inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            p : The chance (0-1) of the augmentation being applied to any 
+                given sample.
+        '''
         super().__init__(p=p)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -587,12 +750,26 @@ class ChannelShuffle(Transform):
 class ChannelDropout(Transform):
     def __init__(
         self,
-        range: tuple[int, int] = (1, 1),
+        channel_range: tuple[int, int] = (0, 2),
         fill:  float = 0.0,
         p:     float = 0.5
     ) -> None:
+        '''Zeros (or optionally, fills) channels of inputs randomly.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            channel_range : The minimum and maximum channel index that can
+                            be affected. So for 3 channel tensors (RGB), to 
+                            potentially affect any channel, the range would be
+                            (0, 2).
+            fill          : A optional fill value (0-1) to replace the dropped
+                            channel's values with.
+            p             : The chance (0-1) of the augmentation being applied 
+                            to any given sample.
+        '''
         super().__init__(p=p)
-        self.range = range
+        self.channel_range = channel_range
         self.fill = fill
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -603,7 +780,8 @@ class ChannelDropout(Transform):
         return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
     def _build_parameters(self) -> None:
-        self._index = self.rng.randint(self.range[0], self.range[1])
+        self._index = self.rng.randint(
+            self.channel_range[0], self.channel_range[1])
     
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -623,6 +801,20 @@ class RGBShift(Transform):
         b_shift_limit: tuple[int, int] = (-20, 20),
         p: float = 0.5
     ) -> None:
+        '''Randomly shifts RGB values of inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            r_shift_limit : The range (0-255) of valid values to shift the
+                            input's red channel by.
+            g_shift_limit : The range (0-255) of valid values to shift the
+                            input's green channel by.
+            b_shift_limit : The range (0-255) of valid values to shift the
+                            input's blue channel by.
+            p             : The chance (0-1) of the augmentation being applied 
+                            to any given sample.
+        '''
         super().__init__(p=p)
         self.r_shift_limit = r_shift_limit
         self.g_shift_limit = g_shift_limit
@@ -657,6 +849,17 @@ class HueSaturationValue(Transform):
         value:      float = 1.0,
         p:          float = 0.5
     ) -> None:
+        '''Directly adjusts the HSV values of inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            hue        : The amount (0-1) to shift the input's hue.
+            saturation : The value to multiply the input's saturation by.
+            value      : The value to multiply the input's brighness by.
+            p          : The chance (0-1) of the augmentation being applied 
+                            to any given sample.
+        '''
         super().__init__(p=p)
         self.hue = hue
         self.sat = saturation
@@ -685,6 +888,19 @@ class TonemapHDR(Transform):
         gamma:    float = 2.2,
         p:        float = 0.5
     ) -> None:
+        '''Randomly applies HDR tonemapping to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            method : The tonemapping method to use. Options are ['reinhard',
+                     'exposure+gamma', 'filmic', 'aces']
+            exposure : Exposure multiplier. Only applies to 'exposure+gamma', 
+                       'filmic', 'aces'
+            gamma    : The gamma value to encode the output with.
+            p        : The chance (0-1) of the augmentation being applied to 
+                       any given sample.
+        '''
         super().__init__(p=p)
         self.method   = method
         self.exposure = exposure
@@ -740,6 +956,25 @@ class ChromaticAberration(Transform):
         falloff_power:          float = 2.0,
         p:                      float = 0.5
     ) -> None:
+        '''Randomly applies a chromatic aberration effect to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            inner_distortion_limit : The range of distortion limits to use for 
+                                     areas closer to the center of inputs. If
+                                     only a single value is provided, the range
+                                     will be defined as (-limit, limit).
+            outer_distortion_limit : The range of distortion limits to use for 
+                                     areas closer to the edges of inputs. If
+                                     only a single value is provided, the range
+                                     will be defined as (-limit, limit)
+            falloff_power          : The sharpness of the gradient from inner
+                                     areas to outer areas. Higher values will
+                                     produce a more apparent falloff.
+            p                      : The chance (0-1) of the augmentation 
+                                     being applied to any given sample.
+        '''
         super().__init__(p=p)
         inner, outer = inner_distortion_limit, outer_distortion_limit
         self.inner_limit = (-inner, inner) \
@@ -753,21 +988,19 @@ class ChromaticAberration(Transform):
         
         _, _, H, W = input.shape
         channels = input.unbind(dim=1)
-        inner = zeros(input.shape, input.dtype).to(input.device)
-        outer = zeros(input.shape, input.dtype).to(input.device)
+        inner    = zeros(input.shape, input.dtype).to(input.device)
+        outer    = zeros(input.shape, input.dtype).to(input.device)
         
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            inner[:, 0, :, :] = self._inner1(channels[0].reshape((1, 1, H, W)))
-            inner[:, 1, :, :] = channels[1]
-            inner[:, 2, :, :] = self._inner2(channels[2].reshape((1, 1, H, W)))
-            
-            outer[:, 0, :, :] = self._outer1(channels[0].reshape((1, 1, H, W)))
-            outer[:, 1, :, :] = channels[1]
-            outer[:, 2, :, :] = self._outer1(channels[2].reshape((1, 1, H, W)))
+        inner[:, 0, :, :] = self._inner1(channels[0].reshape((1, 1, H, W)))
+        inner[:, 1, :, :] = channels[1]
+        inner[:, 2, :, :] = self._inner2(channels[2].reshape((1, 1, H, W)))
         
-        mask = gradient_mask(input.shape, 'radial', 'edges')
-        mask = (mask**self.falloff_power).to(input.device, input.dtype)
+        outer[:, 0, :, :] = self._outer1(channels[0].reshape((1, 1, H, W)))
+        outer[:, 1, :, :] = channels[1]
+        outer[:, 2, :, :] = self._outer1(channels[2].reshape((1, 1, H, W)))
+        
+        mask   = gradient_mask(input.shape, 'radial', 'edges')
+        mask   = (mask**self.falloff_power).to(input.device, input.dtype)
         output = lerp3(input, inner, outer, mask)
         
         return output
@@ -799,6 +1032,23 @@ class Vignetting(Transform):
         center_range:    float | tuple[float, float] = (0.3, 0.7),
         p:               float = 0.5    
     ) -> None:
+        '''Randomly applies a vignetting effect to inputs.
+        
+        This augmentation can run natively on the GPU for CUDA tensors.
+
+        Args:
+            intensity_range : The random range for the intensity of the 
+                              vignetting effect. If only a single value is
+                              provided, it will be interpreted as a constant.
+            center_range    : The random range for distance (from edges to
+                              center) of the vignette falloff. If only a single 
+                              value is provided, it will be interpreted as a 
+                              constant.
+                              vignetting effect. If only a single value is
+                              provided, it will be interpreted as a constant.
+            p               : The chance (0-1) of the augmentation being 
+                              applied to any given sample.
+        '''
         super().__init__(p=p)
         self.intensity_range = (intensity_range, intensity_range) \
             if isinstance(intensity_range, float | int) else intensity_range
@@ -808,10 +1058,10 @@ class Vignetting(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         
-        mask   = gradient_mask(input.shape, 'elliptical', 'corners')
-        mask   = mask.to(input.device, input.dtype)
-        mask   = 1.0 - (mask - self._center).clamp(0.0, 1.0)
-        mask   = mask ** (1.0 + self._intensity)
+        mask = gradient_mask(input.shape, 'elliptical', 'corners')
+        mask = mask.to(input.device, input.dtype)
+        mask = 1.0 - (mask - self._center).clamp(0.0, 1.0)
+        mask = mask**(1.0 + self._intensity)
         
         return (input * mask).clamp(0.0, 1.0)
         
