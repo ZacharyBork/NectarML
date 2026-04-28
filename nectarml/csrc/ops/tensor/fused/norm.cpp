@@ -74,9 +74,27 @@ namespace nectar {
         bool reduce_N, bool reduce_H, bool reduce_W,
         float eps
     ) {
-        cudaMemsetAsync(reinterpret_cast<void*>(dx_ptr), 0, 
-                        N * C * H * W * sizeof(float));
-        
+        if (dx_ptr) {
+            cudaMemsetAsync(
+                reinterpret_cast<void*>(dx_ptr), 0,
+                static_cast<size_t>(N) * C * H * W * sizeof(float)
+            );
+        }
+
+        if (dgamma_ptr) {
+            cudaMemsetAsync(
+                reinterpret_cast<void*>(dgamma_ptr), 0,
+                static_cast<size_t>(C) * sizeof(float)
+            );
+        }
+
+        if (dbeta_ptr) {
+            cudaMemsetAsync(
+                reinterpret_cast<void*>(dbeta_ptr), 0,
+                static_cast<size_t>(C) * sizeof(float)
+            );
+        }
+
         launch_batch_norm_backward<float>(
             reinterpret_cast<float*>(grad_out_ptr),
             reinterpret_cast<float*>(x_ptr),
@@ -84,8 +102,8 @@ namespace nectar {
             reinterpret_cast<float*>(var_ptr),
             gamma_ptr ? reinterpret_cast<float*>(gamma_ptr) : nullptr,
             reinterpret_cast<float*>(dx_ptr),
-            dgamma_ptr ? reinterpret_cast<float*>(dgamma_ptr) : nullptr,
-            dbeta_ptr  ? reinterpret_cast<float*>(dbeta_ptr)  : nullptr,
+            reinterpret_cast<float*>(dgamma_ptr),
+            reinterpret_cast<float*>(dbeta_ptr),
             N, C, H, W, reduce_N, reduce_H, reduce_W, eps
         );
     }

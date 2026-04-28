@@ -1,6 +1,7 @@
-from nectarml.core import tensor
+from nectarml.core   import tensor
+from nectarml.typing import DimsType, ShapeType
 
-def reshape(input: tensor, shape: tuple[int, ...]) -> tensor:
+def reshape(input: tensor, shape: ShapeType) -> tensor:
     '''Changes the shape of a tensor without altering its data.
     
     The reshaped output tensor will point to the same underlying data 
@@ -19,7 +20,7 @@ def reshape(input: tensor, shape: tuple[int, ...]) -> tensor:
     '''
     return input.reshape(shape)
 
-def view(input: tensor, shape: tuple[int, ...]) -> tensor:
+def view(input: tensor, shape: ShapeType) -> tensor:
     '''Returns a view on a given tensor with a new shape.
     
     The resulting output tensor will point to the same underlying data 
@@ -58,7 +59,7 @@ def flatten(input: tensor, start_dim: int = 0, end_dim: int = -1) -> tensor:
     '''
     return input.flatten(start_dim, end_dim)
 
-def squeeze(input: tensor, dim: int | tuple[int, ...] | None = None) -> tensor: 
+def squeeze(input: tensor, dim: DimsType | None = None) -> tensor: 
     '''Removes dimensions with length one from a tensor.
     
     The resulting output tensor will point to the same underlying data 
@@ -79,7 +80,7 @@ def squeeze(input: tensor, dim: int | tuple[int, ...] | None = None) -> tensor:
     '''
     return input.squeeze(dim)
     
-def unsqueeze(input: tensor, dim: int | tuple[int, ...]) -> tensor:
+def unsqueeze(input: tensor, dim: DimsType) -> tensor:
     '''Adds a new lenth one dimension to a given tensor's shape.
     
     The resulting output tensor will point to the same underlying data 
@@ -127,7 +128,7 @@ def swapdims(input: tensor, dim1: int, dim2: int) -> tensor:
     '''
     return input.transpose(dim1, dim2)
 
-def permute(input: tensor, dims: tuple[int, ...] | None) -> tensor:
+def permute(input: tensor, dims: DimsType | None) -> tensor:
     '''Rearranges a given tensors dimensions by a given order.
     
     Args:
@@ -149,14 +150,24 @@ def permute(input: tensor, dims: tuple[int, ...] | None) -> tensor:
     '''
     return input.permute(dims)
 
-def expand(input: tensor, shape: tuple[int, ...]) -> tensor:
+def expand(input: tensor, shape: ShapeType) -> tensor:
     return input.expand(shape)
 
-def broadcast_to(input: tensor, shape: tuple[int, ...]) -> tensor:
+def broadcast_to(input: tensor, shape: ShapeType) -> tensor:
     return input.expand(shape)
 
 def unfold(input: tensor, dimension: int, size: int, step: int) -> tensor:
     return input.unfold(dimension, size, step)
 
-def flip(input: tensor, dim: int) -> tensor:
-    return input.flip(dim)
+def flip(input: tensor, dims: DimsType) -> tensor:
+    '''Reverses tensor elements along given dimension(s).
+    
+    Args:
+        input : The tensor to flip.
+        dims  : An integer, or list of integers, denoting the dimensions(s) to 
+                reverse the tensor along.
+                
+    Returns:
+        tensor : The resulting tensor from the flip operation.
+    '''
+    return input.flip(dims)

@@ -35,9 +35,9 @@ __global__ void compute_mean_var_welford_kernel(
     int c     = reduce_N ? nc : nc % C; 
     if (c >= C) return;
 
-    int reduce_size = (reduce_N ? N : 1) * 
-                      (reduce_H ? H : 1) * 
-                      (reduce_W ? W : 1);
+    int reduce_size = (reduce_N ? N : 1)
+                    * (reduce_H ? H : 1) 
+                    * (reduce_W ? W : 1);
     
     WelfordResult local = {0.0f, 0.0f, 0};
     
@@ -205,9 +205,9 @@ __global__ void batch_norm_backward_kernel(
     int stat_idx = reduce_N ? c : n * C + c;
     if (c >= C) return;
     
-    int reduce_size = (reduce_N ? N : 1) * 
-                      (reduce_H ? H : 1) * 
-                      (reduce_W ? W : 1);
+    int reduce_size = (reduce_N ? N : 1) 
+                    * (reduce_H ? H : 1) 
+                    * (reduce_W ? W : 1);
     
     float mu      = mean[stat_idx];
     float sig_inv = 1.0f / sqrtf(var[stat_idx] + eps);
@@ -228,10 +228,10 @@ __global__ void batch_norm_backward_kernel(
         float go   = static_cast<float>(grad_out[flat]);
         float xhat = (static_cast<float>(x[flat]) - mu) * sig_inv;
         
-        sum_dgamma      += go * xhat;
-        sum_dbeta       += go;
-        sum_dxhat       += go * g;
-        sum_xhat_dxhat  += xhat * go * g;
+        sum_dgamma     += go * xhat;
+        sum_dbeta      += go;
+        sum_dxhat      += go * g;
+        sum_xhat_dxhat += xhat * go * g;
     }
     
     for (int offset = warpSize/2; offset > 0; offset >>= 1) {
@@ -265,9 +265,15 @@ __global__ void batch_norm_backward_kernel(
         }
         
         if (threadIdx.x == 0) {
-            if (dgamma) dgamma[c] = sum_dgamma;
-            if (dbeta)  dbeta[c]  = sum_dbeta;
-            sh_sum_dxhat      = sum_dxhat;
+            if (dgamma) {
+                if   (reduce_N) dgamma[c] = sum_dgamma;
+                else atomic_add(&dgamma[c], sum_dgamma);
+            }
+            if (dbeta) {
+                if   (reduce_N) dbeta[c] = sum_dbeta;
+                else atomic_add(&dbeta[c], sum_dbeta);
+            }
+            sh_sum_dxhat = sum_dxhat;
             sh_sum_xhat_dxhat = sum_xhat_dxhat;
         }
     }
@@ -289,7 +295,7 @@ __global__ void batch_norm_backward_kernel(
             - xhat * sh_sum_xhat_dxhat
         );
 
-        atomic_add(&dx[flat], dx_val);
+        if (dx) { dx[flat] = dx_val; }
     }
 }
 

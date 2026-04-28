@@ -9,12 +9,12 @@ from   typing import Literal, Self
 
 import numpy as np
 
-from nectarml import typing, return_types, cpu, cuda
-from nectarml.typing         import float32
-from nectarml.constants      import FLOAT_MIN, FLOAT_MAX
-from nectarml.core._tensor   import tensor
-from nectarml.cuda.memory    import CudaBuffer
-from nectarml.amp.autocast   import autocast_state
+from nectarml              import typing, cpu, cuda
+from nectarml.typing       import float32
+from nectarml.constants    import FLOAT_MIN, FLOAT_MAX
+from nectarml.core._tensor import tensor
+from nectarml.cuda.memory  import CudaBuffer
+from nectarml.amp.autocast import autocast_state
 
 class Tensor(tensor):
     def __init__(
@@ -1733,7 +1733,7 @@ class Tensor(tensor):
         self:    Tensor,
         dim:     builtins.int | None = None,
         keepdim: bool = False
-    ) -> Tensor | return_types.min:
+    ) -> Tensor | typing.return_types.min:
         self_requires_grad = self.requires_grad
         dim = tensor._normalize_dim(dim, self.ndim)
         
@@ -1764,7 +1764,7 @@ class Tensor(tensor):
             _, indices = self.sort(dim=dim)
             idx = indices.select(dim, 0)
             if keepdim: idx = idx.unsqueeze(dim)
-            return return_types.min(values=out, indices=idx)
+            return typing.return_types.min(values=out, indices=idx)
         return out
 
     def amin(
@@ -1814,7 +1814,7 @@ class Tensor(tensor):
         self:    Tensor,
         dim:     builtins.int | None = None,
         keepdim: bool = False
-    ) -> Tensor | return_types.max:
+    ) -> Tensor | typing.return_types.max:
         self_requires_grad = self.requires_grad
         dim = tensor._normalize_dim(dim, self.ndim)
 
@@ -1845,7 +1845,7 @@ class Tensor(tensor):
             _, indices = self.sort(dim=dim, descending=True)
             idx = indices.select(dim, 0)
             if keepdim: idx = idx.unsqueeze(dim)
-            return return_types.max(values=out, indices=idx)
+            return typing.return_types.max(values=out, indices=idx)
         return out
 
     def amax(

@@ -1063,7 +1063,7 @@ class tensor:
           + self.shape[end_dim+1:])
         return self.reshape(new_shape)
         
-    def squeeze(self: tensor, dim: builtins.int | None = None) -> Self:
+    def squeeze(self: tensor, dim: typing.DimsType | None = None) -> Self:
         '''Removes dimensions with length one from a tensor.
     
         The resulting output tensor will point to the same underlying data 
@@ -1087,7 +1087,7 @@ class tensor:
             new_shape = self.shape[:dim] + self.shape[dim+1:]
         return self.reshape(new_shape)
 
-    def unsqueeze(self: tensor, dim: builtins.int) -> Self:
+    def unsqueeze(self: tensor, dim: typing.DimsType) -> Self:
         '''Adds a new lenth one dimension to a given tensor's shape.
         
         The resulting output tensor will point to the same underlying data 
@@ -1278,16 +1278,33 @@ class tensor:
         out._backward = _backward
         return out
         
-    def flip(self: tensor, dim: builtins.int) -> Self:
+    def flip(
+        self: tensor,
+        *dims: typing.DimsType | None
+    ) -> Self:
+        '''Reverses tensor elements along given dimension(s).
+        
+        Args:
+            input : The tensor to flip.
+            dims  : A DimsType object denoting the dimensions(s) to reverse
+                    the tensor along.
+                    
+        Returns:
+            tensor : The resulting tensor from the flip operation.
+        '''
+        dims = tensor._normalize_dim(dims, self.ndim)
+
         self_requires_grad = self.requires_grad
-        dim = dim if dim >= 0 else self.ndim + dim
+        # dim = dim if dim >= 0 else self.ndim + dim
 
-        if self.device == 'cuda':
-              out_data = cuda.shapes.flip(self, dim)
-        else: out_data = np.flip(self.data, axis=dim).copy()
+        out = self
+        for dim in dims:
+            if self.device == 'cuda':
+                out_data = cuda.shapes.flip(out, dim)
+            else: out_data = np.flip(out.data, axis=dim).copy()
 
-        out = self._new(out_data, self.shape, self.dtype, self.device,
-            self.requires_grad, _children=(self,))
+            out = self._new(out_data, self.shape, self.dtype, self.device,
+                self.requires_grad, _children=(self,))
 
         def _backward() -> None:
             if self_requires_grad:

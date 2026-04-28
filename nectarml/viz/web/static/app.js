@@ -36,7 +36,7 @@ function applySmoothing(chart, raw, factor, colors, labels) {
                 label: label,
                 data: series.map((y, j) => ({ x: raw.X[j], y })),
                 borderWidth: 1,
-                pointRadius: 0,
+                pointRadius: 1,
                 tension: 0.1,
                 borderColor: toFaded(color, 0.25),
             });
@@ -53,7 +53,7 @@ function applySmoothing(chart, raw, factor, colors, labels) {
                 label: label,
                 data: series.map((y, j) => ({ x: raw.X[j], y })),
                 borderWidth: 2,
-                pointRadius: 0,
+                pointRadius: 1,
                 tension: 0.1,
                 borderColor: color,
             });

@@ -21,8 +21,8 @@ class Pix2pixDataset(utils.data.Dataset):
         self.list_files     = list(self.root_directory.iterdir())
         self.reverse        = direction.strip().casefold() == 'btoa'
         
-        # Then we define an augmentation setup for the data.
-        self.transforms = xforms.Compose(
+        # Then we define an training augmentation setup for the data.
+        self.transforms_train = xforms.Compose(
             # Many NectarML transforms can run natively on the GPU. Useful for
             # expensive transforms when high worker count isn't required.
             xforms.ToCUDA() if device == 'cuda' else xforms.NoOp(),
@@ -30,12 +30,19 @@ class Pix2pixDataset(utils.data.Dataset):
             # Add variation to input & target
             xforms.RandomHorizontalFlip(p=0.5),
             xforms.Resize(size=(286, 286), mode='bilinear'),
-            xforms.RandomCrop(size=(256, 256))            
+            xforms.RandomCrop(size=(256, 256)),
+            
+            # And finally, define a Normalize transform to normalize both
+            # input and target to [-1:1] to match tanh output range.
+            xforms.Normalize(mean=0.5, std=0.5)       
         )
         
-        # And finally, define a Normalize transform to normalize both
-        # input and target to [-1:1] to match tanh output range.
-        self.normalize = xforms.Normalize(mean=0.5, std=0.5)
+        # Then we'll make another compose for validation augmentations. For
+        # val, we just want to resize to the input size and normalize [-1:1].
+        self.transforms_val = xforms.Compose(
+            xforms.Resize(size=(286, 286), mode='bilinear'),
+            xforms.Normalize(mean=0.5, std=0.5)
+        )
 
     def __len__(self) -> int:
         # Dataset classes must define __len__. 
@@ -61,11 +68,9 @@ class Pix2pixDataset(utils.data.Dataset):
         input, target = (a, b) if self.reverse else (b, a)
 
         # Run our transforms.
-        if self.training: # All transforms if training.
-            input, target = self.transforms(image=input, image2=target)
-            input, target = self.normalize(image=input, image2=target)
-        else: # Otherwise we just normalize the data [-1:1].
-            input, target = self.normalize(image=input, image2=target)
+        if self.training:
+              input, target = self.transforms_train(image=input, image2=target)
+        else: input, target = self.transforms_val(image=input, image2=target)
         
         # Squeeze the two tensors to remove the batch dimension.
         input, target = input.squeeze(0), target.squeeze(0)

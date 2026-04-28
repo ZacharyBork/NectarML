@@ -3,7 +3,7 @@ from typing import Literal
 
 import builtins
 
-from nectarml      import return_types
+from nectarml      import typing
 from nectarml.core import Tensor
 from nectarml.functional.combination import cat, stack
 
@@ -11,7 +11,7 @@ def min(
     input:   Tensor,
     dim:     builtins.int | None = None,
     keepdim: builtins.bool = False
-) -> Tensor | return_types.min:
+) -> Tensor | typing.return_types.min:
     return input.min(dim, keepdim)
 
 def amin(
@@ -25,7 +25,7 @@ def max(
     input:   Tensor, 
     dim:     builtins.int | None = None,
     keepdim: builtins.bool = False
-) -> Tensor | return_types.max:
+) -> Tensor | typing.return_types.max:
     return input.max(dim, keepdim)
 
 def amax(

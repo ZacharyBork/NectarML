@@ -3,8 +3,7 @@ from   pathlib import Path
 from   typing  import Literal
 
 import nectarml
-from   nectarml import nn, optim, utils
-from   nectarml.viz.web import Client
+from   nectarml import nn, optim, utils, viz
 
 from generator     import Generator
 from discriminator import Discriminator
@@ -16,11 +15,11 @@ from dataset       import Pix2pixDataset
 
 ### MODEL / TRAINING SETTINGS ###
 
-DEVICE            = 'cuda'
-LR                = 0.002
-NUM_EPOCHS        = 100
-NUM_EPOCHS_DECAY  = 100
-L1_LAMBDA         = 100.0
+DEVICE           = 'cuda'
+LR               = 0.0002
+NUM_EPOCHS       = 100
+NUM_EPOCHS_DECAY = 100
+L1_LAMBDA        = 100.0
 
 ### CHECKPOINT LOADING ###
 
@@ -46,15 +45,15 @@ EXAMPLE_SAVE_RATE = 1
 ### VISUALIZATION SETTINGS ###
 
 UPDATE_FREQ           = 50
-ENABLE_WEB_VISUALIZER = False
+ENABLE_WEB_VISUALIZER = True
 
 if ENABLE_WEB_VISUALIZER:
-    VISUALIZER = Client(host='http://localhost', port=8097)
+    VISUALIZER = viz.web.Client(host='http://localhost', port=8097)
 
 ###############################################################################
 # TRAIN LOOP FUNCTION
 ###############################################################################
-         
+
 def train_fn(
     disc:         Discriminator, 
     gen:          Generator, 
@@ -74,7 +73,7 @@ def train_fn(
         ### DATALOADING ###
 
         x, y = x.to(DEVICE), y.to(DEVICE)
-        
+
         ### GENERATOR INFERENCE ###
                         
         with nectarml.amp.autocast('cuda'): y_fake = gen(x)
@@ -85,8 +84,8 @@ def train_fn(
             D_real = disc(x, y)
             D_fake = disc(x, y_fake.detach())
 
-            D_real_loss = BCE(D_real, nectarml.ones_like(D_real))
-            D_fake_loss = BCE(D_fake, nectarml.zeros_like(D_fake))
+            D_real_loss = BCE(D_real, 1.0)
+            D_fake_loss = BCE(D_fake, 0.0)
             D_loss      = (D_real_loss + D_fake_loss) / 2
 
         ### DISCRIMINATOR (BACKWARD) ###
@@ -102,7 +101,7 @@ def train_fn(
                             
         with nectarml.amp.autocast('cuda'):
             D_fake      = disc(x, y_fake)
-            G_fake_loss = BCE(D_fake, nectarml.ones_like(D_fake))
+            G_fake_loss = BCE(D_fake, 1.0)
             L1          = L1_LOSS(y_fake, y) * L1_LAMBDA
             G_loss      = G_fake_loss + L1
             
@@ -116,7 +115,7 @@ def train_fn(
         g_scaler.update()  
         
         ### POST-ITER ###
-        
+
         if iteration != 0 and iteration % UPDATE_FREQ == 0: 
             for loss in loss_totals: loss_totals[loss] /= UPDATE_FREQ
             print(f'{'='*os.get_terminal_size()[0]}\n'
@@ -134,10 +133,18 @@ def train_fn(
                     window='images', title='Input | Fake | Target')
                 VISUALIZER.line(
                     X      = epoch + idx / len(train_loader),
-                    Y      = [_ for _ in loss_totals.values()],
-                    legend = [_ for _ in loss_totals],
-                    window = 'loss', 
-                    title  = 'Loss', 
+                    Y      = [loss_totals['g_gan'], loss_totals['g_l1']],
+                    legend = ['G_GAN', 'G_L1'],
+                    window = 'loss_g', 
+                    title  = 'Generator Loss', 
+                    v_axis_label='Value', h_axis_label='Epoch'
+                )
+                VISUALIZER.line(
+                    X      = epoch + idx / len(train_loader),
+                    Y      = [loss_totals['d_real'], loss_totals['d_fake']],
+                    legend = ['D_real', 'D_fake'],
+                    window = 'loss_d', 
+                    title  = 'Discriminator Loss', 
                     v_axis_label='Value', h_axis_label='Epoch'
                 )
             

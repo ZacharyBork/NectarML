@@ -31,10 +31,9 @@ from .typing import (
     
     dtype, device, Size,
     
-    float, float16, float32, half, double, 
-    int, int8, int16, int32, int64, short, long, 
-    uint, uint8, uint16, uint32, uint64, 
-    bool_)
+    float, float16, float32, half, double, int, int8, int16, int32, int64, 
+    short, long, uint, uint8, uint16, uint32, uint64, bool_
+)
 
 from .utils import (
     save, load, is_inf, is_finite, is_nan, has_inf, has_nan)

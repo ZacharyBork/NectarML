@@ -9,8 +9,10 @@ import numpy as np
 
 def pad(
     input: Tensor, 
-    pad: int | tuple[int, ...], 
-    mode: Literal['constant', 'reflect', 'replicate', 'circular'] = 'constant',
+    pad:   int | tuple[int, ...], 
+    mode:  Literal[
+        'constant', 'reflect', 'replicate', 'circular'
+    ] = 'constant',
     value: float = 0.0
 ) -> np.ndarray:
     match mode:
