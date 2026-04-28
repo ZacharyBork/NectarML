@@ -1,5 +1,4 @@
-from nectarml.core import Tensor
-from nectarml.creation import rand
+from nectarml.core import Tensor, creation
 
 def dropout(
     input:    Tensor,
@@ -11,8 +10,8 @@ def dropout(
     if not training or p == 0.0: return input
     if p == 1.0: return input * 0.0
 
-    mask = (rand(input.shape, device=input.device) > p).to(dtype=input.dtype)
-    mask = mask.detach()
+    mask = (creation.rand(input.shape, device=input.device) > p)
+    mask = mask.to(dtype=input.dtype).detach()
     out  = input * mask / (1.0 - p)
 
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -34,8 +33,8 @@ def alpha_dropout(
     a = (keep_prob + alpha_prime**2 * keep_prob * (1-keep_prob))**(-0.5)
     b = -a * (alpha_prime * (1-keep_prob))
 
-    mask = (rand(input.shape, device=input.device) > p).to(dtype=input.dtype)
-    mask = mask.detach()
+    mask = (creation.rand(input.shape, device=input.device) > p)
+    mask = mask.to(dtype=input.dtype).detach()
     dropped = mask * input + (1.0 - mask) * alpha_prime
     out = a * dropped + b
 
@@ -60,10 +59,10 @@ def feature_alpha_dropout(
     b = -a * (alpha_prime * (1-keep_prob))
 
     mask_shape = (input.shape[0], input.shape[1]) + (1,) * len(input.shape[2:])
-    mask = (rand(mask_shape, device=input.device) > p).to(dtype=input.dtype)
-    mask = mask.detach().broadcast_to(input.shape)
-    dropped = mask * input + (1.0 - mask) * alpha_prime
-    out = a * dropped + b
+    mask       = (creation.rand(mask_shape, device=input.device) > p)
+    mask       = mask.to(dtype=input.dtype).detach().broadcast_to(input.shape)
+    dropped    = mask * input + (1.0 - mask) * alpha_prime
+    out        = a * dropped + b
     
     if inplace and not input.requires_grad: return input.copy_(out)
     return out
@@ -80,8 +79,8 @@ def dropout1d(
     if p == 1.0: return input * 0.0
     
     mask_shape = (input.shape[0], input.shape[1], 1)
-    mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = (creation.rand(mask_shape, device=input.device) > p)
+    mask = mask.to(dtype=input.dtype).detach().broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -99,8 +98,8 @@ def dropout2d(
     if p == 1.0: return input * 0.0
     
     mask_shape = (input.shape[0], input.shape[1], 1, 1)
-    mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = (creation.rand(mask_shape, device=input.device) > p)
+    mask = mask.to(dtype=input.dtype).detach().broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)
@@ -118,8 +117,8 @@ def dropout3d(
     if p == 1.0: return input * 0.0
     
     mask_shape = (input.shape[0], input.shape[1], 1, 1, 1)
-    mask = (rand(mask_shape, device=input.device) > p)
-    mask = mask.detach().to(dtype=input.dtype).broadcast_to(input.shape)
+    mask = (creation.rand(mask_shape, device=input.device) > p)
+    mask = mask.to(dtype=input.dtype).detach().broadcast_to(input.shape)
     out  = input * mask / (1.0 - p)
     
     if inplace and not input.requires_grad: return input.copy_(out)

@@ -3,7 +3,7 @@ import numpy as np
 
 from nectarml        import typing
 from nectarml.random import RNG, Random
-from nectarml.core import Tensor
+from nectarml.core   import Tensor
 
 # CREATION / DUPLICATION
 
@@ -16,17 +16,17 @@ def clone(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     
 def zeros_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    data = np.zeros(input.shape, dtype=input.dtype.numpy)
+    data  = np.zeros(input.shape, dtype=input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def ones_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    data = np.ones(input.shape, dtype=input.dtype.numpy)
+    data  = np.ones(input.shape, dtype=input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def rand_like(input: Tensor, requires_grad: bool | None = None) -> Tensor:
     _grad = input.requires_grad if requires_grad is None else requires_grad 
-    data = RNG.random(input.shape, dtype=input.dtype.numpy)
+    data  = RNG.random(input.shape, dtype=input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def full_like(
@@ -35,12 +35,12 @@ def full_like(
     requires_grad: bool | None = None
 ) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    data = np.full(input.shape, fill_value, dtype=input.dtype.numpy)
+    data  = np.full(input.shape, fill_value, dtype=input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def empty_like(input: Tensor, requires_grad: bool | None = None) -> Tensor: 
     _grad = input.requires_grad if requires_grad is None else requires_grad
-    data = np.empty(input.shape, dtype=input.dtype.numpy)
+    data  = np.empty(input.shape, dtype=input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 # FIXED SHAPE

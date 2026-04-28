@@ -5,8 +5,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.functional as F
-from nectarml.core   import Tensor
-from nectarml.creation import zeros, ones_like
+from nectarml.core     import Tensor, creation as T
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
@@ -359,7 +358,7 @@ class Kuwahara(Transform):
       
     def make_kernel(self, row_slice: slice, col_slice: slice) -> Tensor:
         size = 2 * self.radius + 1
-        k    = zeros((size, size))
+        k    = T.zeros((size, size))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             k[row_slice, col_slice] = 1.0
@@ -586,11 +585,11 @@ class DifferenceOfGaussians(Transform):
 
         if self.threshold is not None:
             if self._phi == 0.0:
-                diff = F.where(diff >= self.threshold, ones_like(diff), 0.0)
+                diff = F.where(diff >= self.threshold, T.ones_like(diff), 0.0)
             else:
                 diff = F.where(
                     diff >= self.threshold,
-                    ones_like(diff),
+                    T.ones_like(diff),
                     1 + F.tanh(self._phi * (diff - self.threshold)))
 
         result = (1 - self._alpha) * input + self._alpha * diff

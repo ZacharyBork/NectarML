@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import _nectarml
-from nectarml.core          import Tensor
-from nectarml.creation        import zeros_like
+from nectarml.core            import Tensor, creation as T
 from nectarml.optim.optimizer import Optimizer
 
 class Adam(Optimizer):
@@ -53,14 +52,14 @@ class Adam(Optimizer):
     def _build_state(self: Adam, param_index: int, param: Tensor) -> None:
         if param_index not in self.state: self.state[param_index] = {}
         if 'exp_avg' not in self.state[param_index]:
-            self.state[param_index]['exp_avg'] = zeros_like(param)
+            self.state[param_index]['exp_avg'] = T.zeros_like(param)
         if 'exp_avg_sq' not in self.state[param_index]:
-            self.state[param_index]['exp_avg_sq'] = zeros_like(param)
+            self.state[param_index]['exp_avg_sq'] = T.zeros_like(param)
         if 'step' not in self.state[param_index]: 
             self.state[param_index]['step'] = 0
         if self.amsgrad:
             if 'max_exp_avg_sq' not in self.state[param_index]:
-                self.state[param_index]['max_exp_avg_sq'] = zeros_like(param)
+                self.state[param_index]['max_exp_avg_sq'] = T.zeros_like(param)
       
     def _update_step(self: Adam, param_index: int) -> int:
         self.state[param_index]['step'] += 1

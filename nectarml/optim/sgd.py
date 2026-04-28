@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import _nectarml
-from nectarml.core          import Tensor
-from nectarml.creation        import zeros_like
+from nectarml.core            import Tensor, creation as T
 from nectarml.optim.optimizer import Optimizer
 
 class SGD(Optimizer):
@@ -49,7 +48,7 @@ class SGD(Optimizer):
         if param_index not in self.state: self.state[param_index] = {}
         if self.momentum > 0.0:
             if 'velocity' not in self.state[param_index]:
-                self.state[param_index]['velocity'] = zeros_like(param)
+                self.state[param_index]['velocity'] = T.zeros_like(param)
                 
     def _run_update(
         self:  SGD, 

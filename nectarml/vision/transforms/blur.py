@@ -5,8 +5,7 @@ import numpy as np
 from scipy.ndimage import median_filter
 
 import nectarml.functional as F
-from nectarml.core   import Tensor
-from nectarml.creation import linspace, ones, zeros
+from nectarml.core     import Tensor, creation as T
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
@@ -36,7 +35,7 @@ class GaussianBlur(Transform):
         if input is None: return input
         ks = self._ks
         
-        x = linspace(0, ks-1, ks, dtype=float32, device=input.device) - (ks//2)
+        x = T.linspace(0, ks-1, ks, dtype=float32, device=input.device) - (ks//2)
         xx = x.reshape((ks, 1)).expand((ks, ks))
         yy = x.clone().reshape((1, ks)).expand((ks, ks))
         
@@ -88,7 +87,7 @@ class BoxBlur(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         kernel = (
-            ones((self._ks, self._ks), device=input.device)
+            T.ones((self._ks, self._ks), device=input.device)
           / (self._ks * self._ks))
         
         blurred = input.clone()
@@ -138,7 +137,7 @@ class MotionBlur(Transform):
         if input is None: return input
         
         ks = self._ks
-        k  = zeros((ks, ks), device=input.device)
+        k  = T.zeros((ks, ks), device=input.device)
         center = ks // 2
         for i in range(ks):
             offset = i - center

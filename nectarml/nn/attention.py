@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import nectarml.functional as F
 from nectarml           import typing
-from nectarml.core      import Tensor
-from nectarml.creation  import zeros
+from nectarml.core      import Tensor, creation as T
 from nectarml.nn.module import Module
 from nectarml.nn.linear import Linear
 
@@ -39,8 +38,8 @@ class MultiheadAttention(Module):
         
         if add_bias_kv:
             bias_shape = (1, 1, embed_dim)
-            self.bias_k = zeros(bias_shape, dtype=dtype, requires_grad=True)
-            self.bias_v = zeros(bias_shape, dtype=dtype, requires_grad=True)
+            self.bias_k = T.zeros(bias_shape, dtype=dtype, requires_grad=True)
+            self.bias_v = T.zeros(bias_shape, dtype=dtype, requires_grad=True)
 
     def forward(
         self: MultiheadAttention, 
@@ -66,10 +65,10 @@ class MultiheadAttention(Module):
         value = self.W_v(value)
         
         if self.add_zero_attn:
-            zero_k = zeros(
+            zero_k = T.zeros(
                 key.shape[:-2] + (1,) + key.shape[-1:], 
                 device=key.device)
-            zero_v = zeros(
+            zero_v = T.zeros(
                 value.shape[:-2] + (1,) + value.shape[-1:], 
                 device=value.device)
             key = F.cat([key, zero_k], dim=-2)

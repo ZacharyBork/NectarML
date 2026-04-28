@@ -57,7 +57,7 @@ class EMA:
         '''
         Not currently functional!!
         '''
-        
+        raise NotImplementedError
         self.model  = model
         self.decay  = decay
         self.shadow = {}
@@ -95,13 +95,16 @@ class checkpoint:
     ### SAVING ###
     
     def _serialize_parameters(self: checkpoint) -> None:
-        for name, param in self.model.named_parameters():
-            self._model_state[name] = {
-                'data':  param.numpy(),
-                'dtype': param.dtype,
-                'shape': param.shape
-            }
-    
+        for module_name, module in self.model._walk_module_tree():
+            for param_name, param in module._parameters.items():
+                full_name = f'{module_name}.{param_name}' \
+                         if module_name else param_name
+                self._model_state[full_name] = {
+                    'data':  param.numpy(),
+                    'dtype': param.dtype,
+                    'shape': param.shape
+                }
+        
     def _serialize_buffers(self: checkpoint) -> None:
         for module_name, module in self.model._walk_module_tree():
             for buffer_name, buffer in module._buffers.items():
@@ -262,7 +265,7 @@ class checkpoint:
         else:   loaded = _load_tarfile(self.checkpoint_path)
 
         self._target_device = 'cpu'
-        for _, p in self.model.parameters():
+        for p in self.model.parameters():
             self._target_device = p.device
             break
 

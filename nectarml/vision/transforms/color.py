@@ -6,9 +6,8 @@ import numpy as np
 from PIL import Image, ImageOps
 
 import nectarml.functional as F
-from nectarml.core     import Tensor
+from nectarml.core     import Tensor, creation as T
 from nectarml.typing   import float32
-from nectarml.creation import full, ones, zeros, linspace
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.spatial   import OpticalDistortion
 from nectarml.vision.transforms.common    import \
@@ -324,7 +323,7 @@ class ToBlackAndWhite(Transform):
         gray = input.mean(dim=1, keepdim=True)
         return F.where(
             (gray > self.white_point), 
-            ones((), input.dtype, input.device), 0.0)
+            T.ones((), input.dtype, input.device), 0.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -774,7 +773,7 @@ class ChannelDropout(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         channels              = input.unbind(dim=1)
-        new_channel           = full(channels[0].shape, self.fill)
+        new_channel           = T.full(channels[0].shape, self.fill)
         channels[self._index] = new_channel.to(input.device, input.dtype)
         return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
@@ -987,8 +986,8 @@ class ChromaticAberration(Transform):
         
         _, _, H, W = input.shape
         channels = input.unbind(dim=1)
-        inner    = zeros(input.shape, input.dtype).to(input.device)
-        outer    = zeros(input.shape, input.dtype).to(input.device)
+        inner    = T.zeros(input.shape, input.dtype).to(input.device)
+        outer    = T.zeros(input.shape, input.dtype).to(input.device)
         
         inner[:, 0, :, :] = self._inner1(channels[0].reshape((1, 1, H, W)))
         inner[:, 1, :, :] = channels[1]
@@ -1098,16 +1097,16 @@ class Illumination(Transform):
 
     def _linear_mask(self, H: int, W: int) -> Tensor:
         angle_rad = math.radians(self._angle)
-        yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
-        xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
-        proj = xx * math.cos(angle_rad) + yy * math.sin(angle_rad)
+        y = T.linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
+        x = T.linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
+        proj = x * math.cos(angle_rad) + y * math.sin(angle_rad)
         proj = (proj - proj.min()) / (proj.max() - proj.min() + self._epsilon)
         return proj.to(dtype=float32)
 
     def _radial_mask(self, H: int, W: int) -> Tensor:
-        yy = linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
-        xx = linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
-        dist = ((xx - self._cx)**2 + (yy - self._cy)**2).sqrt()
+        y = T.linspace(0, H-1, H, dtype=float32).reshape((H, 1)).expand((H, W))
+        x = T.linspace(0, W-1, W, dtype=float32).reshape((1, W)).expand((H, W))
+        dist = ((x - self._cx)**2 + (y - self._cy)**2).sqrt()
         dist = dist / (math.sqrt(2) + self._epsilon)
         mask = 1.0 - dist
         mask = (mask - mask.min()) / (mask.max() - mask.min() + self._epsilon)

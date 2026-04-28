@@ -1,9 +1,8 @@
 import math
 
-from nectarml.core       import Tensor
-from nectarml.typing     import bool_, float16
-from nectarml.creation   import tril
-from nectarml.functional import activation
+from nectarml.core               import Tensor, creation
+from nectarml.typing             import bool_, float16
+from nectarml.functional         import activation
 from nectarml.functional.dropout import dropout as dropout_fn
 
 def scaled_dot_product_attention(
@@ -48,7 +47,7 @@ def scaled_dot_product_attention(
         
     if is_causal:
         T           = Q.shape[-2]
-        causal      = tril(size=T, device=Q.device)
+        causal      = creation.tril(size=T, device=Q.device)
         mask_val    = -1e4 if Q.dtype == float16 else -1e9
         causal_mask = (1 - causal) * mask_val
         scaled_scores = scaled_scores + causal_mask

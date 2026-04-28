@@ -10,9 +10,8 @@ from PIL import Image
 
 import _nectarml
 import nectarml.functional as F
-from nectarml.core     import Tensor
+from nectarml.core     import Tensor, creation
 from nectarml.typing   import Size
-from nectarml.creation import linspace
 
 ### DATA ###
 
@@ -174,14 +173,14 @@ def gradient_mask(
     _, _, H, W = shape
     match mode:
         case 'horizontal': 
-            mask = linspace(0, 1, W).reshape((1, W)).expand((H, W))
+            mask = creation.linspace(0, 1, W).reshape((1, W)).expand((H, W))
             mask = mask.reshape((1, 1, H, W))
         case 'vertical':
-            mask = linspace(0, 1, H).reshape((H, 1)).expand((H, W))
+            mask = creation.linspace(0, 1, H).reshape((H, 1)).expand((H, W))
             mask = mask.reshape((1, 1, H, W))
         case 'radial': 
-            yy = linspace(-1, 1, H).reshape((H, 1)).expand((H, W))
-            xx = linspace(-1, 1, W).reshape((1, W)).expand((H, W))
+            yy = creation.linspace(-1, 1, H).reshape((H, 1)).expand((H, W))
+            xx = creation.linspace(-1, 1, W).reshape((1, W)).expand((H, W))
             if radial_method == 'corners':
                 dist = (xx**2 + yy**2).sqrt()
                 mask = (dist / dist.max()).reshape((1, 1, H, W))
@@ -189,8 +188,8 @@ def gradient_mask(
                 dist = (xx**2 + yy**2).sqrt()
                 mask = dist.clamp(0.0, 1.0).reshape((1, 1, H, W))
         case 'elliptical':
-            yy   = linspace(-1, 1, H).reshape((H, 1)).expand((H, W))
-            xx   = linspace(-1, 1, W).reshape((1, W)).expand((H, W))
+            yy   = creation.linspace(-1, 1, H).reshape((H, 1)).expand((H, W))
+            xx   = creation.linspace(-1, 1, W).reshape((1, W)).expand((H, W))
             dist = (xx**2 + yy**2).sqrt() / (2**0.5)
             mask = dist.clamp(0.0, 1.0).reshape((1, 1, H, W))
     

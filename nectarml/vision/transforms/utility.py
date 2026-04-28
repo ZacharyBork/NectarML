@@ -11,8 +11,7 @@ from scipy.ndimage import grey_erosion, grey_dilation
 import _nectarml
 import nectarml.functional as F
 from nectarml          import typing
-from nectarml.core     import Tensor
-from nectarml.creation import full, zeros_like, ones_like, linspace
+from nectarml.core     import Tensor, creation as T
 from nectarml.functional.interpolation import upsample
 
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
@@ -117,7 +116,7 @@ class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
         size_h = input[0].shape[-2] + (self.padding * 2)
         size_w = input[0].shape[-1] + (self.padding * 2)
                 
-        canvas = full(
+        canvas = T.full(
             (1, 3, size_h * rows, size_w * cols), 
             fill_value=self.pad_value)
         canvas = canvas.to(input[0].device, input[0].dtype)
@@ -286,13 +285,13 @@ class UVMap(Transform):
         if input is None: return input
         _, _, H, W = input.shape
 
-        r = linspace(0, self.tiling_x, W, input.dtype, input.device)
+        r = T.linspace(0, self.tiling_x, W, input.dtype, input.device)
         r = r.reshape((1, W)).expand((H, W))
 
-        g = linspace(self.tiling_y, 0, H, input.dtype, input.device)
+        g = T.linspace(self.tiling_y, 0, H, input.dtype, input.device)
         g = g.reshape((H, 1)).expand((H, W))
         
-        return F.stack([r, g, zeros_like(r)], dim=0).unsqueeze(0)
+        return F.stack([r, g, T.zeros_like(r)], dim=0).unsqueeze(0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -322,7 +321,7 @@ class NormalMap(Transform):
         dzdx = Derivative('ddx', per_channel=True)(gray)
         dzdy = Derivative('ddy', per_channel=True)(gray)
                 
-        normal = F.cat([-dzdx, -dzdy, ones_like(gray)], dim=1)
+        normal = F.cat([-dzdx, -dzdy, T.ones_like(gray)], dim=1)
         length = (
             normal[:, 0, :, :]**2 
           + normal[:, 1, :, :]**2 

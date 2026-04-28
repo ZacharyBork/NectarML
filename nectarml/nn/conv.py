@@ -5,9 +5,8 @@ from typing import Literal
 
 import nectarml.functional as F
 from nectarml              import typing
-from nectarml.core         import Tensor
+from nectarml.core         import Tensor, creation
 from nectarml.nn.module    import Module
-from nectarml.creation     import empty
 from nectarml.nn.init      import kaiming_uniform_, uniform_
 from nectarml.amp.autocast import autocast_state
 
@@ -39,7 +38,7 @@ class Conv1d(Module):
         self.groups       = groups
         self.padding_mode = padding_mode
 
-        self.weight = empty(
+        self.weight = creation.empty(
             (out_channels, in_channels // groups, kernel_size),
             dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
@@ -50,7 +49,7 @@ class Conv1d(Module):
             k = (in_channels // groups) * kernel_size
             bound = 1.0 / k ** 0.5
             
-            self.bias = empty(
+            self.bias = creation.empty(
                 (out_channels,), dtype=dtype, 
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
@@ -100,7 +99,7 @@ class ConvTranspose1d(Module):
         self.dilation       = dilation
         self.groups         = groups
 
-        self.weight = empty(
+        self.weight = creation.empty(
             (in_channels, out_channels // groups, kernel_size),
             dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
@@ -111,7 +110,7 @@ class ConvTranspose1d(Module):
             k = (in_channels // groups) * kernel_size
             bound = 1.0 / k ** 0.5
             
-            self.bias = empty(
+            self.bias = creation.empty(
                 (out_channels,), dtype=dtype, 
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
@@ -168,7 +167,7 @@ class Conv2d(Module):
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
 
-        self.weight = empty(
+        self.weight = creation.empty(
             (out_channels, in_channels // groups) + self.kernel_size,
             dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
@@ -180,7 +179,7 @@ class Conv2d(Module):
               * self.kernel_size[0] \
               * self.kernel_size[1]
             bound = 1.0 / k ** 0.5
-            self.bias = empty(
+            self.bias = creation.empty(
                 (out_channels,), dtype=dtype,
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)
@@ -221,7 +220,7 @@ class ConvTranspose2d(Module):
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
 
-        self.weight = empty(
+        self.weight = creation.empty(
             (in_channels, out_channels // groups) + self.kernel_size,
             dtype=dtype, device='cpu', requires_grad=True)
         kaiming_uniform_(
@@ -233,7 +232,7 @@ class ConvTranspose2d(Module):
               * self.kernel_size[0] \
               * self.kernel_size[1]
             bound = 1.0 / k ** 0.5
-            self.bias = empty(
+            self.bias = creation.empty(
                 (out_channels,), dtype=dtype,
                 device='cpu', requires_grad=True)
             uniform_(self.bias, -bound, bound)

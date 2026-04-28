@@ -5,9 +5,8 @@ from collections.abc import Sequence
 from PIL import Image
 import numpy as np
 
-from nectarml.core     import Tensor
+from nectarml.core     import Tensor, creation as T
 from nectarml          import typing
-from nectarml.creation import full
 import nectarml.functional as F
 
 ### TENSOR UTILS ###
@@ -41,19 +40,19 @@ def make_grid(
         if normalize: input = _normalize(input, value_range)
         split = F.split(input, split_size=input.shape[0])
                     
-    count = len(split)
+    count      = len(split)
     rows, cols = int(np.ceil(count / nrow)), int(np.minimum(count, nrow))
-    size = split[0].shape[-1] + (padding * 2)
-    canvas = full((1, 3, size * rows, size * cols), fill_value=pad_value)
+    size       = split[0].shape[-1] + (padding * 2)
+    canvas     = T.full((1, 3, size * rows, size * cols), fill_value=pad_value)
         
     curr_row = curr_col = 0
     for i in range(count):        
         start = (size * curr_row + padding, size * curr_col + padding)
-        end = (size * (curr_row+1) - padding, size * (curr_col+1) - padding)
+        end   = (size * (curr_row+1) - padding, size * (curr_col+1) - padding)
         canvas[:, :, start[0]:end[0], start[1]:end[1]] = split[i]
         
         if curr_col > cols - 2:
-            curr_col = 0
+            curr_col  = 0
             curr_row += 1
         else: curr_col += 1
     
