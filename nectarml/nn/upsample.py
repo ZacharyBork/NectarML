@@ -4,9 +4,9 @@ import math
 import warnings
 from   typing import Literal
 
-from nectarml.core       import Tensor
-from nectarml.nn.module  import Module
-from nectarml.functional import upsample
+from nectarml.core          import Tensor
+from nectarml.nn.module     import Module
+from nectarml.nn.functional import upsample
 
 class Upsample(Module):
     def __init__(

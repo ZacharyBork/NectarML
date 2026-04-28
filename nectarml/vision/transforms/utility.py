@@ -9,10 +9,10 @@ from PIL           import Image, ImageDraw, ImageFont
 from scipy.ndimage import grey_erosion, grey_dilation
 
 import _nectarml
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml          import typing
 from nectarml.core     import Tensor, creation as T
-from nectarml.functional.interpolation import upsample
+from nectarml.nn.functional.interpolation import upsample
 
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
 from nectarml.vision.transforms.common        import TransformInput

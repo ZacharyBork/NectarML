@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import builtins
 
-from nectarml.core       import Tensor
-from nectarml.nn.module  import Module
-from nectarml.functional import pad
+from nectarml.core          import Tensor
+from nectarml.nn.module     import Module
+from nectarml.nn.functional import pad
 
 ### CONSTANT ###
 

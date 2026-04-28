@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 import _nectarml
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml.core     import Tensor, creation
 from nectarml.typing   import Size
 

@@ -4,9 +4,9 @@ from typing import Literal
 
 import numpy as np
 
-import nectarml.functional as F
-from nectarml.core   import Tensor
-from nectarml.typing   import Size, float32
+import nectarml.nn.functional as F
+from nectarml.core                        import Tensor
+from nectarml.typing                      import Size, float32
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.common    import TransformInput
 

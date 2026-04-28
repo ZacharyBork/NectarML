@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Literal
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml              import typing
 from nectarml.core         import Tensor, creation
 from nectarml.nn.module    import Module

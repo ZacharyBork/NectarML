@@ -6,7 +6,7 @@ from scipy.ndimage import gaussian_filter
 from pyfastnoiselite.pyfastnoiselite import \
     FastNoiseLite, NoiseType, FractalType
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml          import typing
 from nectarml.core     import Tensor, creation as T
 from nectarml.vision.transforms.transform import Transform 

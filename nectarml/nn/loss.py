@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import builtins
-from   typing import Literal, Any
+from   typing          import Literal, Any
 from   collections.abc import Callable
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 

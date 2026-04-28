@@ -1,9 +1,9 @@
 import math
 
-from nectarml.core               import Tensor, creation
-from nectarml.typing             import bool_, float16
-from nectarml.functional         import activation
-from nectarml.functional.dropout import dropout as dropout_fn
+from nectarml.core                  import Tensor, creation
+from nectarml.typing                import bool_, float16
+from nectarml.nn.functional         import activation
+from nectarml.nn.functional.dropout import dropout as dropout_fn
 
 def scaled_dot_product_attention(
     Q:                Tensor,

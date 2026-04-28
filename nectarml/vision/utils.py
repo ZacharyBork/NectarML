@@ -5,9 +5,9 @@ from collections.abc import Sequence
 from PIL import Image
 import numpy as np
 
-from nectarml.core     import Tensor, creation as T
-from nectarml          import typing
-import nectarml.functional as F
+import nectarml.nn.functional as F
+from nectarml.core import Tensor, creation as T
+from nectarml      import typing
 
 ### TENSOR UTILS ###
 

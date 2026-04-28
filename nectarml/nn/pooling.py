@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from nectarml.core       import Tensor
-from nectarml.nn.module  import Module
-from nectarml.functional import pooling
+from nectarml.core          import Tensor
+from nectarml.nn.module     import Module
+from nectarml.nn.functional import pooling
 
 ### AVERAGE POOL ###
 

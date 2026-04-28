@@ -1,8 +1,8 @@
 import numpy as np
 
-import nectarml.functional as F
-from nectarml.core     import Tensor
-from nectarml.typing   import float16, float32, uint8
+import nectarml.nn.functional as F
+from nectarml.core        import Tensor
+from nectarml.typing      import float16, float32, uint8
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.common    import TransformInput
 

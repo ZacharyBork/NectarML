@@ -5,7 +5,7 @@ import builtins
 
 from nectarml      import typing
 from nectarml.core import Tensor
-from nectarml.functional.combination import cat, stack
+from nectarml.nn.functional.combination import cat, stack
 
 def min(
     input:   Tensor,

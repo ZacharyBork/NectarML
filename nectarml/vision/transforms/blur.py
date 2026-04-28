@@ -4,7 +4,7 @@ from typing import Literal
 import numpy as np
 from scipy.ndimage import median_filter
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml.core     import Tensor, creation as T
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform

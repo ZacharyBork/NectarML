@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml.core     import Tensor, creation as T
 from nectarml.typing   import float32
 from nectarml.vision.transforms.transform import Transform 

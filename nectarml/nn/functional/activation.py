@@ -1,9 +1,9 @@
 import builtins
 
-from nectarml.core                import Tensor
-from nectarml.typing              import float32
-from nectarml.functional.indexing import where
-from nectarml.amp.autocast        import autocast_state
+from nectarml.core                   import Tensor
+from nectarml.typing                 import float32
+from nectarml.amp.autocast           import autocast_state
+from nectarml.nn.functional.indexing import where
 
 ### RELU ###
 

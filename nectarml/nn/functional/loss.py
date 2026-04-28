@@ -2,10 +2,10 @@ import builtins
 from typing          import Literal, Any
 from collections.abc import Iterable
 
-from nectarml.core                import Tensor
-from nectarml.typing              import float32, int32
-from nectarml.functional          import math as tensor_math
-from nectarml.functional.indexing import where, gather
+from nectarml.core                   import Tensor
+from nectarml.typing                 import float32, int32
+from nectarml.nn.functional          import math as tensor_math
+from nectarml.nn.functional.indexing import where, gather
 
 # UTILITIES
 

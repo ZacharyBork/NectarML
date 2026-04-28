@@ -4,6 +4,7 @@ from . import (
     composition,
     conv,
     dropout,
+    functional,
     identity,
     init,
     linear,

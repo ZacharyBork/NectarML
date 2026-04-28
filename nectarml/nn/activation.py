@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml.core      import Tensor
 from nectarml.nn.module import Module
 

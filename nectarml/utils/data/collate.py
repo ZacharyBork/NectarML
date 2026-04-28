@@ -3,9 +3,9 @@ from typing import Any
 
 import numpy as np
 
-from nectarml.core import Tensor
+import nectarml.nn.functional as F
+from nectarml.core   import Tensor
 from nectarml.typing import int32, float32
-import nectarml.functional as F
 
 def default_collate(inputs: list[Any]) -> Any:
     first = inputs[0]

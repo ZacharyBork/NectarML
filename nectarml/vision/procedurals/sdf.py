@@ -2,7 +2,7 @@ from typing import Literal
 
 import numpy as np
 
-import nectarml.functional as F
+import nectarml.nn.functional as F
 from nectarml                          import typing
 from nectarml.core                     import Tensor
 from nectarml.core.creation            import ones_like

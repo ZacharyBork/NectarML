@@ -5,9 +5,9 @@ from scipy.ndimage import rotate as scipy_rotate
 from scipy.ndimage import map_coordinates, gaussian_filter
 
 import _nectarml
-import nectarml.functional as F
-from nectarml.core   import Tensor
-from nectarml.typing   import Size
+import nectarml.nn.functional as F
+from nectarml.core        import Tensor
+from nectarml.typing      import Size
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common    import TransformInput
 
