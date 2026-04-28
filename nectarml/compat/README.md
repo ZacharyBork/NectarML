@@ -24,4 +24,6 @@ y = pytorch.tensor_torch2nectar(x)
 - Device
 - Whether the tensor requires grad
 
+***PLEASE NOTE:*** Conversion between NectarML and PyTorch requires that PyTorch be installed in the environment from which the conversion function is called. Please see [here](https://pytorch.org/get-started/locally/) for information on how to install PyTorch.
+
 **More compatibility updates will be added in a future release.**
