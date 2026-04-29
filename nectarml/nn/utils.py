@@ -5,7 +5,7 @@ import tarfile
 
 from os              import PathLike
 from pathlib         import Path
-from typing          import Any
+from typing          import Any, Self
 from collections.abc import Callable
 
 from nectarml.core            import Tensor
@@ -89,37 +89,67 @@ class checkpoint:
         model:     Module,
         optimizer: Optimizer | None = None
     ) -> None:
+        '''Utility class to save and load model checkpoints.
+        
+        Args:
+            model     : The nn.Module to save/load a checkpoint for.
+            optimizer : The model's optimizer, if applicable.
+        '''
         self.model     = model
         self.optimizer = optimizer
     
     ### SAVING ###
     
+    @classmethod
+    def _serialize_tensor(
+        cls:       type[Self],
+        tensor:    Tensor, 
+        is_buffer: bool = False
+    ) -> dict[str, Any]:
+        '''Serializes a tensor in a pickleable format for saving.
+        
+        Data which gets serialized is:
+        - The tensor's data (as a numpy array)
+        - The tensor's DType
+        - The tensor's shape
+        
+        Args:
+            tensor    : The tensor to serialize.
+            is_buffer : Set true if the tensor is a buffer, otherwise False.
+                        Adds a flag to the the tensor in the checkpoint file
+                        which is needed for for loading.
+        Returns:
+            dict[str, Any] : The tensor, serialized to a pickleable format.
+        '''
+        return {
+            'data':      tensor.cpu().numpy(),
+            'dtype':     tensor.dtype,
+            'shape':     tensor.shape,
+            'is_buffer': is_buffer
+        }
+    
     def _serialize_parameters(self: checkpoint) -> None:
+        '''Walks the model's module tree and serializes all parameters.'''
         for module_name, module in self.model._walk_module_tree():
             for param_name, param in module._parameters.items():
                 full_name = f'{module_name}.{param_name}' \
                          if module_name else param_name
-                self._model_state[full_name] = {
-                    'data':  param.numpy(),
-                    'dtype': param.dtype,
-                    'shape': param.shape
-                }
+                self._model_state[full_name] = \
+                    checkpoint._serialize_tensor(param)
         
     def _serialize_buffers(self: checkpoint) -> None:
+        '''Serializes all of the model's persistent buffers.'''
         for module_name, module in self.model._walk_module_tree():
             for buffer_name, buffer in module._buffers.items():
                 if buffer_name in module._persistent_buffers:
                     full_name = f'{module_name}.{buffer_name}' \
                                 if module_name else buffer_name
                     
-                    self._model_state[full_name] = {
-                        'data':  buffer.cpu().numpy(),
-                        'dtype': buffer.dtype,
-                        'shape': buffer.shape,
-                        'is_buffer': True 
-                    }
+                    self._model_state[full_name] = \
+                        checkpoint._serialize_tensor(buffer, is_buffer=True)
     
     def _serialize_optimizer_state(self: checkpoint) -> None:
+        '''Serializes all optimizer state tensors.'''
         if self.optimizer is not None:
             self._optimizer_state = { 'param_groups': [], 'state': {} }
             
@@ -133,29 +163,70 @@ class checkpoint:
                 self._optimizer_state['state'][idx] = {}
                 for k, v in state.items():
                     if isinstance(v, Tensor):
-                        self._optimizer_state['state'][idx][k] = {
-                            'data':  v.numpy(),
-                            'dtype': v.dtype,
-                            'shape': v.shape
-                        }
+                        self._optimizer_state['state'][idx][k] = \
+                            checkpoint._serialize_tensor(v)
                     else: self._optimizer_state['state'][idx][k] = v
     
     def save(
-        self:      checkpoint,
-        path:      PathLike,
-        epoch:     int  = 0,
-        iteration: int  = 0,
-        metadata:  dict = None,
-        overwrite: bool = False
+        self:                checkpoint,
+        path:                PathLike,
+        epoch:               int = 0,
+        iteration:           int = 0,
+        metadata: dict[str, Any] = None,
+        overwrite:          bool = False
     ) -> None:
+        '''Saves a checkpoint for the model.
+
+        Checkpoints should be saved as `.nml` files. If you also add `.tar`, 
+        (e.g. `filename.nml.tar`), the checkpoint will be saved as a tar 
+        archive. 
+
+        When saving as a tar archive, you may also add an additional
+        compression type suffix, and the tarfile will be automatically
+        compressed using the given format. Options are:
+        - `.tar.gz`  : gzip compression
+        - `.tar.bz2` : bzip2 compression
+        - `.tar.xz`  : xz compression
+        - `.tar.zst` : Zstandard compression
+
+        Args:
+            path      : The system path to the checkpoint file to write.
+            epoch     : Optional epoch value to save with the checkpoint. Can 
+                        be retrieved upon loading a checkpoint like so:
+                        ```
+                        info        = checkpoint.load(checkpoint_path)
+                        start_epoch = info['epoch']
+                        ```
+            iteration : Optional iteration value, used the same way as `epoch`:
+                        ```
+                        info      = checkpoint.load(checkpoint_path)
+                        iteration = info['iteration']
+                        ```
+            metadata  : Optional dict[str, Any] of metadata to save with the
+                        checkpoint file. Retrived on load like so:
+                        ```
+                        info     = checkpoint.load(checkpoint_path)
+                        metadata = info['metadata']
+                        ```
+            overwrite : If True, the save function will be allowed to overwrite
+                        existing checkpoint files on disk if one exists with
+                        the same path. If False, it will throw an error if it
+                        finds an existing checkpoint file at the output path.
+                        
+        Raises:
+            FileExistsError : When trying to save a checkpoint if a file 
+                              already exists at the output path and `overwrite`
+                              if False.
+            ValueError      : If provided invalid suffixes.
+        '''
         self.checkpoint_path = Path(path).resolve()
         if not overwrite and self.checkpoint_path.exists():
             raise FileExistsError(
                 f'File exists at {self.checkpoint_path}. Use overwrite=True.')
 
         suffixes = [suffix.lower() for suffix in self.checkpoint_path.suffixes]
-        assert suffixes[0] in ['.pt', '.pth'], \
-            f'save() requires output to be of type ".pt" or ".pth", not ' \
+        assert suffixes[0] == '.nml', \
+            f'save() requires output to be of type ".nml", not ' \
             f'[{self.checkpoint_path.suffix}]'
 
         self._model_state     = {}
@@ -184,6 +255,7 @@ class checkpoint:
     ### LOADING ###
 
     def _build_lookups(self: checkpoint) -> None:
+        '''Walks model's module tree and builds parameter/buffer lookups.'''
         self._param_lookup  = {}
         self._buffer_lookup = {}
         
@@ -204,23 +276,40 @@ class checkpoint:
         name:  str, 
         saved: dict[str, Any]
     ) -> None:
+        '''Restores model parameter state from checkpoint data.
+        
+        Args:
+            name  : The name of the parameter to restore.
+            saved : The serialized tensor data for the given parameter.
+        
+        Raises:
+            KeyError : If parameter name not found in model.
+        '''
         if saved.get('is_buffer'): return
         if name not in self._param_lookup:
             raise KeyError(f'Parameter {name} not found in model')
         
         module, param_name = self._param_lookup[name]
         data     = saved['data'].astype(saved['dtype'].numpy)
-        restored = Tensor._new(
-            data, saved['shape'], saved['dtype'], 'cpu', True)
-        restored._prev.clear()
-        restored._backward = lambda: None
-        module._parameters[param_name] = restored.to(self._target_device)
+        restored = Tensor._new(data, saved['shape'], saved['dtype'], 'cpu')
+        
+        param = restored.to(self._target_device)
+        param._prev.clear()
+        param._backward = lambda: None
+        param.requires_grad_(True)
+        module._parameters[param_name] = param
 
     def _restore_buffers(
         self:  checkpoint,
         name:  str,
         saved: dict[str, Any]
     ) -> None:
+        '''Restores model buffer state from checkpoint data.
+        
+        Args:
+            name  : The name of the buffer to restore.
+            saved : The serialized tensor data for the given buffer.
+        '''
         if not saved.get('is_buffer'):      return
         if name not in self._buffer_lookup: return
         
@@ -235,6 +324,12 @@ class checkpoint:
         self:      checkpoint, 
         opt_state: dict[str, Any]
     ) -> None:
+        '''Restores optimizer state from checkpoint data.
+        
+        Args:
+            opt_state : The serialized optimizer state data from the checkpoint
+                        file.
+        '''
         for idx, state in opt_state['state'].items():
             self.optimizer.state[int(idx)] = {}
             for k, v in state.items():
@@ -243,17 +338,48 @@ class checkpoint:
                     restored = Tensor._new(
                         data, v['shape'], v['dtype'], 'cpu',
                         requires_grad=False)
-                    restored = restored.to(self._target_device)
-                    restored._prev.clear()
-                    restored._backward = lambda: None
-                    restored._requires_grad = False
-                    self.optimizer.state[int(idx)][k] = restored
+                    
+                    tensor = restored.to(self._target_device)
+                    tensor._prev.clear()
+                    tensor._backward = lambda: None
+                    tensor._requires_grad = False
+                    self.optimizer.state[int(idx)][k] = tensor
                 else: self.optimizer.state[int(idx)][k] = v
 
     def load(
         self: checkpoint,
         path: PathLike
     ) -> dict[str, Any]:
+        '''Loads a checkpoint file from a filepath.
+
+        This will load the checkpoint file and update all paramters and buffers
+        of the Module provided for `model` when the checkpoint instance was 
+        initialized. 
+
+        It will also update the optimizer's state dictionary with
+        the one from the checkpoint, if an `optimizer` was provided for 
+        checkpoint init, and if an optimizer state is present in the loaded
+        checkpoint file.
+
+        Args:
+            path : The path to the checkpoint file to load.
+            
+        Returns:
+            dict : A dict containing the epoch, iteration, and metadata from 
+                   the loaded checkpoint file. If no `iteration` of `epoch` was 
+                   provided during checkpoint saving, they will default to 0. 
+                   `metadata` defaults to an empty dict. This data can be 
+                   retrieved like so:
+                   ```
+                    info        = checkpoint.load(checkpoint_path)
+                    start_epoch = info['epoch']
+                    iteration   = info['iteration']
+                    metadata    = info['metadata']
+                    ```
+        Raises:
+            FileNotFoundError : If unable to locate a checkpoint file at the 
+                                provided path.
+        '''
         self.checkpoint_path = Path(path).resolve()
         if not self.checkpoint_path.exists():
             raise FileNotFoundError(
@@ -279,6 +405,14 @@ class checkpoint:
         if self.optimizer is not None and loaded.get('opt_state'):
             opt_state = loaded['opt_state']
             self._restore_optimizer_state(opt_state)
+
+            param_iter = iter([p for p in self.model.parameters()])
+            for group in self.optimizer.param_groups:
+                group['params'] = [next(param_iter) for _ in group['params']]
+            
+            self.optimizer._param_to_idx = {
+                id(p): idx for idx, p in enumerate(self.optimizer.params())
+            }
 
         return {
             'epoch':     loaded['epoch'],
