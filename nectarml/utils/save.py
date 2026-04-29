@@ -54,8 +54,8 @@ def save(
             f'overwrite=True.')
 
     suffixes = path.suffixes
-    assert suffixes[0] in ['.pt', '.pth'], \
-        f'save() requires output to be of type ".pt" or ".pth", not ' \
+    assert suffixes[0] == '.nml', \
+        f'save() requires output to be of type ".nml", not ' \
         f'[{path.suffix}]'
     
     if isinstance(input, Tensor): input = [input]
