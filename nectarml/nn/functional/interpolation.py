@@ -281,7 +281,7 @@ def upsample(
         if len(spatial) > 1:
             if size is not None:
                 ratio = max(size) / max(spatial)
-                size = tuple([int(i*ratio) for i in spatial])
+                size  = tuple([int(i*ratio) for i in spatial])
             if scale_factor is not None:
                 scale_factor = (max(scale_factor),) * len(spatial)
     

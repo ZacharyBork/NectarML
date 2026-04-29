@@ -11,7 +11,7 @@ from nectarml.nn.functional import upsample
 class Upsample(Module):
     def __init__(
         self: Upsample,
-        size:         int   | tuple[int, ...]   | None = None,
+        size:         int   | tuple[int,   ...] | None = None,
         scale_factor: float | tuple[float, ...] | None = None,
         mode: Literal[
             'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
@@ -21,6 +21,64 @@ class Upsample(Module):
         recompute_scale_factor: bool = False,
         preserve_aspect_ratio:  bool = False
     ) -> None:
+        '''Upsamples (or downsamples) tensors along their spatial dimensions.
+
+        ### Output size
+
+        Output size of the upsample opereration can be defined in one of two
+        ways:
+
+        1. `size`: Directly defining the size of the spatial dimensions as a:
+            - A Single integer (L) for 3-dimension tensors.
+            - A tuple (H: int, W: int) for 4-dimension tensors.
+            - A tuple (D: int, H: int, W: int) for 5-dimension tensors.
+            
+        2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+            of the input tensor. So if you input a tensor with shape 
+            (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+            output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+            defined as:
+            
+            - A Single float (L) for 3-dimension tensors.
+            - A tuple (H: float, W: float) for 4-dimension tensors.
+            - A tuple (D: float, H: float, W: float) for 5-dimension tensors.
+
+        NOTE: If both `size` and `scale_factor` are provided, Upsample will use 
+        `scale_factor`.
+
+        ### Upsampling modes
+        
+        Certain upsampling modes are only valid for input tensors with certain
+        shapes.
+        
+        For 3/4/5-dimension tensors:
+            - 'nearest' : Performs nearest neighbour upsampling.
+            
+        For 3-dimension (B, C, L) tensors only:
+            - 'linear' : Performs linear upsampling along 1 spatial dimension.
+            
+        For 4-dimension (B, C, H, W) tensors only:
+            - 'bilinear' : Bilinear upsampling along H and W dimensions.
+            - 'bicubic'  : Bicubic upsampling along H and W dimensions.
+
+        For 5-dimension (B, C, D, H, W) tensors only:
+            - 'trilinear' : Performs trilinear upsampling along 3 spatial
+                            dimensions.
+
+        Args:
+            size          : The desired output size.
+            scale_factor  : The scale factor for the upsample.
+            mode          : The upsampling algorithm to use. Options are 
+                            ['nearest', 'linear', 'bilinear', 'bicubic', 
+                            'trilinear']
+            align_corners : If True, the corner pixels of the input and output
+                            tensor will be aligned.
+            recompute_scale_factor : If True, scale factor will be recomputed
+                                     by rounding to the closest pixel-aligned
+                                     value from the first input. 
+            preserve_aspect_ratio  : If True, the aspect ratio of the output 
+                                     tensor will match that of the input.
+        '''
         super().__init__()
         self.mode = mode
         self.a    = a

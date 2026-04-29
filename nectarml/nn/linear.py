@@ -7,26 +7,38 @@ from nectarml.nn.init   import kaiming_normal_
 
 class Linear(Module):
     def __init__(
-        self:         Linear,
-        in_features:  int,
-        out_features: int,
-        bias:         bool  = True,
-        dtype:        typing.dtype = typing.float32
+        self:          Linear,
+        in_features:   int,
+        out_features:  int,
+        bias:          bool = True,
+        dtype: typing.dtype = typing.float32
     ) -> None:
+        '''Fully connected neural network layer.
+        
+        A layer in which every input is connected to every output by a 
+        learnable weight parameter.
+        
+        Args:
+            in_features  : The number of input features for the layer.
+            out_features : The number of output features for the layer.
+            bias         : If True, adds a learnable bias parameter to the 
+                           layer.
+            dtype        : The DType to use when initializing the layers
+                           weight and bias tensors.
+        '''
         super().__init__()
         self.in_features  = in_features
         self.out_features = out_features
         
         self.weight = creation.empty(
-            (self.out_features, self.in_features),
-            dtype=dtype, device='cpu', requires_grad=True)
+            (self.out_features, self.in_features), 
+            dtype=dtype, requires_grad=True)
         kaiming_normal_(
             weights=self.weight, mode='fan_in', nonlinearity='linear')
         
         if bias:
             self.bias = creation.zeros(
-                (out_features,), dtype=dtype, 
-                device='cpu', requires_grad=True)
+                (out_features,), dtype=dtype, requires_grad=True)
         else: self.bias = None
 
     def forward(self: Linear, x: Tensor) -> Tensor:
