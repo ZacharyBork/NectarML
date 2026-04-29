@@ -37,7 +37,7 @@ def relu_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(relu(input))
     
@@ -79,7 +79,7 @@ def leaky_relu_(input: Tensor, negative_slope: builtins.float = 0.01) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(leaky_relu(input, negative_slope))
 
@@ -124,7 +124,7 @@ def elu_(input: Tensor, alpha: builtins.float = 1.0) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(elu(input, alpha))
     
@@ -166,7 +166,7 @@ def selu_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(selu(input))
 
@@ -210,7 +210,7 @@ def sigmoid_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(sigmoid(input))
 
@@ -254,7 +254,7 @@ def tanh_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(tanh(input))
     
@@ -302,7 +302,7 @@ def softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(softmax(input, dim))
 
@@ -339,7 +339,7 @@ def softmin_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(softmin(input))
 
@@ -387,7 +387,7 @@ def log_softmax_(input: Tensor, dim: builtins.int = -1) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(log_softmax(input, dim))
 
@@ -439,7 +439,7 @@ def gelu_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(gelu(input))
 
@@ -489,7 +489,7 @@ def silu_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(silu(input))
 
@@ -535,7 +535,7 @@ def swish_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(swish(input))
 
@@ -570,7 +570,7 @@ def softplus_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(softplus(input))
 
@@ -608,7 +608,7 @@ def mish_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(mish(input))
 
@@ -648,15 +648,15 @@ def hardtanh_(
     Equation: f(x) = max(min_value, min(max_value, x))
     
     Args:
-        input : The Tensor to apply the activation function to.
+        input     : The Tensor to apply the activation function to.
         min_value : The minimum allowable value. Values below this will be
-            clamped to this value.
+                    clamped to this value.
         max_value : The maximum allowable value. Values above this will be
-            clamped to this value.
+                    clamped to this value.
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(hardtanh(input, min_value, max_value))
 
@@ -688,7 +688,7 @@ def hardsigmoid_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(hardsigmoid(input))
 
@@ -720,7 +720,7 @@ def hardswish_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(hardswish(input))
      
@@ -752,7 +752,7 @@ def softsign_(input: Tensor) -> Tensor:
         
     Returns:
         Tensor : The input Tensor with its data swapped for the resulting data
-            from the activation function.
+                 from the activation function.
     '''
     return input.copy_(softsign(input))
     
