@@ -23,6 +23,28 @@ class Pad(Transform):
         ] = 'constant',
         transform_mask: bool = True
     ) -> None:
+        '''Applies padding to input image tensors.
+
+        Args:
+            padding      : The number of pixels to pad the input with. Can be a 
+                           single integer, in which case the value will be used 
+                           to, define the padding on all sides, or a tuple of 2 
+                           integers, in which case it will be treated as 
+                           (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+            fill         : The value (0-1) to fill the padded area with. Only 
+                           used when `padding_mode` is `constant`.
+            padding_mode : The padding mode to use. Options are:
+                           1. `constant`  : Fill the padded area with a 
+                                            constant grayscale value.
+                           2. `reflect`   : Mirrors edge pixels in the padded
+                                            area.
+                           3. `Replicate` : Replicates the edge pixels into the
+                                            padded area.
+                           4. `circular`  : Wraps the opposite edges pixels to
+                                            fill the padded area.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__()
         self.padding: tuple[int, ...] = None
         self.fill           = fill
@@ -72,6 +94,38 @@ class _Crop(Transform):
         p:              float = 1.0,
         transform_mask: bool  = True
     ) -> None:
+        '''Abstract parent of cropping transform classes.
+
+        Implements the actual tensor cropping logic, so that child classes can
+        just define how the cropping should be applied.
+        
+        Args:
+            size          : The size (H, W) to crop the inputs to. If only a 
+                            single value is provided, it will be used for both 
+                            height and width.
+            padding       : The padding to apply (see vision.transform.Pad), or 
+                            None for no padding.
+            pad_if_needed : If True, and if the crop size is larger than the
+                            input size, the input will be automatically padded 
+                            to the crop size. If False, a RuntimeError will 
+                            instead be raised if the transform recieves an 
+                            input smaller than the crop size in any dimension.
+            fill          : The fill value to use for the padded area if 
+                            `padding_mode` is `constant`.
+            padding_mode  : The padding mode to use if applicable. Options are:
+                            1. `constant`  : Fill the padded area with a 
+                                             constant grayscale value.
+                            2. `reflect`   : Mirrors edge pixels in the padded
+                                             area.
+                            3. `Replicate` : Replicates the edge pixels into 
+                                             the padded area.
+                            4. `circular`  : Wraps the opposite edges pixels to
+                                             fill the padded area.
+            p               : The probability (0-1) of the effect being applied 
+                              to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         if isinstance(size, int): self.size = (size, size)
         else: self.size = size
@@ -126,6 +180,35 @@ class RandomCrop(_Crop):
         p:              float = 1.0,
         transform_mask: bool  = True
     ) -> None:
+        '''Randomly crops input images to target size.
+
+        Args:
+            size          : The size (H, W) to crop the inputs to. If only a 
+                            single value is provided, it will be used for both 
+                            height and width.
+            padding       : The padding to apply (see vision.transform.Pad), or 
+                            None for no padding.
+            pad_if_needed : If True, and if the crop size is larger than the
+                            input size, the input will be automatically padded 
+                            to the crop size. If False, a RuntimeError will 
+                            instead be raised if the transform recieves an 
+                            input smaller than the crop size in any dimension.
+            fill          : The fill value to use for the padded area if 
+                            `padding_mode` is `constant`.
+            padding_mode  : The padding mode to use if applicable. Options are:
+                            1. `constant`  : Fill the padded area with a 
+                                             constant grayscale value.
+                            2. `reflect`   : Mirrors edge pixels in the padded
+                                             area.
+                            3. `Replicate` : Replicates the edge pixels into 
+                                             the padded area.
+                            4. `circular`  : Wraps the opposite edges pixels to
+                                             fill the padded area.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(
             size, padding, pad_if_needed, fill, 
             padding_mode, p, transform_mask)
@@ -166,6 +249,33 @@ class CenterCrop(_Crop):
         ] = 'constant',
         transform_mask: bool = True
     ) -> None:
+        '''Center-crops input images to target size.
+
+        Args:
+            size          : The size (H, W) to crop the inputs to. If only a 
+                            single value is provided, it will be used for both 
+                            height and width.
+            padding       : The padding to apply (see vision.transform.Pad), or 
+                            None for no padding.
+            pad_if_needed : If True, and if the crop size is larger than the
+                            input size, the input will be automatically padded 
+                            to the crop size. If False, a RuntimeError will 
+                            instead be raised if the transform recieves an 
+                            input smaller than the crop size in any dimension.
+            fill          : The fill value to use for the padded area if 
+                            `padding_mode` is `constant`.
+            padding_mode  : The padding mode to use if applicable. Options are:
+                            1. `constant`  : Fill the padded area with a 
+                                             constant grayscale value.
+                            2. `reflect`   : Mirrors edge pixels in the padded
+                                             area.
+                            3. `Replicate` : Replicates the edge pixels into 
+                                             the padded area.
+                            4. `circular`  : Wraps the opposite edges pixels to
+                                             fill the padded area.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(
             size, padding, pad_if_needed, fill, 
             padding_mode, 1.0, transform_mask)
@@ -203,13 +313,56 @@ class RandomResizedCrop(_Crop):
         padding_mode:  Literal[
             'constant', 'edge', 'reflect', 'symmetric'
         ] = 'constant',
-        scaling_mode:  Literal[
-            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
-        ] = 'nearest',
+        scaling_mode:  Literal['nearest', 'bilinear', 'bicubic'] = 'nearest',
         a:             float = -0.75,
         p:             float = 1.0,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly crops inputs, then scales result to target output size.
+
+        Args:
+            crop_size     : The size (H, W) to crop the inputs to before 
+                            scaling. If only a single value is provided, it 
+                            will be used for both height and width.
+            output_size   : The size (H, W) to scale the image to after 
+                            cropping is applied, or None to return the crop 
+                            result unscaled. If only a single value is 
+                            provided it will be used for both height and width.
+            size          : The size (H, W) to crop the inputs to. If only a 
+                            single value is provided, it will be used for both 
+                            height and width.
+            padding       : The padding to apply (see vision.transform.Pad), or 
+                            None for no padding.
+            pad_if_needed : If True, and if the crop size is larger than the
+                            input size, the input will be automatically padded 
+                            to the crop size. If False, a RuntimeError will 
+                            instead be raised if the transform recieves an 
+                            input smaller than the crop size in any dimension.
+            fill          : The fill value to use for the padded area if 
+                            `padding_mode` is `constant`.
+            padding_mode  : The padding mode to use if applicable. Options are:
+                            1. `constant`  : Fill the padded area with a 
+                                             constant grayscale value.
+                            2. `reflect`   : Mirrors edge pixels in the padded
+                                             area.
+                            3. `Replicate` : Replicates the edge pixels into 
+                                             the padded area.
+                            4. `circular`  : Wraps the opposite edges pixels to
+                                             fill the padded area.
+            scaling_mode  : The resampling mode to when scaling the crop 
+                            result. Options are:
+                            1. `nearest`  : Nearest neighbour resampling.
+                            2. `bilinear` : Bilinear iterpolation.
+                            3. `bicubic` : Bicubic interpolation.
+            a              : Controls the smoothness of the kernel when 
+                             `scaling_mode` is `bicubic`. Lower values will
+                             produce sharper results, higher values will 
+                             produce smoother results.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(
             crop_size, padding, pad_if_needed, fill, 
             padding_mode, p, transform_mask)
@@ -252,13 +405,48 @@ class Resize(Transform):
         self,
         size:          int   | tuple[int,   ...] | None = None,
         scale_factor:  float | tuple[float, ...] | None = None,
-        mode:          Literal[
-            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
-        ] = 'nearest',
+        mode:          Literal['nearest', 'bilinear', 'bicubic'] = 'nearest',
         a:             float = -0.75,
         align_corners:  bool = False,
         transform_mask: bool = True
     ) -> None:
+        '''Scales input to target size, or by scale factor.
+
+        Output size of the resize operation can be defined in one of two
+        ways:
+
+        1. `size`: Directly defining the size of the spatial dimensions as a:
+            - A Single integer (L) for 3-dimension tensors.
+            - A tuple (H: int, W: int) for 4-dimension tensors.
+            
+        2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+            of the input tensor. So if you input a tensor with shape 
+            (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+            output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+            defined as:
+            
+            - A Single float (L) for 3-dimension tensors.
+            - A tuple (H: float, W: float) for 4-dimension tensors.
+
+        NOTE: If both `size` and `scale_factor` are provided, Upsample will use 
+        `scale_factor`.
+
+        Args:
+            size          : The desired output size.
+            scale_factor  : The scale factor for the upsample.
+            mode          : The resampling mode to use. Options are:
+                            1. `nearest`  : Nearest neighbour resampling.
+                            2. `bilinear` : Bilinear iterpolation.
+                            3. `bicubic` : Bicubic interpolation.
+            a              : Controls the smoothness of the kernel when 
+                             `scaling_mode` is `bicubic`. Lower values will
+                             produce sharper results, higher values will 
+                             produce smoother results.
+            align_corners  : If true, the corners of the input and the resized
+                             result will be aligned, preserving their values.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__()
         self.size           = size
         self.scale_factor   = scale_factor
@@ -291,6 +479,14 @@ class RandomHorizontalFlip(Transform):
         p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly flips inputs horizontally.
+        
+        Args:
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.transform_mask = transform_mask
     
@@ -315,6 +511,14 @@ class RandomVerticalFlip(Transform):
         p:              float = 0.5,
         transform_mask: bool  = True
     ) -> None:
+        '''Randomly flips inputs vertically.
+        
+        Args:
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.transform_mask = transform_mask
     
@@ -339,6 +543,14 @@ class Transpose(Transform):
         p:              float = 0.5,
         transform_mask: bool  = True
     ) -> None:
+        '''Randomly flips along both their horizontal, and vertical axes.
+        
+        Args:
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.transform_mask = transform_mask
     
