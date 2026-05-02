@@ -5,8 +5,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 import nectarml.nn.functional as F
-from nectarml.core     import Tensor, creation as T
-from nectarml.typing   import float32
+from nectarml.core        import Tensor, creation as T
+from nectarml.typing      import float32
 from nectarml.vision.transforms.transform import Transform
 from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
 from nectarml.vision.transforms.blur   import GaussianBlur
@@ -22,6 +22,18 @@ class Convolve(Transform):
         alpha: float | tuple[float, float] = 1.0,
         p:     float = 1.0
     ) -> None:
+        '''Convolves input images with a specified kernel.
+
+        NOTE: This transform can run natively on the GPU for CUDA tensors, and
+        is much faster on the GPU.
+
+        Args:
+            kernel : The kernel to use for the convolution operation.
+            alpha  : Blend strength (0-1) between the original input, and the
+                     effect result.
+            p      : The probability (0-1) of the effect being applied to any
+                     given input.
+        '''
         super().__init__(p=p)
         self.kernel = Tensor(kernel, dtype=float32)
         self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
@@ -50,13 +62,32 @@ class Sobel(Transform):
     def __init__(
         self,
         per_channel: bool = False,
-        feldman: bool = False,
-        p: float = 1.0
+        scharr:      bool = False,
+        p:          float = 1.0
     ) -> None:
+        '''Applies a Sobel operator to input images. 
+
+        Performs Sobel edge detection. Convolves input images twice with the 
+        x/y kernels of a Sobel operator to isolate edges in the input images.
+
+        NOTE: This transform can run natively on the GPU for CUDA tensors, and
+        is much faster on the GPU.
+
+        Args:
+            per_channel : If True, the channels of the input will be split and
+                          the Sobel filter will be applied to each channel
+                          independently, then the results will be joined to 
+                          form the output image.
+            scharr      : If True, the kernels of a Scharr operator will be 
+                          used in place of the traditional Sobel-Feldman 
+                          kernels.
+            p           : The probability (0-1) of the effect being applied to 
+                          any given input.
+        '''
         super().__init__(p=p)
         self.per_channel = per_channel
         
-        if not feldman:
+        if not scharr:
             kx = [[ 1,   0,  -1],
                   [ 2,   0,  -2],
                   [ 1,   0,  -1]]
@@ -114,6 +145,22 @@ class Prewitt(Transform):
         per_channel: bool  = False,
         p:           float = 1.0
     ) -> None:
+        '''Applies a Prewitt operator to input images. 
+
+        Performs Prewitt edge detection. Convolves input images twice with the 
+        x/y kernels of a Prewitt operator to isolate edges in the input images.
+
+        NOTE: This transform can run natively on the GPU for CUDA tensors, and
+        is much faster on the GPU.
+
+        Args:
+            per_channel : If True, the channels of the input will be split and
+                          the Prewitt filter will be applied to each channel
+                          independently, then the results will be joined to 
+                          form the output image.
+            p           : The probability (0-1) of the effect being applied to 
+                          any given input.
+        '''
         super().__init__(p=p)
         self.per_channel = per_channel
         
@@ -166,8 +213,24 @@ class Laplacian(Transform):
     def __init__(
         self,
         per_channel: bool = False,
-        p: float = 1.0
+        p:          float = 1.0
     ) -> None:
+        '''Applies a discrete Laplace operator to input images. 
+
+        Performs Laplacian edge detection. Convolves input images with a 2D
+        Laplacian kernel to isolate high-frequency detail in the input images.
+
+        NOTE: This transform can run natively on the GPU for CUDA tensors, and
+        is much faster on the GPU.
+
+        Args:
+            per_channel : If True, the channels of the input will be split and
+                          the Laplacian filter will be applied to each channel
+                          independently, then the results will be joined to 
+                          form the output image.
+            p           : The probability (0-1) of the effect being applied to 
+                          any given input.
+        '''
         super().__init__(p=p)
         self.per_channel = per_channel
         
@@ -213,13 +276,31 @@ class Dither(Transform):
         from_channel: Literal['r', 'g', 'b'] = 'r',
         p:            float = 1.0
     ) -> None:
-        '''
-        Fully sequential and pure CPU so very slow on large tensors. Likely 
-        needs a dedicated CUDA kernel in the future.
-        
+        '''Applies dithering to input images.
+
         Big thanks to Christian Hill of scipython.com. This implementation was 
         adapted from his which can be found here:
             - https://scipython.com/blog/floyd-steinberg-dithering/
+
+        NOTE: This transform runs fully sequentially and purely on the CPU so 
+        it is very slow on large tensors. It will likely recieve a dedicated 
+        CUDA kernel in the future.
+
+        Args:
+            levels       : Number of quantization levels to apply.
+            algorithm    : Not currently used, here for the addition of more
+                           dithering algorithms in the future.
+            per_channel  : If True, the dithering effect will be applied to 
+                           each channel independently. If False, it will 
+                           instead be applied based on a single channel of
+                           the input image only. Note that the resulting output 
+                           tensor will have the same number of channels as the 
+                           input tensor, the values will just be duplicated per 
+                           channel to create the grayscale effect.
+            from_channel : The channel to apply the dithering based on if 
+                           `per_channel` is False.
+            p            : The probability (0-1) of the effect being applied to 
+                           any given input.
         '''
         super().__init__(p=p)
         assert levels > 1, 'Dither "levels" must be > 1.'
@@ -283,16 +364,34 @@ class Halftone(Transform):
     def __init__(
         self,
         cell_size:  int = 10,
-        foreground: tuple[float, float, float]  = (0.0, 0.0, 0.0),
-        background: tuple[float, float, float]  = (1.0, 1.0, 1.0),
-        blend:      float | tuple[float, float] = 0.5,
+        foreground: tuple[int, int, int]  = (0, 0, 0),
+        background: tuple[int, int, int]  = (255, 255, 255),
+        alpha:      float | tuple[float, float] = 0.5,
         p:          float = 1.0
     ) -> None:
+        '''Applies a halftone filter to input images.
+
+        NOTE: This transform runs purely on the CPU regardless on input tensor
+        device so it can be slow on large tensors.
+
+        Args:
+            cell_size   : The size of each individual cell in the pattern.
+            foreground  : The color (RGB, 0-255) of the foreground.
+            background  : The color (RGB, 0-255) of the background.
+            alpha       : Blend strength (0-1) between the original input, and 
+                          the effect result. Can be a single floating point 
+                          number in range [0:1], or a tuple of floats in the 
+                          same range, in which case, a random value between the 
+                          first and second value will be chosen each time the 
+                          transform is called.
+            p           : The probability (0-1) of the effect being applied to 
+                          any given input.
+        '''
         super().__init__(p=p)
         self.cell_size  = cell_size
-        self.foreground = foreground
-        self.background = background
-        self.blend = (blend, blend) if isinstance(blend, float|int) else blend
+        self.foreground = tuple([i/255 for i in foreground])
+        self.background = tuple([i/255 for i in background])
+        self.alpha = (alpha, alpha) if isinstance(alpha, float|int) else alpha
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input        
@@ -332,10 +431,10 @@ class Halftone(Transform):
         
         result = Tensor(out[np.newaxis].astype(input.dtype.numpy), 
             dtype=input.dtype, device=input.device)
-        return ((1-self._blend) * input + self._blend*result).clamp(0.0, 1.0)
+        return ((1-self._alpha) * input + self._alpha*result).clamp(0.0, 1.0)
 
     def _build_parameters(self) -> None:
-        self._blend = self._random_in_range(self.blend)
+        self._alpha = self._random_in_range(self.alpha)
 
     def forward(self, input: TransformInput) -> TransformInput:
         self._build_parameters()
@@ -353,6 +452,20 @@ class Kuwahara(Transform):
         radius: int   = 7,
         p:      float = 1.0
     ) -> None:
+        '''Applies a Kuwahara filter to input images.
+
+        Adaptive noise reduction filter which is not generally all that useful
+        for reducing noise, save for very particular circumstances. It does,
+        however, produce a painterly stylized effect which is quite nice.
+
+        See here: https://en.wikipedia.org/wiki/Kuwahara_filter
+
+        Args:
+            radius : The filter radius. Larger values will smooth over larger
+                     areas.
+            p      : The probability (0-1) of the effect being applied to 
+                     any given input.
+        '''
         super().__init__(p=p)
         self.radius = radius
       
@@ -406,6 +519,16 @@ class Pixelate(Transform):
         block_size: int | tuple[int, int] = (6, 12),
         p:          float = 1.0
     ) -> None:
+        '''Applies a pixelation filter to input images.
+        
+        Args:
+            block_size : The size of each block of pixels. Can be a single 
+                         integer, or a tuple of two integers, in which case, a
+                         random value between the two (inclusive) will be 
+                         chosen each time the transform is called.
+            p          : The probability (0-1) of the effect being applied to 
+                         any given input.
+        '''
         super().__init__(p=p)
         self.block_size = (block_size, block_size) \
             if isinstance(block_size, int) else block_size
@@ -439,6 +562,26 @@ class AsciiRender(Transform):
         sample_color:   bool = True,
         p:              float = 1.0
     ) -> None:
+        '''Renders input images using an ascii character set.
+        
+        Args:
+            block_size     : The size of each character. Smaller values produce
+                             denser results.
+            font           : System path to the font to use when rendering, or
+                             `None` to use the default font. Works best with
+                             monospace fonts.
+            charset        : What charset to use when rendering the image.
+                             Options are [`minimal`, `dense`, `block`].
+            custom_charset : A string defining the character set to use when
+                             rendering the image. Characters aranged from 
+                             darkest to lightest. For example:
+                             `@%#*+=-:. ` or `█▓▒░ `
+            sample_color   : If true, the characters in the final image will 
+                             sample the color of the input image. If False,
+                             they will be white with a black background.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+        '''
         super().__init__(p=p)
         assert block_size > 0, 'AsciiRender "block_size" must be > 0.'
         self.block_size   = block_size
@@ -551,6 +694,49 @@ class DifferenceOfGaussians(Transform):
         gray:       bool  = True,
         p:          float = 1.0
     ) -> None:
+        '''Applies an extended difference of Gaussian filter to input images.
+        
+        Blurs image twice using Gaussian filters with different sigmas, then
+        takes the difference. Can be used for high quality, reasonably 
+        performant edge detection, as well as a number of stylized effects
+        depending on the input parameters.
+        
+        Reference:
+            - https://en.wikipedia.org/wiki/Difference_of_Gaussians
+            - Acerola, This is the Difference of Gaussians:
+              https://www.youtube.com/watch?v=5EuYKEvugLU
+            
+        Args:
+            kernel_size : The Gaussian kernel size.
+            sigma1      : The sigma of the first Gaussian.
+            sigma2      : The sigma of the second Gaussian.
+            iterations  : The number of blurring iterations.
+            alpha       : Blend strength (0-1) between the original input, and 
+                          the effect result. Can be a single floating point 
+                          number in range [0:1], or a tuple of floats in the 
+                          same range, in which case, a random value between the 
+                          first and second value will be chosen each time the 
+                          transform is called.
+            phi         : If `threshold` is not None, and this value is 0.0,
+                          the difference result will be run through a binary
+                          threshold function based on the value of `threshold`.
+                          If `threshold` is not None and this value is greater 
+                          than 0.0, any values below the threshold will instead
+                          be run through a hyperbolic tangent function with 
+                          `phi` controlling the falloff.
+            tau         : Scale factor for the second Gaussian.
+            threshold   : The value threshold at which to transition between
+                          colors, or None to not apply a threshold function.
+            invert      : Swaps the two Gaussians.
+            gray        : If True, the effect will be applied to a grayscale
+                          version of the image. If False, it will be applied to
+                          all channels. Note that the resulting output tensor
+                          will have the same number of channels as the input
+                          tensor, the values will just be duplicated per 
+                          channel to create the grayscale effect.
+            p           : The probability (0-1) of the effect being applied 
+                          to any given input.
+        '''
         super().__init__(p=p)
         self.kernel_size = (kernel_size, kernel_size) \
             if isinstance(kernel_size, int) else kernel_size
