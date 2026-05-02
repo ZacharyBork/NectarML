@@ -13,12 +13,30 @@ from nectarml.vision.transforms.common    import TransformInput
 class GaussianNoise(Transform):
     def __init__(
         self,
-        std_range: tuple[float, float] = (0.1, 0.2),
+        std_range:  tuple[float, float] = (0.1, 0.2),
         mean_range: tuple[float, float] = (0.0, 0.0),
-        per_channel: bool = False,
-        noise_scale_factor: float = 1.0,
-        p: float = 0.5 
+        per_channel:               bool = False,
+        noise_scale_factor:       float = 1.0,
+        p:                        float = 0.5 
     ) -> None:
+        '''Randomly applies Gaussian noise to input images.
+        
+        Args:
+            std_range          : The min and max values (inclusive) of the 
+                                 standard deviation of the Gaussian noise. A 
+                                 random value in this range will be chosen each 
+                                 time the transform is called.
+            mean_range         : The min and max values (inclusive) of the mean
+                                 of the Gaussian noise. A random value in this 
+                                 range will be chosen each time the transform 
+                                 is called.
+            per_channel        : If True, a different noise will be applied to 
+                                 each channel of the input, otherwise the same 
+                                 noise will be applied to all channels.
+            noise_scale_factor : Scaling factor (intensity) for the noise.
+            p                  : The probability (0-1) of the effect being 
+                                 applied to any given input.
+        '''
         super().__init__(p=p)
         self.std_range = std_range
         self.mean_range = mean_range
@@ -59,6 +77,21 @@ class SaltAndPepperNoise(Transform):
         salt_vs_pepper: tuple[float, float] = (0.4, 0.6),
         p:              float = 0.5
     ) -> None:
+        '''Randomly applies salt and pepper noise to input images.
+        
+        Args:
+            amount         : The range of chances (0-1) of any given pixel 
+                             being affected by the noise.
+            salt_vs_pepper : The ratio of white to black pixels to use when 
+                             applying the noise. The first value being higher
+                             creates more white pixels, the second creates more
+                             black. The two values must add up to 1.0.
+            p              : The probability (0-1) of the effect being 
+                             applied to any given input.
+        '''
+        assert sum(salt_vs_pepper) == 1.0, \
+            'The two values of `salt_vs_pepper` must add up to 1.0.'
+        
         super().__init__(p=p)
         self.amount         = amount
         self.salt_vs_pepper = salt_vs_pepper
@@ -99,6 +132,16 @@ class SpeckleNoise(Transform):
         std_range: tuple[float, float] = (0.1, 0.2),
         p:         float = 0.5
     ) -> None:
+        '''Randomly applies noise drawn from a normal distribution.
+        
+        Args:
+            std_range : The min and max values (inclusive) of the 
+                        standard deviation of the normal distribution.
+                        A random value in this range will be chosen 
+                        each time the transform is called.
+            p         : The probability (0-1) of the effect being 
+                        applied to any given input.
+        '''
         super().__init__(p=p)
         self.std_range = std_range
     
@@ -130,6 +173,20 @@ class ISONoise(Transform):
         intensity:   tuple[float, float] = (0.1, 0.5),
         p:           float = 0.5
     ) -> None:
+        '''Simulates the noise from high ISO photographs.
+        
+        Args:
+            color_shift : The min and max values (inclusive) of the 
+                          standard deviation for the color noise. A random 
+                          value in this range will be chosen each time the 
+                          transform is called.
+            intensity   : The min and max values (inclusive) of the 
+                          intensity of the ISO noise. A random value in this 
+                          range will be chosen each time the transform is 
+                          called.
+            p           : The probability (0-1) of the effect being 
+                          applied to any given input.
+        '''
         super().__init__(p=p)
         self.color_shift = color_shift
         self.intensity   = intensity
@@ -171,6 +228,16 @@ class MultiplicativeNoise(Transform):
         per_channel:      bool  = False,
         p:                float = 0.5
     ) -> None:
+        '''Applies multiplicative uniform noise to input images.
+        
+        Args:
+            multiplier_range : The value range (inclusive) of the noise.
+            per_channel      : If True, a different noise will be applied to 
+                               each channel of the input, otherwise the same 
+                               noise will be applied to all channels.
+            p                : The probability (0-1) of the effect being 
+                               applied to any given input.
+        '''
         super().__init__(p=p)
         self.multiplier_range = multiplier_range
         self.per_channel      = per_channel
@@ -186,7 +253,7 @@ class MultiplicativeNoise(Transform):
         else: noise_shape = input_shape
         
         r   = self.multiplier_range
-        arr = self.rng.uniform(r[0], [1], noise_shape).astype(np.float32)
+        arr = self.rng.uniform(r[0], r[1], noise_shape).astype(np.float32)
         self._noise = Tensor(arr, dtype=float32)
         
     def forward(self, input: TransformInput) -> TransformInput:
@@ -206,6 +273,18 @@ class ImageCompression(Transform):
         quality_range:    int | tuple[int, int] = (50, 95),
         p:                float = 0.5
     ) -> None:
+        '''Simulated compression artifacts on input images.
+        
+        Args:
+            compression_type : The type of compression to simulate. Options are
+                               [`jpeg`, `webp`].
+            quality_range    : The min and max values (inclusive) of the 
+                               quality range for the simulated compression. A 
+                               random value in this range will be chosen each 
+                               time the transform is called.
+            p                : The probability (0-1) of the effect being 
+                               applied to any given input.
+        '''
         super().__init__(p=p)
         self.compression_type = compression_type
         self.quality = (quality_range, quality_range) \
