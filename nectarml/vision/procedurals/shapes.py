@@ -1,11 +1,11 @@
 import numpy as np
 from scipy.ndimage import distance_transform_edt
 
-from nectarml import typing
-from nectarml.core import Tensor
-from nectarml.constants import PI
+from nectarml                    import typing
+from nectarml.core               import Tensor
+from nectarml.constants          import PI
 from nectarml.vision.procedurals import Generator
-from nectarml.vision.transforms.common import lerp
+from nectarml.functional         import lerp
 
 class Checkerboard(Generator):
     def __init__(

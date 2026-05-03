@@ -174,7 +174,7 @@ __global__ void pad_backward_kernel(
             in_coords[d] = max(0, min(in_coord, size - 1));
         }
         else if constexpr (mode == PadMode::Reflect) {
-            if (in_coord < 0)    in_coord = -in_coord;
+            if (in_coord < 0)     in_coord = -in_coord;
             if (in_coord >= size) in_coord = 2 * (size - 1) - in_coord;
             in_coords[d] = in_coord;
         }

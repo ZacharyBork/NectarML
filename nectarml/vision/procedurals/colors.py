@@ -2,10 +2,11 @@ from typing import Literal
 
 import numpy as np
 
-from nectarml import typing
-from nectarml.core import Tensor
-from nectarml.vision.procedurals import Generator
-from nectarml.vision.transforms.common import gradient_mask, lerp
+from nectarml                          import typing
+from nectarml.core                     import Tensor
+from nectarml.vision.procedurals       import Generator
+from nectarml.functional               import lerp
+from nectarml.vision.transforms.common import gradient_mask
 
 class Solid(Generator):
     def __init__(

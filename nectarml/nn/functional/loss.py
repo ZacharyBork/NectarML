@@ -4,6 +4,7 @@ from collections.abc import Iterable
 
 from nectarml.core                   import Tensor
 from nectarml.typing                 import float32, int32
+from nectarml.functional             import edge_detect
 from nectarml.nn.functional          import math as tensor_math
 from nectarml.nn.functional.indexing import where, gather
 
@@ -282,9 +283,53 @@ def hinge2_loss(
     loss = tensor_math.maximum(1 - y * x, 0.0) ** 2
     return _reduce_loss(loss, reduction)
 
+def edge_loss(
+    input:       Tensor,
+    target:      Tensor,
+    metric:      Literal['l1', 'l2'] = 'l1',
+    mode:        Literal['sobel', 'prewitt', 'laplacian'] = 'sobel',
+    scharr:      bool  = False,
+    per_channel: bool  = False,
+    eps:         float = 1e-8,
+    reduction:   Literal['mean', 'sum', 'none'] = 'mean'
+) -> Tensor:
+    '''Computes loss between edge maps of input and target.
+
+    Runs an edge detection algorithm on the input and target tensors, then
+    evaluates loss between the two edge maps using a traditional regression
+    loss function.
+
+    Args:
+        input       : The tensor to compare.
+        target      : The tensor to compare the input against.
+        metric      : The regression loss to use when comparing the two edge 
+                      maps. Options are [`l1`, `l2`].
+        mode        : The edge detection algorithm to employ. Options are 
+                      [`sobel`, `prewitt`, `laplacian`].
+        scharr      : If True and the mode is `sobel`, the edge detection will
+                      use Scharr operator kernels rather than the traditional 
+                      Sobel-Feldman kernels.
+        per_channel : If True, the channels of the input will be split and the 
+                      Sobel filter will be applied to each channel 
+                      independently, then the results will be joined to form 
+                      the output image.
+        eps         : Epsilon to add to the result of the convolution operation
+                      to avoid division by zero errors.
+        reduction   : The reduction method to use for the resulting loss 
+                      tensor. Options are ['mean', 'sum', 'none'].
+                      
+    Returns:
+        Tensor : The computed loss.
+    '''
+    detect = lambda t : edge_detect(t, mode, scharr, per_channel, eps)
+    metric = l1_loss if metric == 'l1' else l2_loss
+    x, y   = _prep_inputs(input, target)
+    loss   = metric(detect(x), detect(y))
+    return _reduce_loss(loss, reduction)
+    
 # LOSS - PROBABILISTIC
 
-def kl_divergence_loss(
+def kl_divergence_loss( 
     input:     Tensor, 
     target:    Tensor,
     reduction: Literal['none', 'mean', 'sum'] = 'sum'
@@ -300,7 +345,9 @@ def bce_with_logits_loss(
     reduction: Literal['mean', 'sum', 'none'] = 'mean'
 ) -> Tensor:
     x, y = _prep_inputs(input, target)
-    loss = tensor_math.maximum(x, 0.0) - x * y + (1.0 + (-abs(x)).exp()).log()
+    loss = tensor_math.maximum(x, 0.0) \
+         - x * y \
+         + (1.0 + (-tensor_math.abs(x)).exp()).log()
     return _reduce_loss(loss, reduction)
 
 # LOSS - RANKING
@@ -314,13 +361,7 @@ def triplet_margin_loss(
     reduction: Literal['mean', 'sum', 'none'] = 'mean'
 ) -> Tensor: 
     assert margin > 0.0
-        
-    a, p, n = _prep_inputs(anchor, positive, negative)
-        
-    a = anchor.to(dtype=float32)
-    p = positive.to(dtype=float32)
-    n = negative.to(dtype=float32)
-    
+    a, p, n    = _prep_inputs(anchor, positive, negative)
     dist       = lambda x, y: (((x - y) ** 2).sum() + eps).sqrt()
     loss_value = tensor_math.maximum(dist(a, p) - dist(a, n) + margin, 0.0)
     return _reduce_loss(loss_value, reduction)

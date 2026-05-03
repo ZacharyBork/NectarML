@@ -217,12 +217,8 @@ uintptr_t run_conv2d_backward_input(
     int spatial_out = B * H_out * W_out;
     int kernel_size = C_in * KH * KW;
 
-    T* d_out_grad = static_cast<T*>(g_pool.alloc(B * C_out * H_out * W_out * sizeof(T)));
-    launch_transpose_input_2d<T>(
-        reinterpret_cast<T*>(out_grad_ptr), d_out_grad,
-        B, C_out, H_out, W_out);
-
-    T* d_col_grad = static_cast<T*>(g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
+    T* d_col_grad = static_cast<T*>(
+        g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
 
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -231,7 +227,7 @@ uintptr_t run_conv2d_backward_input(
             CUBLAS_OP_N, CUBLAS_OP_T,
             spatial_out, kernel_size, C_out,
             &alpha,
-            d_out_grad, spatial_out,
+            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
             reinterpret_cast<T*>(weight_ptr), kernel_size,
             &beta,
             d_col_grad, spatial_out);
@@ -242,15 +238,13 @@ uintptr_t run_conv2d_backward_input(
             CUBLAS_OP_N, CUBLAS_OP_T,
             spatial_out, kernel_size, C_out,
             &alpha,
-            d_out_grad, spatial_out,
+            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
             reinterpret_cast<T*>(weight_ptr), kernel_size,
             &beta,
             d_col_grad, spatial_out);
     }
     else throw std::runtime_error(
         "conv2d_backward_input only supports float32 and float16");
-
-    g_pool.free(d_out_grad, B * C_out * H_out * W_out * sizeof(T));
 
     T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C_in * H * W * sizeof(T)));
     cudaMemset(d_grad_input, 0, B * C_in * H * W * sizeof(T));

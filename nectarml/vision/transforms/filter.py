@@ -1,4 +1,3 @@
-import warnings
 from typing import Literal
 
 import numpy as np
@@ -7,9 +6,10 @@ from PIL import Image, ImageDraw, ImageFont
 import nectarml.nn.functional as F
 from nectarml.core        import Tensor, creation as T
 from nectarml.typing      import float32
+from nectarml.functional  import convolve2d, edge_detect
 from nectarml.vision.transforms.transform import Transform
-from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
-from nectarml.vision.transforms.blur   import GaussianBlur
+from nectarml.vision.transforms.common    import TransformInput
+from nectarml.vision.transforms.blur      import GaussianBlur
 
 class Convolve(Transform):
     def __init__(
@@ -35,13 +35,12 @@ class Convolve(Transform):
                      given input.
         '''
         super().__init__(p=p)
-        self.kernel = Tensor(kernel, dtype=float32)
-        self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
+        self.kernel = kernel
+        self.alpha  = (alpha, alpha) if isinstance(alpha, int|float) else alpha
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        kernel  = self.kernel.to(input.device, input.dtype)
-        result  = F.sqrt(apply_kernel_2d(input, kernel)**2 + 1e-6)
+        result  = convolve2d(input, self.kernel)
         blended = (1 - self._alpha) * input + self._alpha * result
         return blended.clamp(0.0, 1.0)
         
@@ -86,49 +85,13 @@ class Sobel(Transform):
         '''
         super().__init__(p=p)
         self.per_channel = per_channel
-        
-        if not scharr:
-            kx = [[ 1,   0,  -1],
-                  [ 2,   0,  -2],
-                  [ 1,   0,  -1]]
-            ky = [[ 1,   2,   1],
-                  [ 0,   0,   0],
-                  [-1,  -2,  -1]]
-        else:
-            kx = [[ 3,   0,  -3],
-                  [10,   0, -10],
-                  [ 3,   0,  -3]]
-            ky = [[ 3,  10,   3],
-                  [ 0,   0,   0],
-                  [-3, -10,  -3]]
-            
-        self.sobel_x = Tensor(kx, dtype=float32)
-        self.sobel_y = Tensor(ky, dtype=float32)
-      
+        self.scharr      = scharr
+
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        kernel_x = self.sobel_x.to(input.device, input.dtype)
-        kernel_y = self.sobel_y.to(input.device, input.dtype)
-
-        outputs = []
-        if not self.per_channel:
-            gray = input.mean(dim=1, keepdim=True)
-            out  = F.sqrt(
-                apply_kernel_2d(gray, kernel_x)**2 
-              + apply_kernel_2d(gray, kernel_y)**2
-              + 1e-6)
-            outputs = [out]*3
-        else:
-            channels = input.unbind(dim=1)
-            for ch in channels:
-                gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out  = F.sqrt(
-                apply_kernel_2d(gray, kernel_x)**2 
-              + apply_kernel_2d(gray, kernel_y)**2
-              + 1e-6)
-                outputs.append(out)
-        
-        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
+        return edge_detect(
+            input, 'sobel', self.scharr, self.per_channel, self._epsilon
+        ).clamp(0.0, 1.0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -164,41 +127,11 @@ class Prewitt(Transform):
         super().__init__(p=p)
         self.per_channel = per_channel
         
-        self.prewitt_x = Tensor([
-            [1, 0, -1],
-            [1, 0, -1],
-            [1, 0, -1]
-        ], dtype=float32)
-        self.prewitt_y = Tensor([
-            [1, 1, 1],
-            [0, 0, 0],
-            [-1, -1, -1]
-        ], dtype=float32)
-        
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        kernel_x = self.prewitt_x.to(input.device, input.dtype)
-        kernel_y = self.prewitt_y.to(input.device, input.dtype)
-
-        outputs = []
-        if not self.per_channel:
-            gray = input.mean(dim=1, keepdim=True)
-            out  = F.sqrt(
-                apply_kernel_2d(gray, kernel_x)**2 
-              + apply_kernel_2d(gray, kernel_y)**2
-              + 1e-6)
-            outputs = [out]*3
-        else:
-            channels = input.unbind(dim=1)
-            for ch in channels:
-                gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out  = F.sqrt(
-                apply_kernel_2d(gray, kernel_x)**2 
-              + apply_kernel_2d(gray, kernel_y)**2
-              + 1e-6)
-                outputs.append(out)
-        
-        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
+        return edge_detect(
+            input, 'prewitt', per_channel=self.per_channel, eps=self._epsilon
+        ).clamp(0.0, 1.0)
 
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -242,21 +175,9 @@ class Laplacian(Transform):
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
-        kernel = self.kernel.to(input.device, input.dtype)
-
-        outputs = []
-        if not self.per_channel:
-            gray    = input.mean(dim=1, keepdim=True)
-            out     = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
-            outputs = [out]*3
-        else:
-            channels = input.unbind(dim=1)
-            for ch in channels:
-                gray = ch.mean(dim=0, keepdim=True).unsqueeze(0)
-                out  = F.sqrt(apply_kernel_2d(gray, kernel) ** 2 + 1e-6)
-                outputs.append(out)
-        
-        return F.cat(outputs, dim=1).clamp(0.0, 1.0)
+        return edge_detect(
+            input, 'laplacian', per_channel=self.per_channel, eps=self._epsilon
+        ).clamp(0.0, 1.0)
         
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -472,9 +393,7 @@ class Kuwahara(Transform):
     def make_kernel(self, row_slice: slice, col_slice: slice) -> Tensor:
         size = 2 * self.radius + 1
         k    = T.zeros((size, size))
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            k[row_slice, col_slice] = 1.0
+        k[row_slice, col_slice] = 1.0
         return k / (k.sum().item() + self._epsilon)
         
     def _transform(self, input: Tensor | None) -> Tensor | None:

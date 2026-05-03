@@ -12,6 +12,43 @@ def min(
     dim:     builtins.int | None = None,
     keepdim: builtins.bool = False
 ) -> Tensor | typing.return_types.min:
+    '''Reduces a tensor to its minimum value.
+
+    Args:
+        input   : The tensor to reduce.
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the smallest value found in the input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.min(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.values.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.min(t, dim=1, keepdim=True)
+                  ```
+                  **keep.values.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor | min : If `dim` is None, this function will return a scalar 
+                       tensor containing the minimum value found in the input 
+                       tensor. 
+
+                       If dim is **not** None, it will instead return a
+                       `nectarml.typing.return_types.min`, which contains the
+                       resulting tensor from the reduction, and an int32 tensor
+                       containing the original indices of the minimum values in
+                       the input tensor. These can be accessed like so:
+                       ```
+                       minimum = tensor.min(dim=1)
+                       result  = minimum.values
+                       indices = minimum.indices
+                       ```
+    '''
     return input.min(dim, keepdim)
 
 def amin(
@@ -26,6 +63,43 @@ def max(
     dim:     builtins.int | None = None,
     keepdim: builtins.bool = False
 ) -> Tensor | typing.return_types.max:
+    '''Reduces a tensor to its maximum value.
+
+    Args:
+        input   : The tensor to reduce.
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the largest value found in the input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.max(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.values.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.max(t, dim=1, keepdim=True)
+                  ```
+                  **keep.values.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor | max : If `dim` is None, this function will return a scalar 
+                       tensor containing the maximum value found in the input 
+                       tensor. 
+
+                       If dim is **not** None, it will instead return a
+                       `nectarml.typing.return_types.max`, which contains the
+                       resulting tensor from the reduction, and an int32 tensor
+                       containing the original indices of the maximum values in
+                       the input tensor. These can be accessed like so:
+                       ```
+                       maximum = tensor.max(dim=1)
+                       result  = maximum.values
+                       indices = maximum.indices
+                       ```
+    '''
     return input.max(dim, keepdim)
 
 def amax(
@@ -54,6 +128,30 @@ def mean(
     dim:     builtins.int | tuple[builtins.int, ...] | None = None,
     keepdim: builtins.bool = False
 ) -> Tensor:
+    '''Reduces a tensor to its mean value.
+
+    Args:
+        input   : The tensor to reduce.
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the mean value found in the entire input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.mean(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.mean(t, dim=1, keepdim=True)
+                  ```
+                  **keep.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor : The resulting tensor from the reduction.
+    '''
     return input.mean(dim, keepdim)
 
 def sum(
@@ -62,6 +160,30 @@ def sum(
     keepdim: builtins.bool = False,
     initial: builtins.int | builtins.float = 0
 ) -> Tensor:
+    '''Reduces a tensor by summing its elements.
+
+    Args:
+        input   : The tensor to reduce.
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the sum of all elements in the input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.sum(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.sum(t, dim=1, keepdim=True)
+                  ```
+                  **keep.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor : The resulting tensor from the reduction.
+    '''
     return input.sum(dim, keepdim, initial)
 
 def prod(
@@ -70,6 +192,30 @@ def prod(
     keepdim: builtins.bool = False,
     initial: builtins.int | builtins.float = 1
 ) -> Tensor:
+    '''Reduces a tensor to the product of its elements.
+
+    Args:
+        input   : The tensor to reduce.
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the product of all elements in the input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.prod(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.prod(t, dim=1, keepdim=True)
+                  ```
+                  **keep.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor : The resulting tensor from the reduction.
+    '''
     return input.prod(dim, keepdim, initial)
 
 def norm(
@@ -78,6 +224,37 @@ def norm(
     dim:     builtins.int | tuple[builtins.int, ...] | None = None,
     keepdim: builtins.bool = False
 ) -> Tensor:
+    '''Reduces a tensor via a normalization function.
+
+    Args:
+        input   : The tensor to reduce.
+        p       : The normalization function to apply. Options are:
+                  - `fro`: L2/Frobenius norm
+                  - `l1`: L1 norm
+                  - `inf`: L minus infinity norm
+                  - `-inf`: L infinity norm
+                  - `l0`: L0 norm
+                  - `lp`: General Lp norm
+        dim     : Optional dimension to perform the reduction along. If not
+                  provided, the reduction will return a scalar tensor 
+                  containing the product of all elements in the input tensor.
+        keepdim : If True, the `dim` that the tensor was reduced along will be
+                  kept as a size 1 dimension. For example:
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  no_keep = F.norm(t, dim=1, keepdim=False)
+                  ```
+                  **no_keep.shape == (1, 256, 256)**
+                  
+                  ```
+                  t = nectarml.rand(shape=(1, 3, 256, 256))
+                  keep = F.norm(t, dim=1, keepdim=True)
+                  ```
+                  **keep.shape == (1, 1, 256, 256)**
+    
+    Returns:
+        Tensor : The resulting tensor from the reduction.
+    '''
     return input.norm(p, dim, keepdim)
 
 def quantile(

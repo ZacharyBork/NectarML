@@ -36,10 +36,45 @@ def _compute_output_size(
 ### NEAREST NEIGHBOR ###
 
 def upsample_nearest(
-    input: Tensor,
-    size: int | tuple[int, ...] | None = None,
+    input:        Tensor,
+    size:         int   | tuple[int,   ...] | None = None,
     scale_factor: float | tuple[float, ...] | None = None,
 ) -> Tensor:
+    '''Nearest neighbor interpolation.
+
+    Increases or decreases the spatial size of a tensor to a desired output 
+    size using nearest neighbor interpolation. Valid for 3D (B, C, L), 4D
+    (B, C, H, W), and 5D (B, C, D, H, W) tensors. Output size of the resampling 
+    operation can be defined in one of two ways:
+
+    1. `size`: Directly defining the size of the spatial dimensions as a:
+        - A Single integer (L) for 3-dimension tensors.
+        - A tuple (H: int, W: int) for 4-dimension tensors.
+        - A tuple (D: int, H: int, W: int) for 5-dimension tensors.
+        
+    2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+        of the input tensor. So if you input a tensor with shape 
+        (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+        output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+        defined as:
+        
+        - A Single float (L) for 3-dimension tensors.
+        - A tuple (H: float, W: float) for 4-dimension tensors.
+        - A tuple (D: float, H: float, W: float) for 5-dimension tensors.
+
+    NOTE: If both `size` and `scale_factor` are provided, this function will 
+    default to `scale_factor`.
+    
+    Args:
+        input        : The tensor to resample.
+        size         : The desired spatial size of the output tensor, or None 
+                       to use `scale_factor`.
+        scale_factor : The multiplier for the spatial size of the output 
+                       tensor, or None to use `size`.
+                    
+    Returns:
+        Tensor : The resulting tensor from the resampling operation.
+    '''
     output_size = _compute_output_size(input.shape, size, scale_factor)
     if input.device == 'cuda':
         match input.ndim:
@@ -94,11 +129,38 @@ def upsample_nearest(
 ### LINEAR ###
 
 def upsample_linear(
-    input: Tensor,
-    size: int | None = None,
-    scale_factor: float | None = None,
+    input:         Tensor,
+    size:          int   | None = None,
+    scale_factor:  float | None = None,
     align_corners: bool = False
 ) -> Tensor:
+    '''Linear interpolation.
+
+    Increases or decreases the spatial size of a tensor to a desired output 
+    size using linear interpolation. Valid for 3D (B, C, L) tensors. Output 
+    size of the resampling operation can be defined in one of two ways:
+
+    1. `size`: Directly defining the size of the spatial dimensions as a 
+        single integer (L).
+        
+    2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+        of the input tensor. So if you input a tensor with shape 
+        (1, 3, 256) and set `scale_factor` to 2.0, the 
+        output tensor would have shape (1, 3, 512).
+
+    NOTE: If both `size` and `scale_factor` are provided, this function will 
+    default to `scale_factor`.
+    
+    Args:
+        input        : The tensor to resample.
+        size         : The desired spatial size of the output tensor, or None 
+                       to use `scale_factor`.
+        scale_factor : The multiplier for the spatial size of the output 
+                       tensor, or None to use `size`.
+                    
+    Returns:
+        Tensor : The resulting tensor from the resampling operation.
+    '''
     output_size = _compute_output_size(input.shape, size, scale_factor)
     
     if input.device == 'cuda':
@@ -133,11 +195,41 @@ def upsample_linear(
     return out
 
 def upsample_bilinear(
-    input: Tensor,
-    size: int | tuple[int, int] | None = None,
-    scale_factor: float | tuple[float, float] | None = None,
+    input:         Tensor,
+    size:          int   | tuple[int,   int]   | None = None,
+    scale_factor:  float | tuple[float, float] | None = None,
     align_corners: bool = False
 ) -> Tensor:
+    '''Bilinear interpolation.
+
+    Increases or decreases the spatial size of a tensor to a desired output 
+    size using bilinear interpolation. Valid for 4D (B, C, H, W) tensors.
+    Output size of the resampling operation can be defined in one of two ways:
+
+    1. `size`: Directly defining the size of the spatial dimensions as a tuple 
+        (H: int, W: int).
+        
+    2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+        of the input tensor. So if you input a tensor with shape 
+        (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+        output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+        defined as a tuple (H: float, W: float).
+
+    NOTE: If both `size` and `scale_factor` are provided, this function will 
+    default to `scale_factor`.
+    
+    Args:
+        input         : The tensor to resample.
+        size          : The desired spatial size of the output tensor, or None 
+                        to use `scale_factor`.
+        scale_factor  : The multiplier for the spatial size of the output 
+                        tensor, or None to use `size`.
+        align_corners : If True, the corner pixels of the input and output
+                        tensor will be aligned.
+                    
+    Returns:
+        Tensor : The resulting tensor from the resampling operation.
+    '''
     output_size = _compute_output_size(input.shape, size, scale_factor)
     
     if input.device == 'cuda':
@@ -172,11 +264,41 @@ def upsample_bilinear(
     return out
 
 def upsample_trilinear(
-    input: Tensor,
-    size: int | tuple[int, int, int] | None = None,
-    scale_factor: float | tuple[float, float, float] | None = None,
+    input:         Tensor,
+    size:          int   | tuple[int,   int,   int]   | None = None,
+    scale_factor:  float | tuple[float, float, float] | None = None,
     align_corners: bool = False
 ) -> Tensor:
+    '''Trilinear interpolation.
+
+    Increases or decreases the spatial size of a tensor to a desired output 
+    size using trilinear interpolation. Valid for 5D (B, C, D, H, W) tensors.
+    Output size of the resampling operation can be defined in one of two ways:
+
+    1. `size`: Directly defining the size of the spatial dimensions as a tuple 
+        (D: int, H: int, W: int).
+        
+    2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+        of the input tensor. So if you input a tensor with shape 
+        (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+        output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+        defined as a tuple (D: float, H: float, W: float).
+
+    NOTE: If both `size` and `scale_factor` are provided, this function will 
+    default to `scale_factor`.
+    
+    Args:
+        input         : The tensor to resample.
+        size          : The desired spatial size of the output tensor, or None 
+                        to use `scale_factor`.
+        scale_factor  : The multiplier for the spatial size of the output 
+                        tensor, or None to use `size`.
+        align_corners : If True, the corner pixels of the input and output
+                        tensor will be aligned.
+                    
+    Returns:
+        Tensor : The resulting tensor from the resampling operation.
+    '''
     output_size = _compute_output_size(input.shape, size, scale_factor)
     
     if input.device == 'cuda':
@@ -215,12 +337,45 @@ def upsample_trilinear(
 ### CUBIC ###
 
 def upsample_bicubic(
-    input: Tensor,
-    size: int | tuple[int, int] | None = None,
-    scale_factor: float | tuple[float, float] | None = None,
-    a: float = -0.75,
+    input:         Tensor,
+    size:          int   | tuple[int,   int]   | None = None,
+    scale_factor:  float | tuple[float, float] | None = None,
+    a:             float = -0.75,
     align_corners: bool = False
 ) -> Tensor:
+    '''Bicubic interpolation.
+
+    Increases or decreases the spatial size of a tensor to a desired output 
+    size using bicubic interpolation. Valid for 4D (B, C, H, W) tensors.
+    Output size of the resampling operation can be defined in one of two ways:
+
+    1. `size`: Directly defining the size of the spatial dimensions as a tuple 
+        (H: int, W: int).
+        
+    2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+        of the input tensor. So if you input a tensor with shape 
+        (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+        output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+        defined as a tuple (H: float, W: float).
+
+    NOTE: If both `size` and `scale_factor` are provided, this function will 
+    default to `scale_factor`.
+    
+    Args:
+        input         : The tensor to resample.
+        size          : The desired spatial size of the output tensor, or None 
+                        to use `scale_factor`.
+        scale_factor  : The multiplier for the spatial size of the output 
+                        tensor, or None to use `size`.
+        a             : Controls the smoothness of the kernel. Lower values
+                        will produce sharper results, higher values will 
+                        produce smoother results.
+        align_corners : If True, the corner pixels of the input and output
+                        tensor will be aligned.
+                    
+    Returns:
+        Tensor : The resulting tensor from the resampling operation.
+    '''
     output_size = _compute_output_size(input.shape, size, scale_factor)
     
     if input.device == 'cuda':

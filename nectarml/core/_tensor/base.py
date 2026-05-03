@@ -116,6 +116,17 @@ class tensor:
         in CUDA memory. This allows the function to process the return types 
         for both CUDA and CPU operations automatically.
         
+        If data is an `np.ndarray` object and `device` is 'cpu', 
+        this method will fill the Tensor's data with the data from the ndarray.
+        
+        If `device` is 'cuda' and data is a integer pointer to Tensor data
+        in CUDA memory, this method will create a new CudaBuffer instance
+        and assign it ownership of the pointer.
+        
+        If the Tensor's device is 'cuda' and data is an ArrayLike object, the
+        data will be copied to device memory and a CudaBuffer instance will be
+        created and assigned ownership of the resulting pointer.
+        
         Args:
             cls : The class type this method is called from. This will
                 determine the output class type (i.e. Tensor, BoolTensor).
@@ -147,6 +158,8 @@ class tensor:
         out._backward      = lambda: None
         
         if device == 'cuda': 
+            if isinstance(data, np.ndarray):
+                data = cuda.data_to_cuda(data, data.size, dtype)
             out._buffer = CudaBuffer(data, out.shape.numel(), dtype)
             out.data = None
         else:
@@ -621,6 +634,36 @@ class tensor:
         
         out._backward = _backward
         return out
+    
+    def detach(self: tensor) -> tensor:
+        '''Returns a copy of the tensor detached from the computation graph.
+        
+        NOTE: The newly created tensor will share the same same underlying
+        storage. As such, modifying the resulting detached tensor in-place will 
+        also modify the original tensor.
+        
+        Returns:
+            tensor : A detached copy of the tensor this method is called on.
+        '''
+        if self.device == 'cuda':
+            return self._from_buffer(
+                self._buffer, self.shape, self.dtype, False)
+        else: 
+            return self._from_data(
+                self.data.view(), self.shape, self.dtype, False)
+    
+    def detach_(self: tensor) -> None:
+        '''In-place detach. Detaches given tensor from the computation graph. 
+        
+        WARNING: This will corrupt the gradients of any tensors which depend on 
+        the tensor this is called from!
+        
+        Detaches the tensor this method is called on from the computation graph
+        by disabling requires_grad and clearing all autograd data.
+        '''
+        self.requires_grad = False
+        self._backward     = None
+        self._prev.clear()
     
     def clone(self: tensor) -> Self:
         '''Creates and returns a clone of the tensor.

@@ -96,8 +96,8 @@ class FromTorch(Transform):
         
     def _transform(self, input: Any) -> Tensor:
         if input is None: return input
-        from nectarml.compat.pytorch import torch as torch_compat
-        return torch_compat.tensor_torch2nectar(input)
+        from   nectarml.compat import pytorch
+        return pytorch.tensor_torch2nectar(input)
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -114,8 +114,8 @@ class ToTorch(Transform):
         
     def _transform(self, input: Tensor) -> Any:
         if input is None: return input
-        from nectarml.compat.pytorch import torch as torch_compat
-        return torch_compat.tensor_nectar2torch(input)
+        from   nectarml.compat import pytorch
+        return pytorch.tensor_nectar2torch(input)
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(

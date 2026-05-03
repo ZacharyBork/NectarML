@@ -9,9 +9,8 @@ import numpy as np
 from PIL import Image
 
 import _nectarml
-import nectarml.nn.functional as F
-from nectarml.core     import Tensor, creation
-from nectarml.typing   import Size
+from nectarml.core   import Tensor, creation
+from nectarml.typing import Size
 
 ### DATA ###
 
@@ -144,23 +143,6 @@ def hsv_adjust(
     return Tensor._new(
         out_data, input.shape, input.dtype, input.device, input.requires_grad
     )
-
-def apply_kernel_2d(image: Tensor, kernel: Tensor) -> Tensor:
-    B, C, H, W = image.shape
-    KH, KW     = kernel.shape
-    kernel     = kernel.unsqueeze(0).unsqueeze(0)
-    image_flat = image.reshape((B * C, 1, H, W))
-    result     = F.conv2d(image_flat, kernel, padding=(KH//2, KW//2), groups=1)
-    return result.reshape((B, C, H, W))
-
-def lerp(a: Tensor, b: Tensor, w: Tensor) -> Tensor:
-    return a + w * (b - a)
-
-def lerp3(a: Tensor, b: Tensor, c: Tensor, w: Tensor) -> Tensor:
-    w1 = (w * 2).clamp(0.0, 1.0)
-    w2 = ((w - 0.5) * 2).clamp(0.0, 1.0)
-    t  = (w >= 0.5).to(w.device, w.dtype)
-    return lerp(lerp(a, b, w1), lerp(b, c, w2), t)
 
 def gradient_mask(
     shape: tuple[int, ...] | Size,

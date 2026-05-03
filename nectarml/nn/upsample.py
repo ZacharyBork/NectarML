@@ -25,7 +25,7 @@ class Upsample(Module):
 
         ### Output size
 
-        Output size of the upsample opereration can be defined in one of two
+        Output size of the upsample operation can be defined in one of two
         ways:
 
         1. `size`: Directly defining the size of the spatial dimensions as a:

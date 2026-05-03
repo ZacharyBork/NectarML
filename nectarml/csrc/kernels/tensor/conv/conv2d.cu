@@ -9,7 +9,7 @@ __global__ void add_bias_2d_kernel(
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= B * C_out * H_out * W_out) return;
-    int c = idx / (B * H_out * W_out);
+    int c = (idx / (H_out * W_out)) % C_out;
     output[idx] += bias[c];
 }
 

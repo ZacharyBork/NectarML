@@ -3,11 +3,12 @@ from typing import Literal
 import numpy as np
 
 import nectarml.nn.functional as F
-from nectarml                          import typing
-from nectarml.core                     import Tensor
-from nectarml.core.creation            import ones_like
-from nectarml.vision.procedurals       import Generator
-from nectarml.vision.transforms.common import lerp
+from nectarml                    import typing
+from nectarml.core               import Tensor
+from nectarml.core.creation      import ones_like
+from nectarml.functional         import lerp
+from nectarml.vision.procedurals import Generator
+
 
 class SdfCreate(Generator):
     def __init__(

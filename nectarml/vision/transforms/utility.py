@@ -1,4 +1,3 @@
-import warnings
 from os      import PathLike
 from pathlib import Path
 from typing  import Literal
@@ -10,8 +9,8 @@ from scipy.ndimage import grey_erosion, grey_dilation
 
 import _nectarml
 import nectarml.nn.functional as F
-from nectarml          import typing
-from nectarml.core     import Tensor, creation as T
+from nectarml      import typing
+from nectarml.core import Tensor, creation as T
 from nectarml.nn.functional.interpolation import upsample
 
 from nectarml.vision.transforms.transform import Transform, UtilityTransform
@@ -130,9 +129,7 @@ class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
                 size_h * (curr_row+1) - self.padding, 
                 size_w * (curr_col+1) - self.padding)
             
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                canvas[:, :, start[0]:end[0], start[1]:end[1]] = input[i]
+            canvas[:, :, start[0]:end[0], start[1]:end[1]] = input[i]
             
             if curr_col > cols - 2:
                 curr_col  = 0
@@ -595,9 +592,7 @@ class OverlayElements(Transform):
             start_x = int(self.location[1] * W)
             end_x = int(self.location[1] * W) + scaled_element.shape[-1]
             
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                output[b, :, start_y:end_y, start_x:end_x] = scaled_element
+            output[b, :, start_y:end_y, start_x:end_x] = scaled_element
             
         return output
             
@@ -666,15 +661,13 @@ class OverlayText(Transform):
             
             start_x = int(self.location[1] * W)
             end_x   = int(self.location[1] * W) + text.shape[-1]
-            
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if self.background_color is not None:
-                    output[b, :, start_y:end_y, start_x:end_x] = text
-                else:
-                    op = F.maximum if self.text_color != (0,0,0) else F.minimum
-                    orig = output[b, :, start_y:end_y, start_x:end_x]
-                    output[b, :, start_y:end_y, start_x:end_x] = op(orig, text)
+
+            if self.background_color is not None:
+                output[b, :, start_y:end_y, start_x:end_x] = text
+            else:
+                op   = F.maximum if self.text_color != (0,0,0) else F.minimum
+                orig = output[b, :, start_y:end_y, start_x:end_x]
+                output[b, :, start_y:end_y, start_x:end_x] = op(orig, text)
 
         return output
         

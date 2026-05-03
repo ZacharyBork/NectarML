@@ -1,5 +1,4 @@
 import math
-import warnings
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
@@ -7,10 +6,11 @@ from pyfastnoiselite.pyfastnoiselite import \
     FastNoiseLite, NoiseType, FractalType
 
 import nectarml.nn.functional as F
-from nectarml          import typing
-from nectarml.core     import Tensor, creation as T
+from nectarml             import typing
+from nectarml.core        import Tensor, creation as T
+from nectarml.functional  import lerp
 from nectarml.vision.transforms.transform import Transform 
-from nectarml.vision.transforms.common    import TransformInput, lerp
+from nectarml.vision.transforms.common    import TransformInput
 
 class Erasing(Transform):
     def __init__(
@@ -44,10 +44,8 @@ class Erasing(Transform):
             
             pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
             pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
-            
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+
+            mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
         
         return mask
     
@@ -111,9 +109,7 @@ class CoarseDropout(Transform):
                 pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
                 pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
                 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+                mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
         
         return mask
     
@@ -202,10 +198,8 @@ class GridDropout(Transform):
                     
                     pY = (max(0, cy - hole_h // 2), min(H, cy + hole_h // 2))
                     pX = (max(0, cx - hole_w // 2), min(W, cx + hole_w // 2))
-                    
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
+
+                    mask[b, 0, pY[0]:pY[1], pX[0]:pX[1]] = 0.0
         
         return mask
     
@@ -350,29 +344,26 @@ class RandomLensFlare(Transform):
         self._build_projections(H, W)
         self.layer_shape  = (3, H, W)
         self.smaller_side = min(H, W)
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            
-            for b in range(B):
-                flare = T.zeros(
-                    (3, H, W), dtype=self._dtype, device=self._device)
-                cx, cy = W/2, H/2
-                axis_dx, axis_dy = cx-self._sx, cy-self._sy
 
-                flare += self._make_glow(self._sx, self._sy, alpha=0.8) \
-                       + self._make_halo(self._sx, self._sy) \
-                       + self._make_streaks(self._sx, self._sy)
+        for b in range(B):
+            flare = T.zeros(
+                (3, H, W), dtype=self._dtype, device=self._device)
+            cx, cy = W/2, H/2
+            axis_dx, axis_dy = cx-self._sx, cy-self._sy
 
-                for _ in range(self.num_ghosts):
-                    gx = (self._sx + axis_dx * self._t)
-                    gy = (self._sy + axis_dy * self._t)
-                    
-                    flare += self._make_ghost(
-                        gx, gy, self._radius, self._alpha, self._shift)
+            flare += self._make_glow(self._sx, self._sy, alpha=0.8) \
+                    + self._make_halo(self._sx, self._sy) \
+                    + self._make_streaks(self._sx, self._sy)
 
-                flare    = flare.clamp(0.0, 1.0)
-                input[b] = (input[b] + flare).clamp(0.0, 1.0)
+            for _ in range(self.num_ghosts):
+                gx = (self._sx + axis_dx * self._t)
+                gy = (self._sy + axis_dy * self._t)
+                
+                flare += self._make_ghost(
+                    gx, gy, self._radius, self._alpha, self._shift)
+
+            flare    = flare.clamp(0.0, 1.0)
+            input[b] = (input[b] + flare).clamp(0.0, 1.0)
 
         return input
 
@@ -533,10 +524,8 @@ class RandomRain(Transform):
                     py = int(cy + w * perp_y)
                     if 0 <= px < W and 0 <= py < H:
                         for c in range(C):
-                            with warnings.catch_warnings():
-                                warnings.simplefilter('ignore')
-                                out[:, c, py, px] = color[:, c, py, px] \
-                                    if c < 3 else out[:, c, py, px]
+                            out[:, c, py, px] = color[:, c, py, px] \
+                                if c < 3 else out[:, c, py, px]
             
         return out.to(input.device)
     
@@ -669,14 +658,12 @@ class RandomShadow(Transform):
         mask   = self._mask.unsqueeze(0).to(input.device, input.dtype)
         shadow = 1.0 - self._intensity * mask
         out    = out * shadow
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            if self._shift > 0.0 and input.shape[1] >= 3:
-                amt = self._intensity * mask
-                out[0] = out[0] * (1.0-amt[0] * self._shift)
-                out[1] = out[1] * (1.0-amt[0] * self._shift * 0.5)
-                out[2] = (out[2] + amt[0] * self._shift * 0.1).clamp(0.0, 1.0)
+    
+        if self._shift > 0.0 and input.shape[1] >= 3:
+            amt = self._intensity * mask
+            out[0] = out[0] * (1.0-amt[0] * self._shift)
+            out[1] = out[1] * (1.0-amt[0] * self._shift * 0.5)
+            out[2] = (out[2] + amt[0] * self._shift * 0.1).clamp(0.0, 1.0)
 
         return out
     
@@ -788,12 +775,10 @@ class Spatter(Transform):
         px = (src_x * (W - 1)).clamp(0, W-1).to(dtype=typing.int32)
         py = (src_y * (H - 1)).clamp(0, H-1).to(dtype=typing.int32)
         
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            for c in range(C):
-                refracted = input[:, c].squeeze(0)[py, px]
-                out[:, c] = F.where(drop_mask > 0, refracted, out[:, c])
-        
+        for c in range(C):
+            refracted = input[:, c].squeeze(0)[py, px]
+            out[:, c] = F.where(drop_mask > 0, refracted, out[:, c])
+    
         color = (self._color / 255).to(input.device, input.dtype)
         out   = lerp(out, out * color, drop_mask)
         return out.to(input.device, input.dtype)

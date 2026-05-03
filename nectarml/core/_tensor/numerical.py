@@ -28,43 +28,28 @@ class Tensor(tensor):
     ) -> None:
         '''Initializes a new Tensor object.
         
-        If data is an ArrayLike object and the Tensor's device is "cpu", this
-        method will fill the Tensor's data with the data from the ArrayLike
-        object. In this case, if shape is provided, it will be used to set the
-        Tensor's shape. If shape is not provided, the Tensor's shape will
-        instead be taken from the shape of the input data.
-        
-        If the Tensor's device is "cuda" and data is a unintptr to tensor data
-        in CUDA memory, this method will create a CudaBuffer object from the
-        given pointer. In this case, shape is required, and will be used
-        directly to set the Tensor's shape.
-        
-        If the Tensor's device is "cuda" and data is an ArrayLike object, the
-        given data will be passed to CUDA and a CudaBuffer object will be
-        created for the resulting pointer. In this case, shape is not required,
-        and if not provided, will be assumed from the shape of the given data.
-        Shape may be provided, however, and if it is, will override the shape
-        of the input data when setting the Tensor's shape.
+        ### Requires Grad
+        NectarML uses lazy grad allocation for for intermediate activations. 
+        When backward is called on a node, the topo graph is build from that
+        node, then traversed once to allocate grad tensors to any tensor in the
+        graph with `requires_grad`=True, the traversed again to invoke the 
+        node's backward closure.
         
         Args:
-            data : Either an ArrayLike object of tensor data, or a uintptr to
-                a tensor in CUDA memory.
-            shape : Optional if initializing with ArrayLike data. Used to
-                define the shape of the Tensor.
-            dtype : A DtypeLike defining the data type for the new Tensor.
-            device : The device for the new Tensor, "cpu" or "cuda".
+            data          : An ArrayLike object containing the data for the 
+                            new Tensor.
+            shape         : Optional. Used to define the shape of the Tensor.
+                            If not provided, shape will be inferred from the
+                            input data.
+            dtype         : The DType for the new Tensor.
+            device        : The device for the new Tensor, "cpu" or "cuda".
             requires_grad : A boolean defining whether the new Tensor should
-                require grad or not. If True, a grad Tensor will be created
-                and assigned to the new Tensor, and the new Tensor will be
-                included in the computational graph to participate in gradient
-                backpropagation. If False, the Tensor will not be included in
-                the computational graph, and will not contribute to the 
-                network's gradients.
-            _children : The _prev Tensors for the newly created Tensor. If the
-                new Tensor is included in the computational graph, the 
-                gradients from the new Tensor will flow back to the _children
-                Tensors during backpropagation. Used for autograd operations,
-                generally not set manually.
+                            require grad.
+            _children     : The _prev Tensors for the newly created Tensor. If 
+                            the new Tensor is included in the computational 
+                            graph, the gradients from the new Tensor will flow 
+                            back to the _children Tensors during backprop. Used 
+                            for autograd ops, generally not set manually.
         '''
         if not isinstance(data, np.ndarray): data = np.array(data)
         data  = data.astype(dtype.numpy)
@@ -89,16 +74,16 @@ class Tensor(tensor):
         '''Initializes a Tensor from given data and optional shape.
         
         Args:
-            data : Either an ArrayLike object of tensor data, or a uintptr to
-                a tensor in CUDA memory.
+            data  : Either an ArrayLike object of tensor data, or a uintptr to
+                    a tensor in CUDA memory.
             shape : Optional if initializing with ArrayLike data. Used to
-                define the shape of the Tensor.
+                    define the shape of the Tensor.
                 
         Raises:
             ValueError : If data is uintptr to CUDA tensor data and shape is
-                not provided.
+                         not provided.
             ValueError : If Tensor's device type is not valid (i.e. not "cpu"
-                or "cuda").
+                         or "cuda").
         '''
         match device:
             case 'cpu': ref = data
@@ -120,8 +105,8 @@ class Tensor(tensor):
         if grad.shape == original_shape: return grad
 
         ndim_diff = grad.ndim - len(original_shape)
-        axes = list(range(ndim_diff))
-        shapes = zip(original_shape, grad.shape[ndim_diff:])
+        axes      = list(range(ndim_diff))
+        shapes    = zip(original_shape, grad.shape[ndim_diff:])
         for i, (s, g) in enumerate(shapes):
             if s != g: axes.append(i + ndim_diff)
         
@@ -145,7 +130,7 @@ class Tensor(tensor):
         
         Args:
             device : The device to cast the tensor to ["cpu", "cuda"].
-            dtype : The Dtype to cast the tensor to.
+            dtype  : The Dtype to cast the tensor to.
             
         Returns:
             tensor : The resulting tensor from the cast operation.
@@ -164,18 +149,24 @@ class Tensor(tensor):
 
     ### GRADIENTS ###
 
-    def _allocate_grad(self: Tensor, graph: list[tensor]) -> None:
+    def _allocate_grad_(self: Tensor, graph: list[tensor]) -> None:
+        '''Traverses topo graph, builds grad tensors for intermediate nodes.
+        
+        Args:
+            graph : The topological graph generated by Tensor._backward().
+        '''
         for node in graph:
-            if node.requires_grad and node is not self:
-                if node.device == 'cuda':
-                    ptr = cuda.memory.alloc_cuda_full(
-                        node.size, float32, 0.0)
-                    node.grad = Tensor._new(
-                        ptr, node.shape, float32, node.device)
-                else: 
-                    node.grad = Tensor._new(
-                        np.zeros(node.shape, float32.numpy), 
-                        node.shape, float32, node.device)
+            if not node.requires_grad or node is self: continue
+            
+            if node.device == 'cuda':
+                ptr = cuda.memory.alloc_cuda_full(
+                    node.size, float32, 0.0)
+                node.grad = Tensor._new(
+                    ptr, node.shape, float32, node.device)
+            else: 
+                node.grad = Tensor._new(
+                    np.zeros(node.shape, float32.numpy), 
+                    node.shape, float32, node.device)
         
         if self.device == 'cuda':
             self.grad = Tensor._new(
@@ -222,7 +213,7 @@ class Tensor(tensor):
         
         build_graph(self)
         graph.reverse()
-        self._allocate_grad(graph)
+        self._allocate_grad_(graph)
 
         if not debug:
               for node in graph: node._backward()
@@ -235,43 +226,6 @@ class Tensor(tensor):
                 
         seen.clear(); graph.clear()
         
-    def zero_grad(self: Tensor) -> None:
-        '''Zeros values in the grad tensor of the tensor it is called on.'''
-        if self.requires_grad and self.grad is not None:
-            self.grad.zero_()
-
-    ### UTILS ###
-
-    def detach(self: Tensor) -> Tensor:
-        '''Returns a copy of the tensor detached from the computation graph.
-        
-        NOTE: The newly created tensor will share the same same underlying
-        storage. As such, modifying the resulting detached tensor in-place will 
-        also modify the original tensor.
-        
-        Returns:
-            tensor : A detached copy of the tensor this method is called on.
-        '''
-        if self.device == 'cuda':
-            return self._from_buffer(
-                self._buffer, self.shape, self.dtype, False)
-        else: 
-            return self._from_data(
-                self.data.view(), self.shape, self.dtype, False)
-    
-    def detach_(self: Tensor) -> None:
-        '''In-place detach. Detaches given tensor from the computation graph. 
-        
-        WARNING: This will corrupt the gradients of any tensors which depend on 
-        the tensor this is called from!
-        
-        Detaches the tensor this method is called on from the computation graph
-        by disabling requires_grad and clearing all autograd data.
-        '''
-        self.requires_grad = False
-        self._backward = None
-        self._prev.clear()
-    
     def requires_grad_(self: Tensor, value: bool) -> Tensor:
         '''In-place setter for tensor.requires_grad.
         
@@ -293,6 +247,13 @@ class Tensor(tensor):
         '''
         self._requires_grad = value
         return self
+
+    def zero_grad(self: Tensor) -> None:
+        '''Zeros values in the grad tensor of the tensor it is called on.'''
+        if self.requires_grad and self.grad is not None:
+            self.grad.zero_()
+
+    ### UTILS ###
     
     def fill_(
         self:       Tensor, 
@@ -634,11 +595,11 @@ class Tensor(tensor):
         
         if isinstance(other, Tensor):
             out_shape = tensor._broadcast_shape(self.shape, other.shape)
-            children = (self, other)
+            children  = (self, other)
             other_requires_grad = other.requires_grad
         else:
             out_shape = self.shape
-            children = (self,)
+            children  = (self,)
             other_requires_grad = False
             
         if self.device == 'cuda': 
@@ -825,12 +786,12 @@ class Tensor(tensor):
             if self_requires_grad:
                 other_fp32 = Tensor._fake(other, float32) \
                           if isinstance(other, Tensor) else other 
-                grad = other_fp32 * out.grad
+                grad       = other_fp32 * out.grad
                 self.grad += Tensor._broadcast_grad(grad, self.shape)
             if other_requires_grad: 
-                self_fp32 = Tensor._fake(self, float32) \
-                         if isinstance(self, Tensor) else self 
-                grad = self_fp32 * out.grad
+                self_fp32   = Tensor._fake(self, float32) \
+                           if isinstance(self, Tensor) else self 
+                grad        = self_fp32 * out.grad
                 other.grad += Tensor._broadcast_grad(grad, other.shape)
         
         out._backward = _backward
@@ -984,14 +945,16 @@ class Tensor(tensor):
         ''' 
         self_requires_grad = self.requires_grad
         
-        if self.device == 'cuda': out_data = cuda.math.abs(self)
+        if self.device == 'cuda': 
+              out_data = cuda.math.abs(self)
         else: out_data = cpu.math.abs(self)
         out = Tensor._new(out_data, self.shape, self.dtype, self.device,
             requires_grad=self_requires_grad, _children=(self,))
         
         def _backward() -> None:
             if self_requires_grad: 
-                self.grad += Tensor._fake(self, float32).sign() * out.grad
+                grad = Tensor._fake(self, float32).sign()
+                self.grad += grad * out.grad
         
         out._backward = _backward
         return out

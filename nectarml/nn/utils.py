@@ -36,6 +36,17 @@ class Lambda(Module):
         self: Lambda,
         func: Callable[[Any], Any]
     ) -> None:
+        '''Lambda function utility module.
+
+        Allows you to define a module which can be added to a module 
+        composition (ModuleLists, Sequentials, etc..). This Module will be
+        passed the inputs of the composition class forward like any other 
+        module, and will run the Callable defined by func on the input, then
+        returning the output.
+
+        Args:
+            func : The function to run on the module inputs.         
+        '''
         super().__init__()
         self.func = func
         

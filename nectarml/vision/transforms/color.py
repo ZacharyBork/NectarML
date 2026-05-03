@@ -6,12 +6,13 @@ import numpy as np
 from PIL import Image, ImageOps
 
 import nectarml.nn.functional as F
-from nectarml.core     import Tensor, creation as T
-from nectarml.typing   import float32
+from nectarml.core        import Tensor, creation as T
+from nectarml.typing      import float32
+from nectarml.functional  import lerp3
 from nectarml.vision.transforms.transform import Transform 
 from nectarml.vision.transforms.spatial   import OpticalDistortion
 from nectarml.vision.transforms.common    import \
-    TransformInput, hsv_adjust, gradient_mask, lerp3
+    TransformInput, hsv_adjust, gradient_mask
 
 ### TRANSFORMS ###
 

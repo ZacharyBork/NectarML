@@ -7,6 +7,7 @@ from . import (
     autograd,
     cpu,
     cuda,
+    functional,
     nn,
     optim,
     utils,

@@ -46,8 +46,8 @@ class FakeTensor(Tensor):
             
             kwargs   : Any additional keyworg arguments to pass.
         '''
-        device = typing.device(device) if device is not None \
-            else template._device
+        device = typing.device(device) \
+              if device is not None else template._device
         super().__setattr__('_device', device)
         super().__setattr__('_dtype',  dtype or template._dtype)
         

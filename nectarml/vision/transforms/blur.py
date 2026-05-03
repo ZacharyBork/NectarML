@@ -1,14 +1,14 @@
-import warnings
 from typing import Literal
 
 import numpy as np
 from scipy.ndimage import median_filter
 
 import nectarml.nn.functional as F
-from nectarml.core     import Tensor, creation as T
-from nectarml.typing   import float32
+from nectarml.core        import Tensor, creation as T
+from nectarml.typing      import float32
+from nectarml.functional  import apply_kernel_2d
 from nectarml.vision.transforms.transform import Transform
-from nectarml.vision.transforms.common import TransformInput, apply_kernel_2d
+from nectarml.vision.transforms.common    import TransformInput
 
 class GaussianBlur(Transform):
     def __init__(
@@ -143,9 +143,7 @@ class MotionBlur(Transform):
             offset = i - center
             x = int(round(center + offset * np.cos(np.radians(self._angle))))
             y = int(round(center + offset * np.sin(np.radians(self._angle))))
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if 0 <= x < ks and 0 <= y < ks: k[y, x] = 1.0
+            if 0 <= x < ks and 0 <= y < ks: k[y, x] = 1.0
         total  = k.sum().item()
         kernel = k / total if total > 0 else k
         

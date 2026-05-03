@@ -14,6 +14,19 @@ class ConstantPad1d(Module):
         padding: builtins.int | tuple[builtins.int, builtins.int],
         value:   builtins.float = 0.0
     ) -> None:
+        '''Applies constant padding to 3-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        constant value. Only valid for 3-dimensional tensors (B, C, L).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on both sides, or a tuple of
+                      2 integers, in which case it will be treated as 
+                      (start, end).
+            fill    : The value (0-1) to fill the padded area with.
+        '''
         super().__init__()
         self.padding = padding
         self.value   = value
@@ -30,6 +43,19 @@ class ConstantPad2d(Module):
         padding: builtins.int | tuple[builtins.int, ...],
         value:   builtins.float = 0.0
     ) -> None:
+        '''Applies constant padding to 4-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        constant value. Only valid for 4-dimensional tensors (B, C, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 2 
+                      integers, in which case it will be treated as 
+                      (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+            fill    : The value (0-1) to fill the padded area with.
+        '''
         super().__init__()
         self.padding = padding
         self.value   = value
@@ -46,6 +72,18 @@ class ConstantPad3d(Module):
         padding: builtins.int | tuple[builtins.int, ...],
         value:   builtins.float = 0.0
     ) -> None:
+        '''Applies constant padding to 5-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        constant value. Only valid for 5-dimensional tensors (B, C, D, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 6 
+                      integers for (L, R, T, B, F, B).
+            fill    : The value (0-1) to fill the padded area with.
+        '''
         super().__init__()
         self.padding = padding
         self.value   = value
@@ -63,6 +101,19 @@ class ReflectionPad1d(Module):
         self:    ReflectionPad1d, 
         padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
+        '''Applies reflection padding to 3-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values mirrored from the original edge pixels. Only valid for
+        3-dimensional tensors (B, C, L).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on both sides, or a tuple of
+                      2 integers, in which case it will be treated as 
+                      (start, end).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -77,6 +128,19 @@ class ReflectionPad2d(Module):
         self:    ReflectionPad2d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies reflection padding to 4-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values mirrored from the original edge pixels. Only valid for 
+        4-dimensional tensors (B, C, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 2 
+                      integers, in which case it will be treated as 
+                      (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -91,6 +155,18 @@ class ReflectionPad3d(Module):
         self:    ReflectionPad3d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies reflection padding to 5-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values mirrored from the original edge pixels. Only valid for 
+        5-dimensional tensors (B, C, D, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 6 
+                      integers for (L, R, T, B, F, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -107,6 +183,19 @@ class ReplicationPad1d(Module):
         self:    ReplicationPad1d, 
         padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
+        '''Applies replication padding to 3-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        the value of the original edge pixels, replicated outward. Only valid 
+        for 3-dimensional tensors (B, C, L).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on both sides, or a tuple of
+                      2 integers, in which case it will be treated as 
+                      (start, end).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -121,6 +210,19 @@ class ReplicationPad2d(Module):
         self:    ReplicationPad2d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies replication padding to 4-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        the value of the original edge pixels, replicated outward. Only valid 
+        for 4-dimensional tensors (B, C, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 2 
+                      integers, in which case it will be treated as 
+                      (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -135,6 +237,18 @@ class ReplicationPad3d(Module):
         self:    ReplicationPad3d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies replication padding to 5-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        the value of the original edge pixels, replicated outward. Only
+        valid for 5-dimensional tensors (B, C, D, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 6 
+                      integers for (L, R, T, B, F, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -151,6 +265,19 @@ class CircularPad1d(Module):
         self:    CircularPad1d, 
         padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
+        '''Applies circular padding to 3-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values wrapped from the opposite side of the tensor. Only valid for
+        3-dimensional tensors (B, C, L).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on both sides, or a tuple of
+                      2 integers, in which case it will be treated as 
+                      (start, end).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -165,6 +292,19 @@ class CircularPad2d(Module):
         self:    CircularPad2d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies circular padding to 4-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values wrapped from the opposite side of the tensor. Only valid for
+        4-dimensional tensors (B, C, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 2 
+                      integers, in which case it will be treated as 
+                      (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -179,6 +319,18 @@ class CircularPad3d(Module):
         self:    CircularPad3d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies circular padding to 5-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        values wrapped from the opposite side of the tensor. Only valid for 
+        5-dimensional tensors (B, C, D, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 6 
+                      integers for (L, R, T, B, F, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -195,6 +347,18 @@ class ZeroPad1d(Module):
         self:    ZeroPad1d, 
         padding: builtins.int | tuple[builtins.int, builtins.int]
     ) -> None:
+        '''Applies zero padding to 3-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        zeros. Only valid for 3-dimensional tensors (B, C, L).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on both sides, or a tuple of
+                      2 integers, in which case it will be treated as 
+                      (start, end).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -209,6 +373,18 @@ class ZeroPad2d(Module):
         self:    ZeroPad2d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies zero padding to 4-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        zeros. Only valid for 4-dimensional tensors (B, C, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 2 
+                      integers, in which case it will be treated as 
+                      (LR, TB), or a tuple of 4 integers for (L, R, T, B).
+        '''
         super().__init__()
         self.padding = padding
         
@@ -223,6 +399,17 @@ class ZeroPad3d(Module):
         self:    ZeroPad3d, 
         padding: builtins.int | tuple[builtins.int, ...]
     ) -> None:
+        '''Applies zero padding to 5-dimensional input tensors.
+
+        Pads input tensors by specified width, and fills padded area with
+        zeros. Only valid for 5-dimensional tensors (B, C, D, H, W).
+        
+        Args:
+            padding : The number of pixels to pad the input with. Can be a 
+                      single integer, in which case the value will be used 
+                      to, define the padding on all sides, or a tuple of 6 
+                      integers for (L, R, T, B, F, B).
+        '''
         super().__init__()
         self.padding = padding
         
