@@ -54,7 +54,6 @@ class L1Loss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -82,7 +81,6 @@ class L2Loss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -106,7 +104,6 @@ class RMSELoss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -133,10 +130,8 @@ class HuberLoss(LossModule):
         Args:
             delta        : The transition point between the quadratic and linear
                            regions of the loss function.
-                           
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -161,7 +156,6 @@ class LogCoshLoss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -189,7 +183,6 @@ class BCELoss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -214,7 +207,6 @@ class CrossEntropyLoss(LossModule):
         Args:
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -238,12 +230,9 @@ class NLLLoss(LossModule):
         
         Args:
             input        : The model prediction output.
-            
             target       : The ground truth. Target for model's prediction.
-            
             reduction    : The reduction method to use for the resulting loss 
                            tensor. Options are ['mean', 'sum', 'none'].
-                           
             save_history : If True, the loss values calculated by this module
                            will be stored in an internal list which can be
                            accessed with `LossModule.history`.
@@ -260,6 +249,18 @@ class HingeLoss(LossModule):
         reduction: Literal['mean', 'sum', 'none'] = 'mean',
         save_history: bool = False
     ) -> None:
+        '''Hinge loss.
+
+        Common loss function for classifier models. Penalizes not just 
+        incorrect answers, but answers which are not confident enough.
+
+        Args:
+            reduction    : The reduction method to use for the resulting loss 
+                           tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
         super().__init__(
             loss_fn      = lambda x, y : F.hinge_loss(x, y, reduction),
             reduction    = reduction,
@@ -272,8 +273,68 @@ class Hinge2Loss(LossModule):
         reduction: Literal['mean', 'sum', 'none'] = 'mean',
         save_history: bool = False
     ) -> None:
+        '''Hinge square loss.
+
+        Similar to standard hinge loss, this is a classification loss function
+        which penalizes models not just for being incorrect, but for not being
+        confident enough in their answer. This loss, however, squares the 
+        result, causing large errors to be penalized much more harshly that
+        smaller errors.
+
+        Args:
+            reduction    : The reduction method to use for the resulting loss 
+                           tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
         super().__init__(
             loss_fn      = lambda x, y : F.hinge2_loss(x, y, reduction),
+            reduction    = reduction,
+            save_history = save_history
+        )
+        
+class EdgeLoss(LossModule):
+    def __init__(
+        self:         Hinge2Loss,  
+        metric:       Literal['l1', 'l2'] = 'l1',
+        mode:         Literal['sobel', 'prewitt', 'laplacian'] = 'sobel',
+        scharr:       bool  = False,
+        per_channel:  bool  = False,
+        eps:          float = 1e-8,
+        reduction:    Literal['mean', 'sum', 'none'] = 'mean',
+        save_history: bool  = False
+    ) -> None:
+        '''Computes loss between edge maps of input and target.
+
+        Runs an edge detection algorithm on the input and target tensors, then
+        evaluates loss between the two edge maps using a traditional regression
+        loss function.
+
+        Args:
+            metric      : The regression loss to use when comparing the two 
+                          edge maps. Options are [`l1`, `l2`].
+            mode        : The edge detection algorithm to employ. Options are 
+                          [`sobel`, `prewitt`, `laplacian`].
+            scharr      : If True and the mode is `sobel`, the edge detection
+                          will use Scharr operator kernels rather than the 
+                          traditional Sobel-Feldman kernels.
+            per_channel : If True, the channels of the input will be split and
+                          the Sobel filter will be applied to each channel 
+                          independently, then the results will be joined to
+                          form the output image.
+            eps         : Epsilon to add to the result of the convolution 
+                          operation to avoid division by zero errors.
+            reduction   : The reduction method to use for the resulting loss 
+                          tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
+        loss_fn = lambda x, y : F.edge_loss(
+            x, y, metric, mode, scharr, per_channel, eps, reduction)
+        super().__init__(
+            loss_fn      = loss_fn,
             reduction    = reduction,
             save_history = save_history
         )
@@ -286,6 +347,17 @@ class KLDivergenceLoss(LossModule):
         reduction: Literal['mean', 'sum', 'none'] = 'mean',
         save_history: bool = False
     ) -> None:
+        '''KL divergence loss.
+
+        Measures divergence in a probability distribution from a reference.
+
+        Args:
+            reduction   : The reduction method to use for the resulting loss 
+                          tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
         super().__init__(
             loss_fn      = lambda x, y : F.kl_divergence_loss(x, y, reduction),
             reduction    = reduction,
@@ -298,6 +370,21 @@ class BCEWithLogitsLoss(LossModule):
         reduction: Literal['mean', 'sum', 'none'] = 'mean',
         save_history: bool = False
     ) -> None:
+        '''Binary cross entropy with logits loss.
+
+        Commonly used loss function for classifier models. Combines traditional
+        cross entropy loss with a Sigmoid activation. As such, this loss 
+        function expects inputs as raw logits rather than normalized scores.
+        Offers increased numerical stability over the common 
+        `Sigmoid()`->`BCE()` pattern.
+        
+        Args:
+            reduction    : The reduction method to use for the resulting loss 
+                           tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
         super().__init__(
             loss_fn      = \
                 lambda x, y : F.bce_with_logits_loss(x, y, reduction),
@@ -315,6 +402,18 @@ class TripletMarginLoss(LossModule):
         reduction: Literal['mean', 'sum', 'none'] = 'mean',
         save_history: bool = False
     ) -> None:
+        '''Triplet margin loss.
+
+        Args:
+            margin       : Controls how agressively the function pushes the 
+                           positive and negative inputs apart.
+            eps          : Epsilon value for the square root operation.
+            reduction    : The reduction method to use for the resulting loss 
+                           tensor. Options are ['mean', 'sum', 'none'].
+            save_history : If True, the loss values calculated by this module
+                           will be stored in an internal list which can be
+                           accessed with `LossModule.history`.
+        '''
         loss_fn = lambda anchor, positive, negative : \
             F.triplet_margin_loss(
                 anchor, positive, negative, margin, eps, reduction)
