@@ -53,7 +53,6 @@ from .blur import (
     MedianBlur,
     BoxBlur,
     RandomBlur,
-    Sharpen, 
     Emboss, 
     UnsharpMask
 )
