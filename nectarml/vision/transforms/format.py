@@ -11,6 +11,18 @@ from nectarml.vision.transforms.common    import TransformInput
 
 class ToTensor(Transform):
     def __init__(self, normalize: bool = True) -> None:
+        '''Converts input PIL.Images an numpy.ndarrays to nectarml.Tensors.
+
+        If input is an np.ndarray, it can be 2-dimensional (H, W), 3-
+        dimensional (C, H, W), or 4-dimensional (B, C, H, W).
+
+        Outputs will always have 4 dimensions (B, C, H, W), have float32 DType,
+        and be on the CPU.  
+
+        Args:
+            normalize : If True, the resulting tensor will be normalized to the
+                        [0:1] range.
+        '''
         super().__init__()
         self.normalize = normalize
         
@@ -48,6 +60,14 @@ class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
         normalize:   bool = True,
         value_range: tuple[int, int] = (0, 255)
     ) -> None:
+        '''Converts input nectarml.Tensors and np.ndarrays to PIL.Images.
+
+        Args:
+            normalize   : If True, inputs will be normalized to the specified
+                          `value_range` before being converted.
+            value_range : The value range to normalize inputs to if `normalize`
+                          is True.
+        '''
         super().__init__()
         self.normalize   = normalize
         self.value_range = value_range
@@ -81,6 +101,7 @@ class ToPIL(UtilityTransform[Tensor | np.ndarray, Image.Image]):
 
 class ToNumpy(UtilityTransform[Tensor | Image.Image, np.ndarray]):
     def __init__(self) -> None:
+        '''Converts input PIL.Images and nectarml.Tensors to numpy.ndarrays.'''
         super().__init__()
 
     def forward(self, input: Tensor | Image.Image) -> np.ndarray:
@@ -132,6 +153,13 @@ class ConvertDtype(Transform):
         new_dtype:     dtype = float32,
         transform_mask: bool = False
     ) -> None:
+        '''Casts input image tensors to a new dtype.
+
+        Args:
+            new_dtype      : The DType to cast the tensors to.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__()
         self.new_dtype = new_dtype
         self.transform_mask = transform_mask
@@ -155,6 +183,14 @@ class ChangeDevice(Transform):
         self,
         new_device: DeviceLikeType = 'cpu'
     ) -> None:
+        '''Casts input tensors to a new device.
+
+        Not limited to just image tensors, affects all tensors in the 
+        transforms input.
+
+        Args:
+            new_device : The device to move the tensors to.
+        '''
         super().__init__()
         self.new_device = new_device
     
@@ -173,6 +209,11 @@ class ChangeDevice(Transform):
     
 class ToCPU(Transform):
     def __init__(self) -> None:
+        '''Moves input tensors to CPU device.
+
+        Not limited to just image tensors, affects all tensors in the 
+        transforms input.
+        '''
         super().__init__()
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -190,6 +231,11 @@ class ToCPU(Transform):
     
 class ToCUDA(Transform):
     def __init__(self) -> None:
+        '''Moves input tensors to CUDA device.
+
+        Not limited to just image tensors, affects all tensors in the 
+        transforms input.
+        '''
         super().__init__()
 
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -212,6 +258,18 @@ class Cast(Transform):
         new_dtype:      dtype | None = None, 
         transform_mask: bool = False
     ) -> None:
+        '''Casts input tensor to new device and dtype
+
+        Only valid for image, image2, and optionally, mask tensors.
+        
+        Args:
+            new_device     : The device to move the tensors to, or None to not
+                             affect tensor's device.
+            new_dtype      : The DType to cast the tensors to, or None to not
+                             affect tensor's DType.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__()
         self.new_device = new_device
         self.new_dtype = new_dtype
@@ -235,6 +293,11 @@ class Cast(Transform):
 
 class ToContiguous(Transform):
     def __init__(self) -> None:
+        '''Makes all input tensors contiguous.
+
+        Not limited to just image tensors, affects all tensors in the 
+        transforms input.
+        '''
         super().__init__()
         
     def _transform(self, input: Tensor | None) -> Tensor | None:
