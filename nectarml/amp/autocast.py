@@ -20,6 +20,19 @@ class autocast:
         context: Literal['cpu', 'cuda'], 
         enabled: bool = True
     ) -> None:
+        '''Enables an autocast context.
+
+        Currently this functionality is pretty limited. The `cpu` context is a 
+        no-op, it does nothing currently when enabled. The `cuda` context, when
+        enabled, will automatically perform convolution and matrix 
+        multiplication on cuda tensors in float16. And that's it right now. It
+        will be expanded in the future, however.
+
+        Args:
+            context : The context to enable. Options are [`cpu`, `cuda`].
+            enabled : Turns contexts into a no-op. Convenience flag to disable
+                      context block without having to delete it.
+        '''
         self.context = context
         self.enabled = enabled
     
