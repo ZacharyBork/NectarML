@@ -14,6 +14,16 @@ class Normalize(Transform):
         eps:     float = 1e-8,
         inplace: bool  = False
     ) -> None:
+        '''Normalizes inputs to a given mean and standard deviation.
+
+        Args:
+            mean    : The mean value for the normalized output's range.
+            std     : The standard deviation for the normalized output's range.
+            eps     : Small epsilon value to avoid zero-division error.
+            inplace : If True, this tranform will modify input tensors in-
+                      place, rather than creating new tensors for output. This
+                      can help save a small amount of memory overhead.
+        '''
         super().__init__()
         self.mean    = mean
         self.std     = std
@@ -54,6 +64,15 @@ class Denormalize(Transform):
         std:     float | list[float],
         inplace: bool = False
     ) -> None:
+        '''Denormalizes inputs from a given mean and standard deviation.
+
+        Args:
+            mean    : The mean value of the range to denormalize from.
+            std     : The standard deviation of the range to denormalize from.
+            inplace : If True, this tranform will modify input tensors in-
+                      place, rather than creating new tensors for output. This
+                      can help save a small amount of memory overhead.
+        '''
         super().__init__()
         self.mean    = mean
         self.std     = std
@@ -94,6 +113,20 @@ class MinMaxNormalize(Transform):
         per_batch:        bool = False,
         inplace:          bool = False
     ) -> None:
+        '''Normalizes inputs to a defined min and max value.
+        
+        Args:
+            min_value : The minimum value for the output's range.
+            max_value : The minimum value for the output's range.
+            per_batch : If True, each item in a batch of the input tensors will
+                        be  normalized separately, ensuring each item fully
+                        saturates the range. Otherwise, batched tensors will be
+                        normalized as a whole, so that the full batch saturates
+                        the desired range.
+            inplace   : If True, this tranform will modify input tensors in-
+                        place, rather than creating new tensors for output. 
+                        This can help save a small amount of memory overhead.
+        '''
         super().__init__()
         self.min_value = min_value
         self.max_value = max_value
@@ -135,6 +168,16 @@ class ToFloat(Transform):
         half_precision: bool = False,
         scale:          bool = False
     ) -> None:
+        '''Casts input tensors to float.
+        
+        Args:
+            half_precision : If True, the input tensors will be cast to 
+                             float16, otherwise they will be cast to float32.
+            scale          : If True and the input tensor's DType is uint8 
+                             (standard for images loaded with PIL), the output
+                             tensor's range will be normalized (0-1). If False,
+                             the value range will remain as is after the cast.
+        '''
         super().__init__()
         self.output_dtype = float16 if half_precision else float32
         self.scale = scale
@@ -156,6 +199,14 @@ class ToFloat(Transform):
 
 class ToUint8(Transform):
     def __init__(self, scale: bool = False) -> None:
+        '''Casts input tensors to uint8.
+        
+        Args:
+            scale : If True, input tensors will have their value ranges
+                    automatically normalized to saturate the full (0-255) range
+                    of uint8 before being cast. Otherwise the tensors will be
+                    cast with their original value ranges.
+        '''
         super().__init__()
         self.norm = MinMaxNormalize(0.0, 255.0) if scale else None
     
