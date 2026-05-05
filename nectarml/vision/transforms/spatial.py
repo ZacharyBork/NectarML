@@ -576,9 +576,22 @@ class Rotate(Transform):
         self,
         angle:          float = 90.0,
         fill_value:     float = 0.0,
-        transform_mask: bool  = True,
-        p:              float = 1.0
+        p:              float = 1.0,
+        transform_mask: bool  = True
     ) -> None:
+        '''Rotates input images by a specified number of degrees.
+
+        Args:
+            angle          : The number of degrees to rotate input images.
+            fill_value     : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers after 
+                             being rotated.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+                
+        '''
         super().__init__(p=p)
         self.angle = angle
         self.fill_value = fill_value
@@ -617,9 +630,25 @@ class RandomRotation(Transform):
         self,
         rotation_range: tuple[float, float] = (-180.0, 180.0),
         fill_value:     float = 0.0,
+        p:              float = 0.5,
         transform_mask: bool  = True,
-        p:              float = 0.5
     ) -> None:
+        '''Applies random rotation to input images.
+
+        Args:
+            angle          : A tuple of two floats defining the (min, max) 
+                             number of degrees to rotate input images. A random
+                             value in this range will be selected each time the
+                             transform is called.
+            fill_value     : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers after 
+                             being rotated.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+                
+        '''
         super().__init__(p=p)
         self.rotation_range = rotation_range
         self.fill_value = fill_value
@@ -647,14 +676,28 @@ class RandomRotation(Transform):
 class RandomRotate90(Transform):
     def __init__(
         self,
-        mode:           Literal['90', '180', '270', '360'] = '360',
+        mode:           Literal[90, 180, 270, 360] = 360,
         fill_value:     float = 0.0,
         p:              float = 0.5,
         transform_mask: bool  = True
     ) -> None:
+        '''Applies random 90-degree stepped rotation to input images.
+
+        Args:
+            mode           : Defines the max rotation angle. Options are [`90`,
+                             `180`, `270`, `360`]. Only step values up to (and
+                             including) the chosen value will be allowed.
+            fill_value     : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers after 
+                             being rotated.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.fill_value = fill_value
-        self.max_step = ['90', '180', '270', '360'].index(mode) + 1
+        self.max_step = [90, 180, 270, 360].index(mode) + 1
         self.transform_mask = transform_mask
     
     def _transform(self, input: Tensor | None) -> Tensor | None:
@@ -680,6 +723,7 @@ class RandomRotate90(Transform):
   
 class _GridSampleTransform(Transform):
     def __init__(self, p: float = 1.0) -> None:
+        '''Abstract parent for transforms with operate via grid sampling.'''
         super().__init__(p=p)
         
     def _apply_flow(
@@ -688,21 +732,14 @@ class _GridSampleTransform(Transform):
         src_x: np.ndarray,
         src_y: np.ndarray
     ) -> np.ndarray:
+        '''Applies a pre-defined flow to inputs to distort them.'''
         C, H, W = image.shape
         result  = np.zeros_like(image)
-
-        mode_map = {
-            'reflect':  'reflect',
-            'constant': 'constant',
-            'nearest':  'nearest',
-            'wrap':     'wrap'
-        }
-        mode = mode_map.get(self.border_mode, 'reflect')
 
         for c in range(C):
             result[c] = map_coordinates(
                 image[c], [src_y.ravel(), src_x.ravel()],
-                order=1, mode=mode, cval=self.fill
+                order=1, mode=self.border_mode, cval=self.fill
             ).reshape(H, W)
 
         return result
@@ -721,6 +758,39 @@ class RandomAffine(_GridSampleTransform):
         p:              float = 0.5,
         transform_mask: bool  = True
     ) -> None:
+        '''Randomly applies affine transforms to input images.
+
+        Args:
+            degrees        : The rotational angle of the transforms. Can be a 
+                             single float for a constant angle, or a tuple of 
+                             two (min, max) floats for a random value in the
+                             specified range (inclusive).
+            translate      : A tuple of two floats defining the (min, max) 
+                             translational offset as a percentage (0-1) of the 
+                             total input size, or None to not perform 
+                             translation.
+            scale          : A tuple of two floats defining the (min, max) 
+                             scaling factor for input images, or None to not
+                             perform scaling.
+            shear          : A tuple of two floats defining the (min, max) 
+                             shearing amount for input images, or None to not
+                             perform scaling.
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.degrees = (-degrees, degrees) \
             if isinstance(degrees, (int, float)) else degrees
@@ -815,7 +885,7 @@ class RandomAffine(_GridSampleTransform):
 class RandomPerspective(_GridSampleTransform):
     def __init__(
         self,
-        distortion_scale: float = 0.5,
+        scale: float = 0.5,
         border_mode: Literal[
             'reflect', 'constant', 'nearest', 'wrap'
         ] = 'reflect',
@@ -823,10 +893,30 @@ class RandomPerspective(_GridSampleTransform):
         p:              float = 0.5,
         transform_mask: bool  = True
     ) -> None:
+        '''Randomly applies perspective warping to input images.
+
+        Args:
+            scale          : Controls the intensity of the warping.
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
-        self.distortion_scale = distortion_scale
-        self.border_mode = border_mode
-        self.fill = fill
+        self.scale          = scale
+        self.border_mode    = border_mode
+        self.fill           = fill
         self.transform_mask = transform_mask
 
     def _compute_homography(
@@ -874,8 +964,8 @@ class RandomPerspective(_GridSampleTransform):
             dtype=input.dtype, device=input.device)
 
     def _build_parameters(self, H: int, W: int) -> None:
-        half_h = H * self.distortion_scale / 2
-        half_w = W * self.distortion_scale / 2
+        half_h = H * self.scale / 2
+        half_w = W * self.scale / 2
 
         self._src_pts = np.array([
             [0,   0  ],
@@ -916,6 +1006,33 @@ class OpticalDistortion(_GridSampleTransform):
         p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly applies optical distortion to input images.
+
+        Args:
+            distort_limit  : The limit for the optical distortion. Can be a 
+                             single float for a constant limit, or a tuple of 
+                             two floats for a random value between them each 
+                             time the transform is called.
+            shift_limit    : The translational shift limit. Can be a single 
+                             float for a constant limit, or a tuple of two 
+                             floats for a random value between them each time 
+                             the transform is called.
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.distort_limit = (-distort_limit, distort_limit) \
             if isinstance(distort_limit, (int, float)) else distort_limit
@@ -983,6 +1100,33 @@ class ElasticTransform(_GridSampleTransform):
         p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly applies elastic transformations to input images.
+
+        Args:
+            alpha          : Controls the intensity of the distortion. Can be a
+                             single float for a constant alpha, or a tuple of
+                             (min, max) floats for a random value in the given
+                             range each time the transform is called.
+            sigma          : Controls the frequency of the distortion. Can be a
+                             single float for a constant sigma, or a tuple of
+                             (min, max) floats for a random value in the given
+                             range each time the transform is called.
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.alpha = (alpha, alpha) if isinstance(alpha, int|float) else alpha
         self.sigma = (sigma, sigma) if isinstance(sigma, int|float) else sigma
@@ -1037,6 +1181,32 @@ class GridDistortion(_GridSampleTransform):
         p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly applies grid-based distortion to input images.
+
+        Args:
+            num_steps      : The number of distorion steps. Smaller values will
+                             create lower frequency distortion, large values
+                             will create higher frequency distortion.
+            distort_limit  : Controls the maximum limit for the distortion. Can 
+                             be a single float for a constant limit, or a tuple 
+                             of (min, max) floats for a random value in the 
+                             given range each time the transform is called.
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.num_steps = num_steps
         self.distort_limit = (-distort_limit, distort_limit) \
@@ -1106,6 +1276,41 @@ class Swirl(_GridSampleTransform):
         p:             float = 0.5,
         transform_mask: bool = True
     ) -> None:
+        '''Randomly swirl distortion to input images.
+
+        Args:
+            strength       : The strength of the swirling effect. Can be a 
+                             single float for a constant strength, or a tuple 
+                             of (min, max) floats for a random value in the 
+                             given range each time the transform is called.
+            radius         : The radius to swirl, in degrees. Can be a 
+                             single float for a constant radius, or a tuple 
+                             of (min, max) floats for a random value in the 
+                             given range each time the transform is called.
+            center         : Defines the center of the swirl in (0-1) range:
+                             ```
+                             (0,0) ------ (0,1)
+                               |            |
+                               |            |
+                               |            |
+                             (1,0) ------ (1,1)
+                             ```
+            border_mode    : How to treat pixels that cross the border of the 
+                             image. Options are:
+                             - `reflect`  : Reflect the border pixels outward.
+                             - `constant` : Fill will constant value defined by 
+                                            `fill`.
+                             - `nearest` : Replicates the border pixel outward.
+                             - `wrap`    : Wraps pixels from the opposite side 
+                                           of the image.
+            fill           : The value (0-1) to fill the background with in 
+                             areas the original image no longer covers. Only
+                             applies when `border_mode` is `constant`.
+            p              : The probability (0-1) of the effect being applied 
+                             to any given input.
+            transform_mask : If True, this transform will also be applied to 
+                             the mask in the input TransformInput, if present.
+        '''
         super().__init__(p=p)
         self.strength = (strength, strength) \
             if isinstance(strength, int | float) else strength
