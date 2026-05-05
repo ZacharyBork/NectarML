@@ -29,6 +29,20 @@ class DebugPrint(Transform):
         devices: bool = True,
         minmax:  bool = True
     ) -> None:
+        '''Prints debug information about input tensors.
+
+        Can be placed in `vision.transforms.Compose` objects. Useful for 
+        debugging transform stacks.
+        
+        Args:
+            op_name : Name to tag the printout with to make it easier to 
+                      identify where the information is coming from.
+            shapes  : If True, the shapes of input tensors will be printed.
+            dtype   : If True, the DTypes of input tensors will be printed.
+            devices : If True, the devices of input tensors will be printed.
+            minmax  : If True, the minimum and maximum value of input tensors
+                      will be printed.
+        '''
         super().__init__()
         self.op_name = op_name
         self.shapes  = shapes
@@ -65,6 +79,18 @@ class DebugPrint(Transform):
 
 class NoOp(Transform):
     def __init__(self) -> None:
+        '''No-op transform. Passes inputs through unchanged.
+
+        Can be used to enable of disable transforms more easily, or based on a
+        conditional like so:
+        ```
+        training = True
+        xforms   = transforms.Compose(
+            transforms.ColorJitter() if training else transforms.NoOp()
+        )
+        
+        ```
+        '''
         super().__init__()
     
     def forward(self, input: TransformInput) -> TransformInput:
@@ -182,16 +208,48 @@ class SaveImageFile(UtilityTransform[Tensor, Tensor]):
 class Resample(Transform):
     def __init__(
         self,
-        size:         int   | tuple[int,   ...]   | None = None,
+        size:         int   | tuple[int,   ...] | None = None,
         scale_factor: float | tuple[float, ...] | None = None,
-        mode: Literal[
-            'nearest', 'linear', 'bilinear', 'bicubic', 'trilinear'
-        ] = 'nearest',
+        mode:         Literal['nearest', 'bilinear', 'bicubic'] = 'nearest',
         a:                    float = -0.75,
         align_corners:         bool = False,
         preserve_aspect_ratio: bool = False,
         transform_mask:        bool = True
     ) -> None:
+        '''Resamples inputs tensors to a specifed size.
+
+        Output size of the resample operation can be defined in one of two
+        ways:
+
+        1. `size`: Directly defining the size of the spatial dimensions as a
+                   tuple (H: int, W: int).
+            
+        2. `scale_factor`: This acts as a multiplier to the spatial dimensions
+            of the input tensor. So if you input a tensor with shape 
+            (1, 3, 256, 256) and set `scale_factor` to (2.0, 2.0), the 
+            output tensor would have shape (1, 3, 512, 512). `scale_factor` is
+            defined as a tuple (H: float, W: float).
+
+        NOTE: If both `size` and `scale_factor` are provided, Upsample will use 
+        `scale_factor`.
+        
+        Args:
+            size          : The desired output size.
+            scale_factor  : The scale factor for the upsample.
+            mode          : The upsampling algorithm to use. Options are 
+                            ['nearest', 'linear', 'bilinear', 'bicubic', 
+                            'trilinear']
+            align_corners : If True, the corner pixels of the input and output
+                            tensor will be aligned.
+            recompute_scale_factor : If True, scale factor will be recomputed
+                                     by rounding to the closest pixel-aligned
+                                     value from the first input. 
+            preserve_aspect_ratio  : If True, the aspect ratio of the output 
+                                     tensor will match that of the input.
+            transform_mask         : If True, this transform will also be 
+                                     applied to the mask in the input 
+                                     TransformInput, if present.
+        '''
         super().__init__()
         self.size          = size
         self.scale_factor  = scale_factor
@@ -224,8 +282,21 @@ class Derivative(Transform):
         mode:        Literal['ddx', 'ddy'] = 'ddx',
         per_channel: bool = False
     ) -> None:
+        '''Computes the partial derivative in x or y of input tensor's values.
+
+        Args:
+            mode        : The axis to compute the derivative along. Options are 
+                          [`ddx`, `ddy`].
+            per_channel : If True, each channel will have it's own partial
+                          derivative computed independently, then the channels
+                          will be rejoined to form the output. If False, inputs
+                          will instead be converted to grayscale and the 
+                          derivative will be estimated from the result. Note 
+                          that the number of channels in the output tensor will
+                          match that of the input regardless.
+        '''
         super().__init__()
-        self.mode = mode
+        self.mode        = mode
         self.per_channel = per_channel
 
     def _transform(self, input: Tensor | None) -> Tensor | None:        
@@ -274,6 +345,15 @@ class UVMap(Transform):
         tiling_x: float = 1.0,
         tiling_y: float = 1.0
     ) -> None:
+        '''Generates a [0:1] UV map from input tensors.
+
+        Builds a traditional red/green UV map whos shape matches that of the
+        input tensor.
+
+        Args:
+            tiling_x : Tiling in the horizontal direction of the map.
+            tiling_y : Tiling in the vertical direction of the map.
+        '''
         super().__init__()
         self.tiling_x = tiling_x
         self.tiling_y = tiling_y
@@ -305,6 +385,16 @@ class NormalMap(Transform):
         normal_power: float = 1.0,
         invert:        bool = False
     ) -> None:
+        '''Generates a Z-up normal map for input tensors.
+
+        Estimates the parial derivative in X and Y of input tensors and uses 
+        the result to generate a Z-up normal map for the input.
+        
+        Args:
+            normal_power : The intensity of the normal map.
+            invert       : If True, the input will be inverted before the 
+                           normal map is generated.
+        '''
         super().__init__()
         assert normal_power > 0.0, '"normal_power" must be greater than 0.0.'
         self.normal_power = normal_power
@@ -343,6 +433,21 @@ class ApplyLUT(Transform):
         alpha:    float = 1.0,
         p:        float = 1.0
     ) -> None:
+        '''Applies a 3DLUT (.cube) file to input images.
+
+        NOTE: This transform runs natively on the GPU with a dedicated kernel
+        for CUDA tensors. This is much faster than for CPU tensors, especially
+        for higher resolution inputs.
+        
+        Args:
+            lut_file : The `.cube` LUT file to apply to the inputs.
+            alpha    : Blending factor for the result. 0.0 will return the 
+                       inputs unchanged, 1.0 will return the result of the LUT
+                       application to the inputs, and values in between will
+                       blend between them linearly.
+            p        : The probability (0-1) of the effect being applied to any
+                       given input.
+        '''
         super().__init__(p=p)
         lut_file = Path(lut_file)
         assert lut_file.exists, \
@@ -463,6 +568,14 @@ class Clamp(Transform):
         min_value: float | None = None,
         max_value: float | None = None
     ) -> None:
+        '''Clamps values of inputs between a minimum and maximum value.
+
+        Args:
+            min_value : The minimum value to clamp to, or None to not clamp at
+                        the low end.
+            max_value : The maximum value to clamp to, or None to not clamp at
+                        the high end.
+        '''
         super().__init__()
         self.min_value = min_value
         self.max_value = max_value
@@ -482,6 +595,13 @@ class Clamp(Transform):
     
 class MaskedFill(Transform):
     def __init__(self, mask: Tensor, value: float = 0.0) -> None:
+        '''Fills input tensors with a value based on a given mask tensor.
+        
+        Args:
+            mask  : The mask tensor to fill based on. The shape of the mask
+                    must be broadcastable to that of the input tensors.
+            value : The value to fill the masked region with.
+        '''
         super().__init__()
         self.mask = mask
         self.value = value
@@ -508,6 +628,24 @@ class Morphological(Transform):
         per_channel: bool  = False,
         p:           float = 0.5
     ) -> None:
+        '''Performs a morphological transform on input images.
+        
+        Args:
+            scale       : The scale of the morphological operations. Larger
+                          values will produce more dramatic results. Can be a
+                          single integer for a constant scale, or a tuple of
+                          two integers, in which case a random value between
+                          them (inclusive) will be chosen each time the 
+                          transform is called.
+            operation   : The operation to apply. Options are [`dilation`,
+                          `erosion`].
+            per_channel : If True, each channel of the input tensors will have
+                          the operation applied independently, then be rejoined
+                          to form the output. Otherwise, the operation will be
+                          applied to the input as a whole.
+            p           : The probability (0-1) of the effect being applied to
+                          any given input.
+        '''
         super().__init__(p=p)
         self.scale = (scale, scale) if isinstance(scale, int) else scale
         self.operation = operation
