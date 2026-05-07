@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence, Callable
+from collections.abc import Callable
 
 import nectarml.nn.functional as F
 from nectarml           import typing
@@ -22,6 +22,7 @@ class _BatchNorm(Module):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''Abstract parent of instance and batch norm module classes.'''
         super().__init__()
         self.norm_dims = norm_dims
         self.norm_func = norm_func
@@ -81,6 +82,47 @@ class BatchNorm1d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''1-dimensional batch normalization module.
+
+        Computes a single mean and variance value per channel across all B, H, 
+        and W values to normalize activations over batch and spatial dimensions 
+        for each channel independently.
+
+        BatchNorm also, by default, maintains a running mean and variance 
+        during training which is then sampled from during inference. This can 
+        be disabled by setting `track_running_stats` to False, in which case
+        the mean and variance will be recalculated each time the module is 
+        called.
+
+        Reference:
+            Ioffe, Sergey, and Christian Szegedy. "Batch normalization: 
+            Accelerating deep network training by reducing internal covariate
+            shift." In International conference on machine learning, pp. 
+            448-456. pmlr, 2015. https://arxiv.org/abs/1502.03167
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1), (0,), F.batch_norm1d, eps, momentum, affine, 
             track_running_stats, dtype, fused)
@@ -96,6 +138,47 @@ class BatchNorm2d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''2-dimensional batch normalization module.
+
+        Computes a single mean and variance value per channel across all B, H, 
+        and W values to normalize activations over batch and spatial dimensions 
+        for each channel independently.
+
+        BatchNorm also, by default, maintains a running mean and variance 
+        during training which is then sampled from during inference. This can 
+        be disabled by setting `track_running_stats` to False, in which case
+        the mean and variance will be recalculated each time the module is 
+        called.
+
+        Reference:
+            Ioffe, Sergey, and Christian Szegedy. "Batch normalization: 
+            Accelerating deep network training by reducing internal covariate
+            shift." In International conference on machine learning, pp. 
+            448-456. pmlr, 2015. https://arxiv.org/abs/1502.03167
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1, 1), (0, 2, 3), F.batch_norm2d, eps, momentum, 
             affine, track_running_stats, dtype, fused)
@@ -111,6 +194,47 @@ class BatchNorm3d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''3-dimensional batch normalization module.
+
+        Computes a single mean and variance value per channel across all B, H, 
+        and W values to normalize activations over batch and spatial dimensions 
+        for each channel independently.
+
+        BatchNorm also, by default, maintains a running mean and variance 
+        during training which is then sampled from during inference. This can 
+        be disabled by setting `track_running_stats` to False, in which case
+        the mean and variance will be recalculated each time the module is 
+        called.
+
+        Reference:
+            Ioffe, Sergey, and Christian Szegedy. "Batch normalization: 
+            Accelerating deep network training by reducing internal covariate
+            shift." In International conference on machine learning, pp. 
+            448-456. pmlr, 2015. https://arxiv.org/abs/1502.03167
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1, 1, 1), (0, 2, 3, 4), F.batch_norm3d, eps, 
             momentum, affine, track_running_stats, dtype, fused)
@@ -128,6 +252,41 @@ class InstanceNorm1d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''1-dimensional instance normalization module.
+
+        Normalizes activations over spatial dimensions only for each channel. 
+        Computes mean and variance across the spatial dimensions for each 
+        (B, C) pair so that each sample is normalized independently of the rest 
+        of the batch.
+
+        Reference:
+            Ulyanov, Dmitry, Andrea Vedaldi, and Victor Lempitsky. "Instance 
+            normalization: The missing ingredient for fast stylization." arXiv 
+            preprint arXiv:1607.08022 (2016). https://arxiv.org/abs/1607.08022
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1), (2,), F.instance_norm1d, eps, 
             momentum, affine, track_running_stats, dtype, fused)
@@ -143,6 +302,41 @@ class InstanceNorm2d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''2-dimensional instance normalization module.
+
+        Normalizes activations over spatial dimensions only for each channel. 
+        Computes mean and variance across the spatial dimensions for each 
+        (B, C) pair so that each sample is normalized independently of the rest 
+        of the batch.
+
+        Reference:
+            Ulyanov, Dmitry, Andrea Vedaldi, and Victor Lempitsky. "Instance 
+            normalization: The missing ingredient for fast stylization." arXiv 
+            preprint arXiv:1607.08022 (2016). https://arxiv.org/abs/1607.08022
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1, 1), (2, 3), F.instance_norm2d, eps, 
             momentum, affine, track_running_stats, dtype, fused)
@@ -158,6 +352,41 @@ class InstanceNorm3d(_BatchNorm):
         dtype:       typing.dtype  = typing.float32,
         fused:               bool  = True
     ) -> None:
+        '''3-dimensional instance normalization module.
+
+        Normalizes activations over spatial dimensions only for each channel. 
+        Computes mean and variance across the spatial dimensions for each 
+        (B, C) pair so that each sample is normalized independently of the rest 
+        of the batch.
+
+        Reference:
+            Ulyanov, Dmitry, Andrea Vedaldi, and Victor Lempitsky. "Instance 
+            normalization: The missing ingredient for fast stylization." arXiv 
+            preprint arXiv:1607.08022 (2016). https://arxiv.org/abs/1607.08022
+
+        Args:
+            num_features        : The feature count of the input tensors for 
+                                  the module.
+            eps                 : Small epsilon value to avoid zero-division
+                                  during the normalization calculation.
+            momentum            : Affects the rate at which the running mean 
+                                  and variance of the module adapt to changes.
+                                  Only used if `track_running_stats` is 
+                                  enabled.
+            affine              : Whether to add learnable gamma and beta 
+                                  parameters for the module.
+            track_running_stats : If True, the mean and variance of the
+                                  normalization will be tracked over time, and
+                                  the running stats will then be sampled from
+                                  for inference, rather than sampling directly
+                                  from the calculated mean and average.
+            dtype               : Optional dtype to initialize the modules
+                                  gamma and beta parameters with. Only used
+                                  when `affine` is enabled.
+            fused               : Whether to use fused forward and backward
+                                  kernels for normalization of CUDA tensors.
+                                  This is significantly faster. 
+        '''
         super().__init__(
             (1, num_features, 1, 1, 1), (2, 3, 4), F.instance_norm3d, eps, 
             momentum, affine, track_running_stats, dtype, fused)
@@ -173,6 +402,33 @@ class GroupNorm(Module):
         affine:       bool  = True,
         dtype: typing.dtype = typing.float32
     ) -> None:
+        '''Group normalization module.
+
+        Serves as a sort of middle ground between instance normalization and
+        layer normalization. Splits activations into a set number of groups 
+        along their channel dimension, and normalizes along the spatial and
+        channel dimensions of each group independently. This helps it to avoid
+        the issues with small batch sizes when using batch normalization. When 
+        `num_groups` is equal to the number of channels in the input tensors,
+        GroupNorm behaves like InstanceNorm. With `num_groups`=1, GroupNorm 
+        instead behaves like LayerNorm.
+
+        Reference:
+            Wu, Yuxin, and Kaiming He. "Group normalization." In Proceedings of 
+            the European conference on computer vision (ECCV), pp. 3-19. 2018.
+            https://arxiv.org/abs/1803.08494
+
+        Args:
+            num_groups   : The number of groups to divide input tensors into.
+            num_channels : The number of channels in the input tensors.
+            eps          : Small epsilon value to avoid zero-division during 
+                           the normalization calculation.
+            affine       : Whether to add learnable gamma and beta parameters 
+                           for the module.
+            dtype        : Optional dtype to initialize the modules gamma and
+                           beta parameters with. Only used when `affine` is 
+                           enabled.
+        '''
         super().__init__()
         self.num_groups = num_groups
         self.eps        = eps
@@ -192,14 +448,42 @@ class GroupNorm(Module):
 class LayerNorm(Module):
     def __init__(
         self:               LayerNorm, 
-        normalized_shape:   Sequence[int],
+        normalized_shape:   typing.ShapeType,
         eps:                float = 0.00001,
         elementwise_affine: bool  = True,
         bias:               bool  = True,
         dtype:      typing.dtype  = typing.float32
     ) -> None:
+        '''Layer normalization module.
+
+        Normalizes activations over all non-batch dimensions. So for a tensor
+        with shape (B, C, H, W), mean and variance will be computed across the
+        C, H, and W dimensions. This causes layer normalization to function the
+        same regardless of input batch size, making it highly useful for 
+        transformer-based networks and RNNs.
+
+        Reference:
+            Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer 
+            normalization." arXiv preprint arXiv:1607.06450 (2016).
+            https://arxiv.org/abs/1607.06450
+
+        Args:
+            normalized_shape   : A ShapeType object defining the dimensions 
+                                 over which to normalize input activations.
+            eps                : Small epsilon value to avoid zero-division 
+                                 during the normalization calculation.
+            elementwise_affine : If True, the module will be initialized with
+                                 learnable weight and bias (if `bias`=True) 
+                                 parameters  
+            bias               : If True, a learnable beta parameter will be
+                                 added to to the module. Only used if
+                                 `elementwise_affine` is enabled.
+            dtype              : Optional dtype to initialize the modules gamma 
+                                 and beta parameters with. Only used when 
+                                 `elementwise_affine` is enabled.
+        '''
         super().__init__()
-        self.normalized_shape = normalized_shape
+        self.normalized_shape = list(normalized_shape)
         self.eps              = eps
         
         if elementwise_affine:
