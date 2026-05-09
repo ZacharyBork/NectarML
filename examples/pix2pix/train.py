@@ -61,7 +61,7 @@ VAL_SET_PATH   = '' # Sys path to validation images directory.
 
 OUTPUT_DIRECTORY  = ''   # Root output directory path.
 ALLOW_EXISTING    = True # Whether to allow existing output directories.
-MODEL_SAVE_RATE   = 1    # Rate (in epochs) at which to save model checkpoints.
+MODEL_SAVE_RATE   = 10   # Rate (in epochs) at which to save model checkpoints.
 EXAMPLE_SAVE_RATE = 1    # Rate (in epochs) at which to save example images.
 
 ### VISUALIZATION SETTINGS ###
