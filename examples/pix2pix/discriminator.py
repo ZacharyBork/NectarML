@@ -17,10 +17,10 @@ class CNNBlock(nn.Module):
        
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 
-                      kernel_size=4, stride=stride, padding=1, 
-                      bias=False, padding_mode='reflect'),
+                      kernel_size=4, stride=stride,
+                      padding=1, bias=False, padding_mode='reflect'),
             nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+            nn.LeakyReLU(negative_slope=0.2)
         )
         
     def forward(self, x: nectarml.Tensor) -> nectarml.Tensor:
@@ -54,7 +54,7 @@ class Discriminator(nn.Module):
         self.initial = nn.Sequential(
             nn.Conv2d(in_channels*2, features[0], kernel_size=4, stride=2, 
                       padding=1, padding_mode='reflect'),
-            nn.LeakyReLU(0.2, inplace=True)
+            nn.LeakyReLU(0.2)
         )
         
         # Next we define the intermediate layers as a standard Python list.
@@ -96,4 +96,4 @@ class Discriminator(nn.Module):
         x = nectarml.cat([x, y], dim=1)
         x = self.initial(x)
         return self.model(x)
-    
+

@@ -15,11 +15,11 @@ class Pix2pixDataset(utils.data.Dataset):
     ) -> None:
         super().__init__()
         self.training = training
+        self.reverse  = direction.strip().casefold() == 'btoa'
         
         # First get all the dataset files in our root directory.
         self.root_directory = Path(root_directory)
-        self.list_files     = list(self.root_directory.iterdir())
-        self.reverse        = direction.strip().casefold() == 'btoa'
+        self.list_files = list(self.root_directory.iterdir())
         
         # Then we define an training augmentation setup for the data.
         self.transforms_train = xforms.Compose(
@@ -40,7 +40,7 @@ class Pix2pixDataset(utils.data.Dataset):
         # Then we'll make another compose for validation augmentations. For
         # val, we just want to resize to the input size and normalize [-1:1].
         self.transforms_val = xforms.Compose(
-            xforms.Resize(size=(286, 286), mode='bilinear'),
+            xforms.Resize(size=(256, 256), mode='bilinear'),
             xforms.Normalize(mean=0.5, std=0.5)
         )
 

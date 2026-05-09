@@ -91,7 +91,7 @@ class Generator(nn.Module):
         self.bottleneck = nn.Sequential(
             nn.Conv2d(features*8, features*8, 
                       kernel_size=4, stride=2, padding=1, 
-                      bias=True, padding_mode='reflect'),
+                      padding_mode='reflect'),
             nn.ReLU()
         )
         
@@ -117,8 +117,7 @@ class Generator(nn.Module):
     
         self.final_up = nn.Sequential(
             nn.ConvTranspose2d(features*2, in_channels, 
-                               kernel_size=4, stride=2, padding=1,
-                               bias=True),
+                               kernel_size=4, stride=2, padding=1),
             nn.Tanh()
         )
         
@@ -143,19 +142,19 @@ class Generator(nn.Module):
         # through the encode path layer by layer, feeding the output of one 
         # layer into the next.
         
-        x  = self.initial_down(x)
+        d1  = self.initial_down(x)
         
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
-        d4 = self.down4(d3)
-        d5 = self.down5(d4)
-        d6 = self.down6(d5)
+        d2 = self.down1(d1)
+        d3 = self.down2(d2)
+        d4 = self.down3(d3)
+        d5 = self.down4(d4)
+        d6 = self.down5(d5)
+        d7 = self.down6(d6)
     
         # We then run the resulf of the encoder path through the bottleneck
         # layer, and pass the output through to the decoder path.
     
-        bottleneck = self.bottleneck(d6)
+        bottleneck = self.bottleneck(d7)
         
         # Next we work our way up through the decoder path. The first decoder
         # layer recieves the output of the bottleneck, then every subsequent
@@ -163,15 +162,15 @@ class Generator(nn.Module):
         # concatenated with the output of the corresponding encoder layer.
         
         up1 = self.up1(bottleneck)
-        up2 = self.up2(nectarml.cat([up1, d6], dim=1))
-        up3 = self.up3(nectarml.cat([up2, d5], dim=1))
-        up4 = self.up4(nectarml.cat([up3, d4], dim=1))
-        up5 = self.up5(nectarml.cat([up4, d3], dim=1))
-        up6 = self.up6(nectarml.cat([up5, d2], dim=1))
-        up7 = self.up7(nectarml.cat([up6, d1], dim=1))
+        up2 = self.up2(nectarml.cat([up1, d7], dim=1))
+        up3 = self.up3(nectarml.cat([up2, d6], dim=1))
+        up4 = self.up4(nectarml.cat([up3, d5], dim=1))
+        up5 = self.up5(nectarml.cat([up4, d4], dim=1))
+        up6 = self.up6(nectarml.cat([up5, d3], dim=1))
+        up7 = self.up7(nectarml.cat([up6, d2], dim=1))
         
         # And lastly, we run the tensor through the final upsampling 
         # layer and return the result.
         
-        return self.final_up(nectarml.cat([up7, x], dim=1))
+        return self.final_up(nectarml.cat([up7, d1], dim=1))
 
