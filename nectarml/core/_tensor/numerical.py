@@ -286,6 +286,56 @@ class Tensor(tensor):
         '''
         return cuda.memory.fill(self._data_ptr, 0, self.size, self.dtype)
     
+    def is_inf(self: Tensor) -> bool:
+        '''Checks whether every element of a given Tensor's data is infinite.
+
+        Returns:
+            bool : True if all elements of the given Tensor's data are 
+                   infinite, otherwise False.
+        '''
+        if self.device == 'cuda': return cuda.utils.is_inf(self)
+        else: return np.all(np.isinf(self.data))
+
+    def is_finite(self: Tensor) -> bool:
+        '''Checks whether every element of a given Tensor's data is finite.
+
+        Returns:
+            bool : True if all elements of the given Tensor's data are finite,
+                   otherwise False.
+        '''
+        if self.device == 'cuda': return cuda.utils.is_finite(self)
+        else: return np.all(np.isfinite(self.data))
+
+    def is_nan(self: Tensor) -> bool:
+        '''Checks if every element of a given Tensor's data is not a number.
+
+        Returns:
+            bool : True if all elements of the given Tensor's data are NaN,
+                otherwise False.
+        '''
+        if self.device == 'cuda': return cuda.utils.is_nan(self)
+        else: return np.all(np.isnan(self.data))
+
+    def has_nan(self: Tensor) -> bool:
+        '''Checks whether any element of a given Tensor's data is not a number.
+
+        Returns:
+            bool : True if any element of the given Tensor's data is NaN,
+                otherwise False.
+        '''
+        if self.device == 'cuda': return cuda.utils.has_nan(self)
+        else: return np.any(np.isnan(self.data))
+
+    def has_inf(self: Tensor) -> bool:
+        '''Checks whether any element of a given Tensor's data is infinite.
+
+        Returns:
+            bool : True if any element of the given Tensor's data is infinite,
+                otherwise False.
+        '''
+        if self.device == 'cuda': return cuda.utils.has_inf(self)
+        else: return np.any(np.isinf(self.data))
+    
     ### COMPARISON ###
     
     def __eq__(

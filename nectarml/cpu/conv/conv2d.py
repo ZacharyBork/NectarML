@@ -1,6 +1,144 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nectarml import Tensor
+    
 import numpy as np
 
+from nectarml.typing import float32
+
+### WRAPPERS ###
+
 def conv2d(
+    input:       Tensor,
+    weight:      Tensor,
+    bias:        Tensor | None,
+    input_shape: tuple[int, int, int, int],
+    C_out: int, KH: int, KW: int,
+    H_out: int, W_out: int,
+    stride:   tuple[int, int],
+    padding:  tuple[int, int],
+    dilation: tuple[int, int],
+    groups: int,
+) -> Tensor:
+    B, C_in, H, W        = input_shape
+    input_requires_grad  = input.requires_grad
+    weight_requires_grad = weight.requires_grad
+    bias_requires_grad   = bias.requires_grad if bias is not None else False
+    
+    _requires_grad = input.requires_grad or weight.requires_grad
+    _children = [input, weight]
+    if bias is not None: 
+        _children.append(bias)
+        _requires_grad = _requires_grad or bias.requires_grad
+
+    out_data, input_padded = _conv2d(
+        input.data, weight.data, bias.data if bias is not None else None,
+        B, C_in, H, W, C_out, KH, KW, H_out, W_out,
+        stride[0], stride[1], padding[0], padding[1], 
+        dilation[0], dilation[1], groups)
+    out = input._new(
+        out_data, (B, C_out, H_out, W_out), input.dtype, input.device,
+        requires_grad=_requires_grad, _children=tuple(_children))
+    
+    def _backward() -> None:
+        out_grad = out.grad.contiguous()
+
+        if input_requires_grad:
+            grad_input = _conv2d_backward_input(
+                out_grad.data, input_padded, weight.data,
+                KH, KW, H_out, W_out,
+                stride[0], stride[1], padding[0], padding[1], 
+                dilation[0], dilation[1], groups)
+            input.grad += input._new(
+                grad_input, input.shape, float32, 'cpu')
+        
+        if weight_requires_grad:
+            grad_weight = _conv2d_backward_weight(
+                out_grad.data, input_padded, weight.data,
+                KH, KW, H_out, W_out,
+                stride[0], stride[1], dilation[0], dilation[1], groups)
+            weight.grad += input._new(
+                grad_weight, weight.shape, float32, 'cpu')
+        
+        if bias is not None and bias_requires_grad:
+            bias.grad += input._new(
+                out_grad.data.sum(axis=(0, 2, 3)), 
+                bias.shape, float32, 'cpu')
+                
+    out._backward = _backward
+    return out
+
+def conv_transpose2d(
+    input:       Tensor,
+    weight:      Tensor,
+    bias:        Tensor | None,
+    input_shape: tuple[int, int, int, int],
+    C_out: int, KH: int, KW: int, 
+    H_out: int, W_out: int, 
+    stride:         tuple[int, int],
+    padding:        tuple[int, int],
+    output_padding: tuple[int, int],
+    dilation:       tuple[int, int],
+    groups:         int
+) -> Tensor:
+    B, C_in, H, W        = input_shape
+    input_requires_grad  = input.requires_grad
+    weight_requires_grad = weight.requires_grad
+    bias_requires_grad   = bias.requires_grad if bias is not None else False
+
+    _requires_grad = input_requires_grad or weight_requires_grad
+    _children = [input, weight]
+    if bias is not None:
+        _children.append(bias)
+        _requires_grad = _requires_grad or bias_requires_grad
+
+    out_data = _conv_transpose2d(
+        input.data, weight.data,
+        bias.data if bias is not None else None,
+        B, C_in, H, W, C_out, KH, KW,
+        stride[0], stride[1], padding[0], padding[1],
+        dilation[0], dilation[1],
+        output_padding[0], output_padding[1], groups)
+    
+    out = input._new(out_data, (B, C_out, H_out, W_out), input.dtype, 
+        input.device, requires_grad=_requires_grad, _children=tuple(_children))
+
+    def _backward() -> None:
+        out_grad         = out.grad.contiguous()
+        B, C_in, H, W    = input.shape
+        _, C_out, KH, KW = weight.shape
+        H_out, W_out     = out.shape[2], out.shape[3]
+
+        if input_requires_grad:
+            grad_input = _conv_transpose2d_backward_input(
+                out_grad.data, weight.data,
+                B, C_in, H, W, C_out, KH, KW, H_out, W_out,
+                stride[0], stride[1], padding[0], padding[1],
+                dilation[0], dilation[1], groups)
+            input.grad += input._new(
+                grad_input, input.shape, float32, 'cpu')
+
+        if weight_requires_grad:
+            grad_weight = _conv_transpose2d_backward_weight(
+                out_grad.data, input.data,
+                B, C_in, H, W, C_out, KH, KW, H_out, W_out,
+                stride[0], stride[1], padding[0], padding[1],
+                dilation[0], dilation[1], groups)
+            weight.grad += input._new(
+                grad_weight, weight.shape, float32, 'cpu')
+
+        if bias is not None and bias_requires_grad:
+            bias.grad += input._new(
+                out_grad.data.sum(axis=(0, 2, 3)),
+                bias.shape, float32, 'cpu')
+
+    out._backward = _backward
+    return out
+
+### CONVOLUTION FUNCTIONS ###
+
+def _conv2d(
     input: np.ndarray,
     weight: np.ndarray,
     bias: np.ndarray | None,
@@ -43,7 +181,7 @@ def conv2d(
 
     return output, input_padded
 
-def conv_transpose2d(
+def _conv_transpose2d(
     input: np.ndarray,
     weight: np.ndarray,
     bias: np.ndarray | None,
@@ -91,7 +229,7 @@ def conv_transpose2d(
         output += bias[np.newaxis, :, np.newaxis, np.newaxis]
     return output
 
-def conv2d_backward_input(
+def _conv2d_backward_input(
     grad_output: np.ndarray,
     input_padded: np.ndarray,
     weight: np.ndarray,
@@ -139,7 +277,7 @@ def conv2d_backward_input(
             padding_w:padding_w + W_in]
     return grad_input_padded[:, :C_in, :, :]
 
-def conv_transpose2d_backward_input(
+def _conv_transpose2d_backward_input(
     grad_output: np.ndarray,
     weight: np.ndarray,
     B: int, C_in: int, H_in: int, W_in: int,
@@ -150,7 +288,7 @@ def conv_transpose2d_backward_input(
     dilation_h: int, dilation_w: int,
     groups: int
 ) -> np.ndarray:
-    result, _ = conv2d(
+    result, _ = _conv2d(
         grad_output, weight, None,
         B, C_out, H_out, W_out,
         C_in, KH, KW,
@@ -161,7 +299,7 @@ def conv_transpose2d_backward_input(
         groups)
     return result
 
-def conv2d_backward_weight(
+def _conv2d_backward_weight(
     grad_output: np.ndarray,
     input_padded: np.ndarray,
     weight: np.ndarray,
@@ -197,7 +335,7 @@ def conv2d_backward_weight(
 
     return grad_weight
 
-def conv_transpose2d_backward_weight(
+def _conv_transpose2d_backward_weight(
     grad_output: np.ndarray,
     input_padded: np.ndarray,
     B: int, C_in: int, H_in: int, W_in: int,

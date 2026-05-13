@@ -4,6 +4,8 @@ from   typing import Literal
 from nectarml      import cpu, cuda, typing
 from nectarml.core import Tensor
 
+### UTILITIES ###
+
 def _normalize_padding(
     pad:  builtins.int | tuple[builtins.int, ...], 
     ndim: builtins.int
@@ -27,6 +29,8 @@ def _compute_pad_output_shape(
         s + b + a 
         for s, b, a in zip(input_shape[2:], pad_before, pad_after))
     return input_shape[:2] + spatial_out
+    
+### WRAPPER ###
     
 def _pad_backward(
     input:         Tensor,
@@ -90,20 +94,19 @@ def pad(
     value: builtins.float = 0.0
 ) -> Tensor:
     if input.device == 'cuda':
-        pad_before, pad_after = _normalize_padding(pad, input.ndim)
-        out_data = cuda.padding.pad(input, pad_before, pad_after, mode, value)
-        shape = _compute_pad_output_shape(input.shape, pad_before, pad_after)
+        before, after = _normalize_padding(pad, input.ndim)
+        out_data      = cuda.padding.pad(input, before, after, mode, value)
+        shape         = _compute_pad_output_shape(input.shape, before, after)
     else:
         out_data = cpu.padding.pad(input, pad, mode, value)
-        shape = out_data.shape
+        shape    = out_data.shape
         
     input_requires_grad = input.requires_grad
     out = Tensor._new(out_data, shape, input.dtype, input.device,
         input_requires_grad, _children=(input,))
 
     def _backward() -> None:
-        _pad_backward(
-            input, out, input_requires_grad, pad_before, pad_after, mode)
+        _pad_backward(input, out, input_requires_grad, before, after, mode)
 
     out._backward = _backward
     return out

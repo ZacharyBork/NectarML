@@ -1,13 +1,4 @@
-import numpy as np
-
 from nectarml.core import Tensor
-from nectarml.cuda.utils import (
-    is_inf    as cuda_is_inf,
-    is_finite as cuda_is_finite,
-    is_nan    as cuda_is_nan,
-    has_nan   as cuda_has_nan,
-    has_inf   as cuda_has_inf
-)
 
 def is_inf(tensor: Tensor) -> bool:
     '''Checks whether every element of a given Tensor's data is infinite.
@@ -19,8 +10,7 @@ def is_inf(tensor: Tensor) -> bool:
         bool : True if all elements of the given Tensor's data are infinite,
             otherwise False.
     '''
-    if tensor.device == 'cuda': return cuda_is_inf(tensor)
-    else: return np.all(np.isinf(tensor.data))
+    return tensor.is_inf()
 
 def is_finite(tensor: Tensor) -> bool:
     '''Checks whether every element of a given Tensor's data is finite.
@@ -32,8 +22,7 @@ def is_finite(tensor: Tensor) -> bool:
         bool : True if all elements of the given Tensor's data are finite,
             otherwise False.
     '''
-    if tensor.device == 'cuda': return cuda_is_finite(tensor)
-    else: return np.all(np.isfinite(tensor.data))
+    return tensor.is_finite()
 
 def is_nan(tensor: Tensor) -> bool:
     '''Checks whether every element of a given Tensor's data is not a number.
@@ -45,8 +34,7 @@ def is_nan(tensor: Tensor) -> bool:
         bool : True if all elements of the given Tensor's data are NaN,
             otherwise False.
     '''
-    if tensor.device == 'cuda': return cuda_is_nan(tensor)
-    else: return np.all(np.isnan(tensor.data))
+    return tensor.is_nan()
 
 def has_nan(tensor: Tensor) -> bool:
     '''Checks whether any element of a given Tensor's data is not a number.
@@ -58,8 +46,7 @@ def has_nan(tensor: Tensor) -> bool:
         bool : True if any element of the given Tensor's data is NaN,
             otherwise False.
     '''
-    if tensor.device == 'cuda': return cuda_has_nan(tensor)
-    else: return np.any(np.isnan(tensor.data))
+    return tensor.has_nan()
 
 def has_inf(tensor: Tensor) -> bool:
     '''Checks whether any element of a given Tensor's data is infinite.
@@ -71,7 +58,6 @@ def has_inf(tensor: Tensor) -> bool:
         bool : True if any element of the given Tensor's data is infinite,
             otherwise False.
     '''
-    if tensor.device == 'cuda': return cuda_has_inf(tensor)
-    else: return np.any(np.isinf(tensor.data))
+    return tensor.has_inf()
 
 

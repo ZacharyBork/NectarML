@@ -2,6 +2,14 @@
 
 #include "ops/common.h"
 
+/*
+ * This file defines operational policies for tensor elementwise math ops.
+ *
+ * This is really only necessary as a means to deal with half precision floats
+ * for CUDA. These run through templates with type checking to delegate to the
+ * CUDA fp16 library where necessary, or to cast inputs in-situ to float32 if a
+ * corresponding fp16 function variant is not available for a given operation.
+ */
 
 /* COMPARISON */
 

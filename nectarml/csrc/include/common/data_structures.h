@@ -5,7 +5,14 @@
 #include <stdint.h>
 #include <vector>
 
-/* TENSOR INDEX */
+/* 
+ * Tensor index helper.
+ *
+ * Used to convert indices between standard dimension/element-based indexing, 
+ * and flat contiguous memory indexing. Needed for anything that addresses
+ * tensor values directly in device memory (e.g. combination, indexing, 
+ * reduction, etc.).
+ */
 
 struct TensorIndex {
     int shape[MAX_DIMS];
@@ -62,10 +69,10 @@ inline TensorIndex build_tensor_index(const std::vector<int>& shape) {
 /* COMBINATION */
 
 struct ConcatInputs {
-    uintptr_t ptrs[MAX_CONCAT_INPUTS];
+    uintptr_t   ptrs[MAX_CONCAT_INPUTS];
     TensorIndex indices[MAX_CONCAT_INPUTS];
-    int offsets[MAX_CONCAT_INPUTS];
-    int n_inputs;
+    int         offsets[MAX_CONCAT_INPUTS];
+    int         n_inputs;
 };
 
 /* BROADCASTING */

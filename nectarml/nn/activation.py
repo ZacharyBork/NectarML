@@ -35,8 +35,9 @@ class LeakyReLU(Module):
     ) -> None:
         '''Leaky rectified linear unit activation function.
         
-        Variant of ReLU which allows small non-zero gradients. Helps keep 
-        neurons active even with very small gradients.
+        Variant of ReLU which return a small non-zero value for negative 
+        inputs rather than zero. This helps keep neurons active during
+        backpropagation with very small gradients.
         
         Equation: f(x) = x if x > 0 else negative_slope * x
         
