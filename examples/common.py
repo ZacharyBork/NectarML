@@ -58,7 +58,7 @@ def build_examples_dir(
     examples_directory.mkdir(exist_ok=allow_existing)
     return examples_directory
 
-def save_examples(
+def save_xyz_examples(
     model:       nectarml.nn.Module, 
     dataset:     nectarml.utils.data.Dataset,
     output_path: Path,
@@ -67,7 +67,7 @@ def save_examples(
     '''Saves input, target, and inference example images to disk.
 
     Args:
-        model       : The model to user for inference.
+        model       : The model to use for inference.
         dataset     : The dataset to draw the test data from.
         output_path : The system path to the directory to save the images to.
         epoch       : The epoch when the example images are being saved. Used
@@ -94,7 +94,8 @@ def save_examples(
 def print_losses(
     iteration:   int, 
     losses:      dict[str, float],
-    losses_prev: dict[str, float] | None = None
+    losses_prev: dict[str, float] | None = None,
+    precision:   int = 5
 ) -> None:
     '''Prints losses to the console with optional coloring.
 
@@ -109,6 +110,8 @@ def print_losses(
                       printed values green if the loss has decreased from the 
                       previous timestep, or red if it has increased. If 
                       `losses_prev` is None, all printouts will be white.
+        precision   : The number of digits after the decimal place to round the
+                      printed values to.
     '''
     output = (
         f'{'='*os.get_terminal_size()[0]}\n'
@@ -124,7 +127,7 @@ def print_losses(
             if curr < prev: ctag = '\u001b[38;2;0;255;0m'
             else:           ctag = '\u001b[38;2;255;0;0m'
         output += f'    {loss}: '
-        output += ' '*(6-len(loss)) + f'{ctag}{curr:.5f}\033[0m\n'
+        output += ' '*(6-len(loss))+f'{ctag}{round(curr, precision)}\033[0m\n'
         
     print(output)
 

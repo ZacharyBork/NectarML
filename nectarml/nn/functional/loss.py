@@ -211,7 +211,7 @@ def bce_loss(
         Tensor : The computed loss.
     '''
     x, y = _prep_inputs(input, target)
-    loss = -(y * x.log() + (1 - y) * (1 - x).log())
+    loss = -(y * x.clamp(1e-7).log() + (1 - y) * (1 - x).clamp(1e-7).log())
     return _reduce_loss(loss, reduction)
 
 def cross_entropy_loss(

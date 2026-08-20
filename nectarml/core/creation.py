@@ -80,7 +80,7 @@ def rand_like(
     input:         Tensor, 
     requires_grad: builtins.bool | None = None
 ) -> Tensor:
-    '''Creates a clone of a given tensor, filled with random value.
+    '''Creates a clone of a given tensor, filled with random values.
 
     The random values will be drawn from a uniform distribution, and the 
     resulting tensor will have the same shape and dtype as the input tensor.
@@ -96,7 +96,31 @@ def rand_like(
         Tensor : The newly created tensor.
     '''
     _grad = input.requires_grad if requires_grad is None else requires_grad 
-    data  = RNG.random(input.shape, dtype=input.dtype.numpy)
+    data  = RNG.random(input.shape, dtype=input.dtype)
+    return Tensor(data, input.shape, input.dtype, input.device, _grad)
+
+def randn_like(
+    input:         Tensor, 
+    requires_grad: builtins.bool | None = None
+) -> Tensor:
+    '''Creates a clone of a given tensor, filled with random values.
+
+    The random values will be drawn from a normal distribution, and the 
+    resulting tensor will have the same shape and dtype as the input tensor.
+
+    Args:
+        input         : The tensor to clone.
+        requires_grad : Whether the newly created tensor should be connected to
+                        the computation graph. If `requires_grad` is None, the 
+                        resulting tensor will require grad if the input 
+                        requires grad, otherwise it will not.
+                        
+    Returns:
+        Tensor : The newly created tensor.
+    '''
+    _grad = False if requires_grad is None else requires_grad
+    data  = RNG.normal(loc=0.0, scale=1.0, size=input.shape)
+    data  = data.astype(input.dtype.numpy)
     return Tensor(data, input.shape, input.dtype, input.device, _grad)
 
 def full_like(
@@ -245,7 +269,7 @@ def randn(
     shape = Tensor._normalize_shape_input(*shape)
     rng   = Random(seed) if seed is not None else RNG
     return Tensor(
-        rng.standard_normal(shape, dtype=dtype.numpy), shape=shape, dtype=dtype, 
+        rng.standard_normal(shape, dtype=dtype), shape=shape, dtype=dtype, 
         device=device, requires_grad=requires_grad)
 
 def full(

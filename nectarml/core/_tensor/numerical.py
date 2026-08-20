@@ -1163,6 +1163,14 @@ class Tensor(tensor):
         ''' 
         return self.__abs__()
         
+    ### POW ###
+        
+    def pow(
+        self:     Tensor, 
+        exponent: builtins.float | builtins.int
+    ) -> Tensor:
+        return self.__pow__(exponent)
+        
     ### EXP ###
             
     def exp(self: Tensor) -> Tensor:

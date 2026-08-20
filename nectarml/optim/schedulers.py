@@ -408,8 +408,9 @@ class ReduceLROnPlateau(Scheduler):
     
     def step(
         self:   ReduceLROnPlateau, 
-        metric: int | float
+        metric: int | float = None
     ) -> None:
+        if metric is None: return
         if self.best is None: 
             self.best = metric
             return

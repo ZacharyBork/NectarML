@@ -23,8 +23,8 @@ from .random   import manual_seed, fork_rng
 from .autograd import no_grad
 
 from .core.creation import (
-    clone, zeros_like, ones_like, rand_like, full_like, empty_like, tril,
-    zeros, ones, rand, randn, full, empty, eye, arange, linspace)
+    clone, zeros_like, ones_like, rand_like, randn_like, full_like, empty_like, 
+    tril, zeros, ones, rand, randn, full, empty, eye, arange, linspace)
 
 from .typing import (
     ArrayLike, DTypeLike, DeviceLikeType, ShapeType, DimsType, NumberType,

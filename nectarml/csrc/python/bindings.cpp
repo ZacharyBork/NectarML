@@ -1,12 +1,12 @@
 #include "include/common/dtype.h"
 
-#include "python/pool.h"
+#include "pool.h"
 
-#include "python/ops/amp.h"
-#include "python/ops/system.h"
-#include "python/ops/tensor.h"
-#include "python/ops/optim.h"
-#include "python/ops/vision.h"
+#include "ops/amp.h"
+#include "ops/system.h"
+#include "ops/tensor.h"
+#include "ops/optim.h"
+#include "ops/vision.h"
 
 namespace py = pybind11;
 

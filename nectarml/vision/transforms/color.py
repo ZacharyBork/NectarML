@@ -324,7 +324,7 @@ class ToBlackAndWhite(Transform):
         gray = input.mean(dim=1, keepdim=True)
         return F.where(
             (gray > self.white_point), 
-            T.ones((), input.dtype, input.device), 0.0)
+            T.ones((), dtype=input.dtype, device=input.device), 0.0)
     
     def forward(self, input: TransformInput) -> TransformInput:
         return TransformInput(
@@ -774,7 +774,7 @@ class ChannelDropout(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         channels              = input.unbind(dim=1)
-        new_channel           = T.full(channels[0].shape, self.fill)
+        new_channel           = T.full(channels[0].shape, fill_value=self.fill)
         channels[self._index] = new_channel.to(input.device, input.dtype)
         return F.stack(channels, dim=1).clamp(0.0, 1.0)
     
@@ -987,8 +987,8 @@ class ChromaticAberration(Transform):
         
         _, _, H, W = input.shape
         channels = input.unbind(dim=1)
-        inner    = T.zeros(input.shape, input.dtype).to(input.device)
-        outer    = T.zeros(input.shape, input.dtype).to(input.device)
+        inner    = T.zeros(input.shape, dtype=input.dtype).to(input.device)
+        outer    = T.zeros(input.shape, dtype=input.dtype).to(input.device)
         
         inner[:, 0, :, :] = self._inner1(channels[0].reshape((1, 1, H, W)))
         inner[:, 1, :, :] = channels[1]

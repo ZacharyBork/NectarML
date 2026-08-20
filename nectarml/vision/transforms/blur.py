@@ -132,7 +132,7 @@ class BoxBlur(Transform):
     def _transform(self, input: Tensor | None) -> Tensor | None:
         if input is None: return input
         kernel = (
-            T.ones((self._ks, self._ks), device=input.device)
+            T.ones(self._ks, self._ks, device=input.device)
           / (self._ks * self._ks))
         
         blurred = input.clone()
@@ -209,7 +209,7 @@ class MotionBlur(Transform):
         if input is None: return input
         
         ks = self._ks
-        k  = T.zeros((ks, ks), device=input.device)
+        k  = T.zeros(ks, ks, device=input.device)
         center = ks // 2
         for i in range(ks):
             offset = i - center

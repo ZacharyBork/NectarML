@@ -19,7 +19,7 @@ from . import (
 
 from .module      import Module
 from .utils       import Lambda, checkpoint
-from .linear      import Linear
+from .linear      import Linear, LazyLinear
 from .upsample    import Upsample
 from .identity    import Identity
 from .attention   import MultiheadAttention

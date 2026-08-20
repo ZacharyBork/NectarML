@@ -45,3 +45,36 @@ class Linear(Module):
         y = x @ self.weight.transpose(1, 0)
         if self.bias is not None: y = self.bias + y
         return y
+
+class LazyLinear(Linear):
+    def __init__(
+        self:          LazyLinear, 
+        out_features:  int,
+        bias:          bool = True,
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        Module.__init__(self)
+        self.out_features = out_features
+        self._do_bias     = bias
+        self.dtype        = dtype
+        self._initialized = False
+        
+    def has_uninitialized_params(self: LazyLinear) -> bool:
+        return not self._initialized
+    
+    def _initialize(
+        self:        LazyLinear, 
+        in_features: int,
+        device:      typing.DeviceLikeType
+    ) -> None:
+        super().__init__(
+            in_features, self.out_features, self._do_bias, self.dtype)
+        self.weight = self.weight.to(device)
+        self.bias   = self.bias.to(device) if self.bias is not None else None
+        self._initialized = True
+        
+    def forward(self: LazyLinear, x: Tensor) -> Tensor:
+        if self.has_uninitialized_params(): 
+            self._initialize(x.shape[-1], x.device)
+        return super().forward(x)
+        

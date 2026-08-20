@@ -142,7 +142,7 @@ class MakeGrid(UtilityTransform[Tensor | Sequence[Tensor], Tensor]):
         size_w = input[0].shape[-1] + (self.padding * 2)
                 
         canvas = T.full(
-            (1, 3, size_h * rows, size_w * cols), 
+            1, 3, size_h * rows, size_w * cols, 
             fill_value=self.pad_value)
         canvas = canvas.to(input[0].device, input[0].dtype)
             

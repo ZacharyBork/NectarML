@@ -358,14 +358,27 @@ def conv2d(
     Expects input tensors to have shape (B, C, H, W).
     
     Args:
-        weight : The weight tensor to use for the convolution operation.
-        bias   : The bias tensor to use for the convolution, or None to not
-                 apply bias.
-        stride : 
-        padding : 
-        dilation : 
-        groups : 
-        padding_mode : 
+        input        : The tensor to convolve.
+        weight       : The weight tensor to use for the convolution operation.
+        bias         : The bias tensor to use for the convolution, or None to 
+                       not apply bias.
+        stride       : Step size for the kernel.
+        padding      : Padding width for inputs. Can be a single integer for 
+                       HW, or a tuple of two integers for (H, W).
+        dilation     : Size of the gap between the filter's sampling points. 
+                       Larger values allow the filter to cover a larger spatial 
+                       area without increasing parameter count.
+        groups       : Number of groups to split the input channels into before 
+                       computing the convolution. Note: `groups`>1 is currently 
+                       only valid for CPU tensors.
+        padding_mode : The padding mode to use. Options are:
+                       1. `zeros`     : Fill the padded area with zeros.
+                       2. `reflect`   : Mirrors edge pixels in the padded
+                                       area.
+                       3. `replicate` : Replicates the edge pixels into the
+                                       padded area.
+                       4. `circular`  : Wraps the opposite edges pixels to
+                                       fill the padded area.
     
     Returns:
         Tensors : The resulting tensor from the convolution operation.
@@ -410,6 +423,34 @@ def conv_transpose2d(
     groups:         int = 1,
     padding_mode:   Literal['zeros'] = 'zeros'
 ) -> Tensor:
+    '''Performs transposed convolution on 4-dimensional inputs.
+
+    Expects input tensors to have shape (B, C, H, W).
+    
+    Args:
+        input          : The tensor to convolve.
+        weight         : The weight tensor to use for the transposed 
+                         convolution.
+        bias           : The bias tensor to use for the transposed convolution, 
+                         or None to not apply bias.
+        stride         : Step size for the kernel.
+        padding        : Padding width for inputs. Can be a single integer for 
+                         HW, or a tuple of two integers for (H, W).
+        output_padding : Number of rows and columns to add to the output tensor
+                         after the transposed convolution. Can be a single 
+                         integer for HW, or a tuple of two integers for (H, W).
+        dilation       : Size of the gap between the filter's sampling points. 
+                         Larger values allow the filter to cover a larger 
+                         spatial area without increasing parameter count.
+        groups         : Number of groups to split the input channels into 
+                         before computing the convolution. Note: `groups`>1 is 
+                         currently only valid for CPU tensors.
+        padding_mode   : The padding mode to use. `zeros` is the only valid
+                         padding mode for transposed convolution.
+    
+    Returns:
+        Tensors : The resulting tensor from the transposed convolution.
+    '''
     input_shape           = input.shape
     C_in_w, C_out, KH, KW = weight.shape
     

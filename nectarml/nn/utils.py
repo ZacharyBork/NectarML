@@ -15,7 +15,7 @@ from nectarml.utils.save      import _save_tarfile, _load_tarfile
 
 ### GRAD UTILS ###
 
-def clip_grad_norm(params: list[Tensor], max_norm: float = 1.0) -> float:
+def clip_grad_norm_(params: list[Tensor], max_norm: float = 1.0) -> float:
     total_sq = sum(
         param.grad.norm(p='fro').item()**2
         for param in params if param.grad is not None)
@@ -65,32 +65,33 @@ class EMA:
         model: Module, 
         decay: float = 0.999
     ) -> None:
-        '''
-        Not currently functional!!
-        '''
-        raise NotImplementedError
-        self.model  = model
-        self.decay  = decay
-        self.shadow = {}
+        self.model   = model
+        self.beta    = decay
+        self.shadow  = {}
+        self._backup = {}
         
-        for name, param in model.named_parameters():
+        for name, param in self.model.named_parameters():
             self.shadow[name] = param.detach().clone()
     
-    def update(self):
+    def update(self: EMA) -> None:
         for name, param in self.model.named_parameters():
             self.shadow[name] = (
-                self.decay * self.shadow[name] + 
-                (1 - self.decay) * param.detach())
+                self.beta * self.shadow[name] + (1-self.beta) * param.detach())
     
-    def apply(self):
-        self._backup = {}
+    def apply(self: EMA) -> None:
+        self._backup.clear()
         for name, param in self.model.named_parameters():
             self._backup[name] = param.detach().clone()
             
-    
-    def restore(self):
-        pass
+    def restore(self: EMA) -> None:
+        for name, param in self.model.named_parameters():
+            self._backup[name] = param.detach().clone()
 
+    def state_dict(self: EMA) -> dict[str, Any]:
+        return { k: v for k, v in self.__dict__.items() if k != 'optimizer' }
+
+    def load_state_dict(self: EMA, state_dict: dict[str, Any]) -> None:
+        self.__dict__.update(state_dict)
 
 ### CHECKPOINTING ###
 

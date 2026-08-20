@@ -29,7 +29,7 @@ class Erasing(Transform):
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
-        mask = T.ones((B, 1, H, W), input.dtype, input.device)
+        mask = T.ones(B, 1, H, W, dtype=input.dtype, device=input.device)
         image_area = H * W
         
         for b in range(B):
@@ -95,7 +95,7 @@ class CoarseDropout(Transform):
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
-        mask = T.ones((B, 1, H, W), input.dtype, input.device)
+        mask = T.ones(B, 1, H, W, dtype=input.dtype, device=input.device)
         
         for b in range(B):
             num_holes = self._num_holes[b]
@@ -173,7 +173,7 @@ class GridDropout(Transform):
     
     def _build_mask(self, input: Tensor) -> Tensor:
         B, C, H, W = input.shape
-        mask = T.ones((B, 1, H, W), input.dtype, input.device)
+        mask = T.ones(B, 1, H, W, dtype=input.dtype, device=input.device)
 
         for b in range(B):
             for x in range(self.holes_number_xy[0]):
@@ -253,18 +253,21 @@ class RandomLensFlare(Transform):
             - https://resources.mpi-inf.mpg.de/lensflareRendering/pdf/flare.pdf
         '''
         super().__init__(p=p)
-        self.num_ghosts = num_ghosts
+        self.num_ghosts         = num_ghosts
         self.ghost_radius_range = tuple(
             [i*global_scale for i in ghost_radius_range])
         self.ghost_alpha_range = ghost_alpha_range
-        self.halo_radius = halo_radius * global_scale
-        self.halo_alpha = halo_alpha
-        self.streak_count = streak_count
-        self.streak_alpha = streak_alpha
-        self.streak_length = streak_length * global_scale
-        self.chromatic_shift = chromatic_shift
-        self.glow_radius = glow_radius * global_scale
-        self.source_position = source_position
+        
+        self.halo_radius       = halo_radius * global_scale
+        self.halo_alpha        = halo_alpha
+        
+        self.streak_count      = streak_count
+        self.streak_alpha      = streak_alpha
+        self.streak_length     = streak_length * global_scale
+        
+        self.chromatic_shift   = chromatic_shift
+        self.glow_radius       = glow_radius * global_scale
+        self.source_position   = source_position
 
     def _make_ghost(
         self, 
@@ -286,7 +289,8 @@ class RandomLensFlare(Transform):
         return ghost
 
     def _make_halo(self, cx: float, cy: float) -> Tensor:
-        halo = T.zeros(self.layer_shape, self._dtype, device=self._device)
+        halo = T.zeros(
+            self.layer_shape, dtype=self._dtype, device=self._device)
         
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
         r_px = self.halo_radius * self.smaller_side
@@ -296,7 +300,8 @@ class RandomLensFlare(Transform):
         return halo
 
     def _make_streaks(self, cx: float, cy: float) -> Tensor:
-        streaks = T.zeros(self.layer_shape, self._dtype, device=self._device)
+        streaks = T.zeros(
+            self.layer_shape, dtype=self._dtype, device=self._device)
 
         for i in range(self.streak_count):
             angle = (i / self.streak_count) * 3.1415926535
@@ -319,7 +324,8 @@ class RandomLensFlare(Transform):
         return streaks.clamp(0.0, 1.0)
 
     def _make_glow(self, cx: float, cy: float, alpha: float) -> Tensor:
-        glow = T.zeros(self.layer_shape, self._dtype, device=self._device)
+        glow = T.zeros(
+            self.layer_shape, dtype=self._dtype, device=self._device)
                 
         dist = ((self.proj_x - cx)**2 + (self.proj_y - cy)**2).sqrt()
         r_px = max(
@@ -347,7 +353,7 @@ class RandomLensFlare(Transform):
 
         for b in range(B):
             flare = T.zeros(
-                (3, H, W), dtype=self._dtype, device=self._device)
+                3, H, W, dtype=self._dtype, device=self._device)
             cx, cy = W/2, H/2
             axis_dx, axis_dy = cx-self._sx, cy-self._sy
 
@@ -414,14 +420,15 @@ class RandomFog(Transform):
         device: typing.DeviceLikeType,
         dtype:  typing.dtype
     ) -> Tensor:
-        noise     = T.zeros((1, 1, H, W), dtype, device)
+        noise     = T.zeros(1, 1, H, W, dtype=dtype, device=device)
         amplitude = frequency = 1.0
         
         for _ in range(self.octaves):
             octave_h = max(1, int(H * frequency / self.scale))
             octave_w = max(1, int(W * frequency / self.scale))
             octave = F.upsample(
-                T.rand((1, 1, octave_h, octave_w), self._seed, dtype, device),
+                T.rand(1, 1, octave_h, octave_w, 
+                       seed=self._seed, dtype=dtype, device=device),
                 size=(H, W), mode='bilinear')
             
             noise = noise + amplitude * octave
@@ -579,7 +586,12 @@ class RandomSnow(Transform):
         snow_mask = ((luminance-self._snow_point) / (1.0-self._snow_point))
         snow_mask = snow_mask.clamp(0.0, 1.0)
         
-        noise = T.rand(snow_mask.shape, self._seed, input.dtype, input.device)
+        noise = T.rand(
+            snow_mask.shape, 
+            seed   = self._seed, 
+            dtype  = input.dtype, 
+            device = input.device
+        )
         snow_mask = (snow_mask + noise * 0.1).clamp(0.0, 1.0)
         
         out = input + snow_mask * (1.0 - input) * self.brightness_coef
@@ -729,9 +741,9 @@ class Spatter(Transform):
             size=(H, W), mode='bilinear')
         n_y = n_y.squeeze(0).squeeze(0)   
         
-        drop_mask = T.zeros((H, W), dtype=input.dtype).to(input.device)
-        disp_x    = T.zeros((H, W), dtype=input.dtype).to(input.device)
-        disp_y    = T.zeros((H, W), dtype=input.dtype).to(input.device)
+        drop_mask = T.zeros(H, W, dtype=input.dtype).to(input.device)
+        disp_x    = T.zeros(H, W, dtype=input.dtype).to(input.device)
+        disp_y    = T.zeros(H, W, dtype=input.dtype).to(input.device)
         
         for r in range(self._droplet_scales, 0, -1):
             ds_cur = self._ds[r-1]
@@ -790,8 +802,8 @@ class Spatter(Transform):
         
         noise_scale = max(1, int(min(H, W) * 0.1))
         self._base_noise = [
-            T.rand((1, 1, noise_scale, noise_scale)).to(dtype=typing.float32),
-            T.rand((1, 1, noise_scale, noise_scale)).to(dtype=typing.float32)]
+            T.rand(1, 1, noise_scale, noise_scale).to(dtype=typing.float32),
+            T.rand(1, 1, noise_scale, noise_scale).to(dtype=typing.float32)]
         
         self._color = Tensor(self.droplet_color, dtype=typing.float32)
         self._color = self._color.view((1, 3, 1, 1)).expand((1, 3, H, W))    

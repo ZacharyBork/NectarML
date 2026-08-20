@@ -59,7 +59,9 @@ def where(
             'where() requires a dtype if a template tensor is not provided.'
         assert device is not None, \
             'where() requires a device if a template tensor is not provided.'
-        x = creation.full(condition.shape, x, dtype, device)
+        x = creation.full(
+            condition.shape, fill_value=x, 
+            dtype=dtype, device=device)
         template = x
     assert template.dtype != typing.bool_, \
         'x and y cannot be BoolTensors, only numerical Tensors.'

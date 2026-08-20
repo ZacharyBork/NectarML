@@ -1,11 +1,7 @@
-# Temporary ignores
 /tmp
-test.py
-setup.py
-NOTES.md
-LICENSE
-REFERENCES.md
+/tests/internal/
 .vscode
+torch_test
 
 # CMake
 CMakeCache.txt

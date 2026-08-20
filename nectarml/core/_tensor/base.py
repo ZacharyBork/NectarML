@@ -1008,9 +1008,11 @@ class tensor:
         orig_shape         = self.shape
         
         if self.device == 'cuda':
-            out = self._from_buffer(
-                self._buffer, shape, self.dtype, self.requires_grad,
-                _children=(self,))
+            out = self._new(cuda.clone_ptr(self._data_ptr, self.size, self.dtype),
+                            shape, self.dtype, self.device, self.requires_grad, _children=(self,))
+            # out = self._from_buffer(
+            #     self._buffer, shape, self.dtype, self.requires_grad,
+            #     _children=(self,))
         else:
             out = self._new(
                 cpu.shapes.reshape(self.data, shape), shape, self.dtype, 
@@ -1190,7 +1192,7 @@ class tensor:
         def _backward() -> None:
             if self_requires_grad:
                 self.grad += out.grad.permute(inv_dims)
-        
+                
         out._backward = _backward
         return out
 

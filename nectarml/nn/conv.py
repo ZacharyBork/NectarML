@@ -155,6 +155,40 @@ class Conv2d(Module):
         ] = 'zeros',
         dtype: typing.dtype = typing.float32
     ) -> None:
+        '''Performs convolution on 4-dimensional inputs.
+
+        Expects input tensors to have shape (B, C, H, W).
+        
+        Args:
+            in_channels  : The number of channels in the module's input.
+            out_channels : The number of channels in the module's output.
+            kernel_size  : The size of the convolutional kernel. Can be a 
+                           single integer for HW, or a tuple of two integers
+                           for (H, W).
+            stride       : Step size for the kernel. Can be a single integer 
+                           for HW, or a tuple of two integers for (H, W).
+            padding      : Padding width for inputs. Can be a single integer
+                           for HW, or a tuple of two integers for (H, W).
+            dilation     : Size of the gap between the filter's sampling 
+                           points. Larger values allow the filter to cover a 
+                           larger spatial area without increasing parameter 
+                           count.
+            groups       : Number of groups to split the input channels into
+                           before computing the convolution. Note: `groups`>1 
+                           is currently only valid for CPU tensors.
+            bias         : If True, a learnable bias tensor will be created
+                           for the module on init, and used for convolution.
+            padding_mode : The padding mode to use. Options are:
+                           1. `zeros`     : Fill the padded area with zeros.
+                           2. `reflect`   : Mirrors edge pixels in the padded
+                                           area.
+                           3. `replicate` : Replicates the edge pixels into the
+                                           padded area.
+                           4. `circular`  : Wraps the opposite edges pixels to
+                                           fill the padded area.
+            dtype        : The DType to initialize the module's weight and bias
+                           tensors as.
+        '''
         super().__init__()
         self.in_channels  = in_channels
         self.out_channels = out_channels
@@ -208,6 +242,36 @@ class ConvTranspose2d(Module):
         bias:          bool = True,
         dtype: typing.dtype = typing.float32
     ) -> None:
+        '''Performs transposed convolution on 4-dimensional inputs.
+
+        Expects input tensors to have shape (B, C, H, W).
+        
+        Args:
+            in_channels    : The number of channels in the module's input.
+            out_channels   : The number of channels in the module's output.
+            kernel_size    : The size of the convolutional kernel. Can be a 
+                             single integer for HW, or a tuple of two integers
+                             for (H, W).
+            stride         : Step size for the kernel. Can be a single integer 
+                             for HW, or a tuple of two integers for (H, W).
+            padding        : Padding width for inputs. Can be a single integer
+                             for HW, or a tuple of two integers for (H, W).
+            output_padding : Number of rows and columns to add to the output 
+                             tensor after the transposed convolution. Can be
+                             a single integer for HW, or a tuple of two 
+                             integers for (H, W).
+            dilation       : Size of the gap between the filter's sampling 
+                             points. Larger values allow the filter to cover a 
+                             larger spatial area without increasing parameter 
+                             count.
+            groups         : Number of groups to split the input channels into
+                             before computing the convolution. Note: `groups`>1 
+                             is currently only valid for CPU tensors.
+            bias           : If True, a learnable bias tensor will be created
+                             for the module on init, and used for convolution.
+            dtype          : The DType to initialize the module's weight and 
+                             bias tensors as.
+        '''
         super().__init__()
         self.in_channels    = in_channels
         self.out_channels   = out_channels

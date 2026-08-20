@@ -58,6 +58,14 @@ void launch_transpose_input_2d(
     int B, int C, int H, int W
 );
 
+
+
+
+template<typename T>
+T* launch_nchw_to_cfirst_2d(
+    T* input, int B, int C_out, int H_out, int W_out
+);
+
 /* FUNCTIONS */
 
 template<typename T>
@@ -217,6 +225,11 @@ uintptr_t run_conv2d_backward_input(
     int spatial_out = B * H_out * W_out;
     int kernel_size = C_in * KH * KW;
 
+    // Convert out_grad from NCHW → C-outermost so cuBLAS sees correct layout
+    T* out_grad_cfirst = launch_nchw_to_cfirst_2d<T>(
+        reinterpret_cast<T*>(out_grad_ptr),
+        B, C_out, H_out, W_out);
+
     T* d_col_grad = static_cast<T*>(
         g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
 
@@ -227,7 +240,7 @@ uintptr_t run_conv2d_backward_input(
             CUBLAS_OP_N, CUBLAS_OP_T,
             spatial_out, kernel_size, C_out,
             &alpha,
-            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
+            out_grad_cfirst, spatial_out,  // ← was out_grad_ptr
             reinterpret_cast<T*>(weight_ptr), kernel_size,
             &beta,
             d_col_grad, spatial_out);
@@ -238,7 +251,7 @@ uintptr_t run_conv2d_backward_input(
             CUBLAS_OP_N, CUBLAS_OP_T,
             spatial_out, kernel_size, C_out,
             &alpha,
-            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
+            out_grad_cfirst, spatial_out,  // ← was out_grad_ptr
             reinterpret_cast<T*>(weight_ptr), kernel_size,
             &beta,
             d_col_grad, spatial_out);
@@ -246,14 +259,14 @@ uintptr_t run_conv2d_backward_input(
     else throw std::runtime_error(
         "conv2d_backward_input only supports float32 and float16");
 
+    g_pool.free(out_grad_cfirst, spatial_out * C_out * sizeof(T));
+
     T* d_grad_input = static_cast<T*>(g_pool.alloc(B * C_in * H * W * sizeof(T)));
     cudaMemset(d_grad_input, 0, B * C_in * H * W * sizeof(T));
-
     launch_col2im_2d<T>(
         d_col_grad, d_grad_input,
         B, C_in, H, W, KH, KW, H_out, W_out,
-        stride_h, stride_w,
-        padding_h, padding_w,
+        stride_h, stride_w, padding_h, padding_w,
         dilation_h, dilation_w);
 
     g_pool.free(d_col_grad, kernel_size * spatial_out * sizeof(T));
@@ -274,15 +287,20 @@ uintptr_t run_conv2d_backward_weight(
     int spatial_out = B * H_out * W_out;
     int kernel_size = C_in * KH * KW;
 
-    T* d_col = static_cast<T*>(g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
+    // Convert out_grad from NCHW → C-outermost so cuBLAS sees correct layout
+    T* out_grad_cfirst = launch_nchw_to_cfirst_2d<T>(
+        reinterpret_cast<T*>(out_grad_ptr),
+        B, C_out, H_out, W_out);
 
+    T* d_col = static_cast<T*>(g_pool.alloc(kernel_size * spatial_out * sizeof(T)));
     launch_im2col_2d<T>(
         reinterpret_cast<T*>(input_ptr), d_col,
         B, C_in, H, W, KH, KW, H_out, W_out,
         stride_h, stride_w, padding_h, padding_w,
         dilation_h, dilation_w);
 
-    T* d_grad_weight = static_cast<T*>(g_pool.alloc( C_out * C_in * KH * KW * sizeof(T)));
+    T* d_grad_weight = static_cast<T*>(
+        g_pool.alloc(C_out * C_in * KH * KW * sizeof(T)));
 
     cublasHandle_t handle = get_cublas_handle();
     if constexpr (std::is_same_v<T, float>) {
@@ -291,8 +309,8 @@ uintptr_t run_conv2d_backward_weight(
             CUBLAS_OP_T, CUBLAS_OP_N,
             kernel_size, C_out, spatial_out,
             &alpha,
-            d_col, spatial_out,
-            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
+            d_col,           spatial_out,
+            out_grad_cfirst, spatial_out,  // ← was out_grad_ptr
             &beta,
             d_grad_weight, kernel_size);
     }
@@ -302,15 +320,17 @@ uintptr_t run_conv2d_backward_weight(
             CUBLAS_OP_T, CUBLAS_OP_N,
             kernel_size, C_out, spatial_out,
             &alpha,
-            d_col, spatial_out,
-            reinterpret_cast<T*>(out_grad_ptr), spatial_out,
+            d_col,           spatial_out,
+            out_grad_cfirst, spatial_out,  // ← was out_grad_ptr
             &beta,
             d_grad_weight, kernel_size);
     }
     else throw std::runtime_error(
         "conv2d_backward_weight only supports float32 and float16");
 
-    g_pool.free(d_col, kernel_size * spatial_out * sizeof(T));
+    g_pool.free(d_col,           kernel_size * spatial_out * sizeof(T));
+    g_pool.free(out_grad_cfirst, spatial_out * C_out       * sizeof(T));
+
     return reinterpret_cast<uintptr_t>(d_grad_weight);
 }
 

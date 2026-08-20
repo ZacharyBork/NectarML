@@ -33,8 +33,12 @@ class _BatchNorm(Module):
         self.fused               = fused
                 
         if affine:
-              self.gamma =  T.ones(parameter_shape, dtype, 'cpu', True)
-              self.beta  = T.zeros(parameter_shape, dtype, 'cpu', True)
+              self.gamma =  T.ones(
+                  parameter_shape, dtype=dtype, 
+                  device='cpu', requires_grad=True)
+              self.beta  = T.zeros(
+                  parameter_shape, dtype=dtype,
+                  device='cpu', requires_grad=True)
         else: self.gamma = self.beta = None
         
         if track_running_stats:
@@ -434,8 +438,12 @@ class GroupNorm(Module):
         self.eps        = eps
         
         if affine:
-              self.gamma =  T.ones((1, num_channels, 1, 1), dtype, 'cpu', True)
-              self.beta  = T.zeros((1, num_channels, 1, 1), dtype, 'cpu', True)
+              self.gamma =  T.ones(
+                  (1, num_channels, 1, 1), dtype=dtype, 
+                  device='cpu', requires_grad=True)
+              self.beta  = T.zeros(
+                  (1, num_channels, 1, 1), dtype=dtype, 
+                  device='cpu', requires_grad=True)
         else: self.gamma = self.beta = None
         
     def forward(self: GroupNorm, x: Tensor) -> Tensor:
@@ -487,9 +495,13 @@ class LayerNorm(Module):
         self.eps              = eps
         
         if elementwise_affine:
-            self.gamma = T.ones(normalized_shape, dtype, 'cpu', True)
+            self.gamma = T.ones(
+                normalized_shape, dtype=dtype, 
+                device='cpu', requires_grad=True)
             if bias:
-                  self.beta = T.zeros(normalized_shape, dtype, 'cpu', True)
+                  self.beta = T.zeros(
+                      normalized_shape, dtype=dtype, 
+                      device='cpu', requires_grad=True)
             else: self.beta = None
         else: self.gamma = self.beta = None
         

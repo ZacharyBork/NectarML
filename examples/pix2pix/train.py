@@ -140,8 +140,7 @@ def train_fn(
     L1:           nn.L1Loss, 
     BCE:          nn.BCEWithLogitsLoss,
     epoch:        int
-) -> None:
-    
+) -> None:    
     for idx, (x, y) in enumerate(train_loader): 
         iteration = idx + 1
                 

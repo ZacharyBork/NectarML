@@ -38,7 +38,7 @@ class Pad(Transform):
                                             constant grayscale value.
                            2. `reflect`   : Mirrors edge pixels in the padded
                                             area.
-                           3. `Replicate` : Replicates the edge pixels into the
+                           3. `replicate` : Replicates the edge pixels into the
                                             padded area.
                            4. `circular`  : Wraps the opposite edges pixels to
                                             fill the padded area.
@@ -117,7 +117,7 @@ class _Crop(Transform):
                                              constant grayscale value.
                             2. `reflect`   : Mirrors edge pixels in the padded
                                              area.
-                            3. `Replicate` : Replicates the edge pixels into 
+                            3. `replicate` : Replicates the edge pixels into 
                                              the padded area.
                             4. `circular`  : Wraps the opposite edges pixels to
                                              fill the padded area.
@@ -200,7 +200,7 @@ class RandomCrop(_Crop):
                                              constant grayscale value.
                             2. `reflect`   : Mirrors edge pixels in the padded
                                              area.
-                            3. `Replicate` : Replicates the edge pixels into 
+                            3. `replicate` : Replicates the edge pixels into 
                                              the padded area.
                             4. `circular`  : Wraps the opposite edges pixels to
                                              fill the padded area.
@@ -269,7 +269,7 @@ class CenterCrop(_Crop):
                                              constant grayscale value.
                             2. `reflect`   : Mirrors edge pixels in the padded
                                              area.
-                            3. `Replicate` : Replicates the edge pixels into 
+                            3. `replicate` : Replicates the edge pixels into 
                                              the padded area.
                             4. `circular`  : Wraps the opposite edges pixels to
                                              fill the padded area.
@@ -345,7 +345,7 @@ class RandomResizedCrop(_Crop):
                                              constant grayscale value.
                             2. `reflect`   : Mirrors edge pixels in the padded
                                              area.
-                            3. `Replicate` : Replicates the edge pixels into 
+                            3. `replicate` : Replicates the edge pixels into 
                                              the padded area.
                             4. `circular`  : Wraps the opposite edges pixels to
                                              fill the padded area.

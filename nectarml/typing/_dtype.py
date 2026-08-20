@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 from   dataclasses import dataclass
-from   typing      import Self
+from   typing      import Self, Any
 
 import numpy as np
 
@@ -26,7 +26,7 @@ class iinfo:
     
 @dataclass
 class finfo:
-    bits:            builtins.float
+    bits:            builtins.int
     min:             builtins.float
     max:             builtins.float
     eps:             builtins.float
@@ -238,7 +238,8 @@ class dtype:
     
     def __str__   (self: dtype) -> str:  return f'nectarml.{self.name}'
     def __repr__  (self: dtype) -> str:  return self.__str__()
-    def __reduce__(self: dtype) -> None: return (dtype, (self._type_cpu,))
+    def __reduce__(self: dtype) -> tuple[dtype, tuple[Any]]: 
+        return (dtype, (self._type_cpu,))
 
 ### DTYPE INSTANCES ###
 
