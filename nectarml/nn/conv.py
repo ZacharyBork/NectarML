@@ -1,0 +1,362 @@
+from __future__ import annotations
+
+import math
+from typing import Literal
+
+import nectarml.nn.functional as F
+from nectarml              import typing
+from nectarml.core         import Tensor, creation
+from nectarml.nn.module    import Module
+from nectarml.nn.init      import kaiming_uniform_, uniform_
+from nectarml.amp.autocast import autocast_state
+
+### 1-Dimensional ###
+    
+class Conv1d(Module):
+    def __init__(
+        self: Conv1d,
+        in_channels:  int,
+        out_channels: int,
+        kernel_size:  int,
+        stride:       int = 1,
+        padding:      int = 0,
+        dilation:     int = 1,
+        groups:       int = 1,
+        bias:        bool = True,
+        padding_mode: Literal[
+            'zeros', 'reflect', 'replicate', 'circular'
+        ] = 'zeros',
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        super().__init__()
+        self.in_channels  = in_channels
+        self.out_channels = out_channels
+        self.kernel_size  = kernel_size
+        self.stride       = stride
+        self.padding      = padding
+        self.dilation     = dilation
+        self.groups       = groups
+        self.padding_mode = padding_mode
+
+        self.weight = creation.empty(
+            (out_channels, in_channels // groups, kernel_size),
+            dtype=dtype, device='cpu', requires_grad=True)
+        kaiming_uniform_(
+            self.weight, mode='fan_in', 
+            nonlinearity='leaky_relu', a=math.sqrt(5))
+
+        if bias:
+            k = (in_channels // groups) * kernel_size
+            bound = 1.0 / k ** 0.5
+            
+            self.bias = creation.empty(
+                (out_channels,), dtype=dtype, 
+                device='cpu', requires_grad=True)
+            uniform_(self.bias, -bound, bound)
+        else: self.bias = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        state       = autocast_state()
+        input_dtype = x.dtype
+        if state.enabled and state.context == 'cuda':
+            x      = x.to(dtype=typing.float16)
+            weight = self.weight.to(dtype=typing.float16)
+            bias   = self.bias.to(dtype=typing.float16) \
+                  if self.bias is not None else None
+        else:
+            weight = self.weight
+            bias   = self.bias
+        out = F.conv1d(
+            x, weight, bias,
+            stride       = self.stride,
+            padding      = self.padding,
+            dilation     = self.dilation,
+            groups       = self.groups,
+            padding_mode = self.padding_mode)
+        return out.to(dtype=input_dtype)
+
+class ConvTranspose1d(Module):
+    def __init__(
+        self: ConvTranspose1d,
+        in_channels:    int,
+        out_channels:   int,
+        kernel_size:    int,
+        stride:         int = 1,
+        padding:        int = 0,
+        output_padding: int = 0,
+        dilation:       int = 1,
+        groups:         int = 1,
+        bias:          bool = True,
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        super().__init__()
+        self.in_channels    = in_channels
+        self.out_channels   = out_channels
+        self.kernel_size    = kernel_size
+        self.stride         = stride
+        self.padding        = padding
+        self.output_padding = output_padding
+        self.dilation       = dilation
+        self.groups         = groups
+
+        self.weight = creation.empty(
+            (in_channels, out_channels // groups, kernel_size),
+            dtype=dtype, device='cpu', requires_grad=True)
+        kaiming_uniform_(
+            self.weight, mode='fan_in', 
+            nonlinearity='leaky_relu', a=math.sqrt(5))
+
+        if bias:
+            k = (in_channels // groups) * kernel_size
+            bound = 1.0 / k ** 0.5
+            
+            self.bias = creation.empty(
+                (out_channels,), dtype=dtype, 
+                device='cpu', requires_grad=True)
+            uniform_(self.bias, -bound, bound)
+        else: self.bias = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        state       = autocast_state()
+        input_dtype = x.dtype
+        if state.enabled and state.context == 'cuda':
+            x      = x.to(dtype=typing.float16)
+            weight = self.weight.to(dtype=typing.float16)
+            bias   = self.bias.to(dtype=typing.float16) \
+                  if self.bias is not None else None
+        else:
+            weight = self.weight
+            bias   = self.bias
+        out = F.conv_transpose1d(
+            x, weight, bias,
+            stride         = self.stride,
+            padding        = self.padding,
+            output_padding = self.output_padding,
+            dilation       = self.dilation,
+            groups         = self.groups,
+            padding_mode   = 'zeros')
+        return out.to(dtype=input_dtype)
+    
+### 2-Dimensional ###
+    
+class Conv2d(Module):
+    def __init__(
+        self: Conv2d,
+        in_channels:  int,
+        out_channels: int,
+        kernel_size:  int | tuple[int, int],
+        stride:       int | tuple[int, int] = 1,
+        padding:      int | tuple[int, int] = 0,
+        dilation:     int | tuple[int, int] = 1,
+        groups:       int = 1,
+        bias:        bool = True,
+        padding_mode: Literal[
+            'zeros', 'reflect', 'replicate', 'circular'
+        ] = 'zeros',
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        '''Performs convolution on 4-dimensional inputs.
+
+        Expects input tensors to have shape (B, C, H, W).
+        
+        Args:
+            in_channels  : The number of channels in the module's input.
+            out_channels : The number of channels in the module's output.
+            kernel_size  : The size of the convolutional kernel. Can be a 
+                           single integer for HW, or a tuple of two integers
+                           for (H, W).
+            stride       : Step size for the kernel. Can be a single integer 
+                           for HW, or a tuple of two integers for (H, W).
+            padding      : Padding width for inputs. Can be a single integer
+                           for HW, or a tuple of two integers for (H, W).
+            dilation     : Size of the gap between the filter's sampling 
+                           points. Larger values allow the filter to cover a 
+                           larger spatial area without increasing parameter 
+                           count.
+            groups       : Number of groups to split the input channels into
+                           before computing the convolution. Note: `groups`>1 
+                           is currently only valid for CPU tensors.
+            bias         : If True, a learnable bias tensor will be created
+                           for the module on init, and used for convolution.
+            padding_mode : The padding mode to use. Options are:
+                           1. `zeros`     : Fill the padded area with zeros.
+                           2. `reflect`   : Mirrors edge pixels in the padded
+                                           area.
+                           3. `replicate` : Replicates the edge pixels into the
+                                           padded area.
+                           4. `circular`  : Wraps the opposite edges pixels to
+                                           fill the padded area.
+            dtype        : The DType to initialize the module's weight and bias
+                           tensors as.
+        '''
+        super().__init__()
+        self.in_channels  = in_channels
+        self.out_channels = out_channels
+        self.stride       = stride
+        self.padding      = padding
+        self.dilation     = dilation
+        self.groups       = groups
+        self.padding_mode = padding_mode
+
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+
+        self.weight = creation.empty(
+            (out_channels, in_channels // groups) + self.kernel_size,
+            dtype=dtype, device='cpu', requires_grad=True)
+        kaiming_uniform_(
+            self.weight, mode='fan_in', 
+            nonlinearity='leaky_relu', a=math.sqrt(5))
+
+        if bias:
+            k = (in_channels // groups) \
+              * self.kernel_size[0] \
+              * self.kernel_size[1]
+            bound = 1.0 / k ** 0.5
+            self.bias = creation.empty(
+                (out_channels,), dtype=dtype,
+                device='cpu', requires_grad=True)
+            uniform_(self.bias, -bound, bound)
+        else: self.bias = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.conv2d(
+            x, self.weight, self.bias,
+            stride       = self.stride,
+            padding      = self.padding,
+            dilation     = self.dilation,
+            groups       = self.groups,
+            padding_mode = self.padding_mode)
+        
+class ConvTranspose2d(Module):
+    def __init__(
+        self: ConvTranspose2d,
+        in_channels:    int,
+        out_channels:   int,
+        kernel_size:    int | tuple[int, int],
+        stride:         int | tuple[int, int] = 1,
+        padding:        int | tuple[int, int] = 0,
+        output_padding: int | tuple[int, int] = 0,
+        dilation:       int | tuple[int, int] = 1,
+        groups:         int = 1,
+        bias:          bool = True,
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        '''Performs transposed convolution on 4-dimensional inputs.
+
+        Expects input tensors to have shape (B, C, H, W).
+        
+        Args:
+            in_channels    : The number of channels in the module's input.
+            out_channels   : The number of channels in the module's output.
+            kernel_size    : The size of the convolutional kernel. Can be a 
+                             single integer for HW, or a tuple of two integers
+                             for (H, W).
+            stride         : Step size for the kernel. Can be a single integer 
+                             for HW, or a tuple of two integers for (H, W).
+            padding        : Padding width for inputs. Can be a single integer
+                             for HW, or a tuple of two integers for (H, W).
+            output_padding : Number of rows and columns to add to the output 
+                             tensor after the transposed convolution. Can be
+                             a single integer for HW, or a tuple of two 
+                             integers for (H, W).
+            dilation       : Size of the gap between the filter's sampling 
+                             points. Larger values allow the filter to cover a 
+                             larger spatial area without increasing parameter 
+                             count.
+            groups         : Number of groups to split the input channels into
+                             before computing the convolution. Note: `groups`>1 
+                             is currently only valid for CPU tensors.
+            bias           : If True, a learnable bias tensor will be created
+                             for the module on init, and used for convolution.
+            dtype          : The DType to initialize the module's weight and 
+                             bias tensors as.
+        '''
+        super().__init__()
+        self.in_channels    = in_channels
+        self.out_channels   = out_channels
+        self.stride         = stride
+        self.padding        = padding
+        self.output_padding = output_padding
+        self.dilation       = dilation
+        self.groups         = groups
+
+        self.kernel_size = (kernel_size, kernel_size) \
+            if isinstance(kernel_size, int) else kernel_size
+
+        self.weight = creation.empty(
+            (in_channels, out_channels // groups) + self.kernel_size,
+            dtype=dtype, device='cpu', requires_grad=True)
+        kaiming_uniform_(
+            self.weight, mode='fan_in', 
+            nonlinearity='leaky_relu', a=math.sqrt(5))
+
+        if bias:
+            k = (in_channels // groups) \
+              * self.kernel_size[0] \
+              * self.kernel_size[1]
+            bound = 1.0 / k ** 0.5
+            self.bias = creation.empty(
+                (out_channels,), dtype=dtype,
+                device='cpu', requires_grad=True)
+            uniform_(self.bias, -bound, bound)
+        else: self.bias = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.conv_transpose2d(
+            x, self.weight, self.bias,
+            stride         = self.stride,
+            padding        = self.padding,
+            output_padding = self.output_padding,
+            dilation       = self.dilation,
+            groups         = self.groups,
+            padding_mode='zeros')
+
+### 3-Dimensional ###
+    
+class Conv3d(Module):
+    def __init__(
+        self: Conv3d,
+        in_channels:  int,
+        out_channels: int,
+        kernel_size:  int | tuple[int, int, int],
+        stride:       int | tuple[int, int, int] = 1,
+        padding:      int | tuple[int, int, int] = 0,
+        dilation:     int | tuple[int, int, int] = 1,
+        groups:       int = 1,
+        bias:        bool = True,
+        padding_mode: Literal[
+            'zeros', 'reflect', 'replicate', 'circular'
+        ] = 'zeros',
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        raise NotImplementedError('3D convolution is not currently supported.')
+        super().__init__()
+
+    def forward(self: Conv3d, x: Tensor) -> Tensor:        
+        raise NotImplementedError
+    
+class ConvTranspose3d(Module):
+    def __init__(
+        self: ConvTranspose3d,
+        in_channels:    int,
+        out_channels:   int,
+        kernel_size:    int | tuple[int, int, int],
+        stride:         int | tuple[int, int, int] = 1,
+        padding:        int | tuple[int, int, int] = 0,
+        output_padding: int | tuple[int, int, int] = 0,
+        dilation:       int | tuple[int, int, int] = 1,
+        groups:         int = 1,
+        bias:          bool = True,
+        padding_mode: Literal[
+            'zeros', 'reflect', 'replicate', 'circular'
+        ] = 'zeros',
+        dtype: typing.dtype = typing.float32
+    ) -> None:
+        raise NotImplementedError('3D convolution is not currently supported.')
+        super().__init__()
+        
+
+    def forward(self: ConvTranspose3d, x: Tensor) -> Tensor:        
+        raise NotImplementedError
+

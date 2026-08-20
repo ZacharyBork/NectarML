@@ -1,0 +1,304 @@
+import itertools
+
+import numpy as np
+
+# NEAREST NEIGHBOR
+
+def upsample_nearest(
+    input: np.ndarray,
+    out_sizes: tuple[int, ...]
+) -> np.ndarray:
+    in_sizes = input.shape[2:]
+    output = np.zeros(input.shape[:2] + out_sizes, dtype=input.dtype)
+
+    indices = tuple(
+        np.minimum((np.arange(o) * i // o).astype(np.int32), i - 1)
+        for o, i in zip(out_sizes, in_sizes))
+
+    if len(in_sizes) == 1:
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][indices[0]]
+    elif len(in_sizes) == 2:
+        idx_h = indices[0][:, None]
+        idx_w = indices[1][None, :]
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][idx_h, idx_w]
+    elif len(in_sizes) == 3:
+        idx_d = indices[0][:, None, None]
+        idx_h = indices[1][None, :, None]
+        idx_w = indices[2][None, None, :]
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] = input[b, c][idx_d, idx_h, idx_w]
+
+    return output
+
+def upsample_nearest_backward(
+    grad_output: np.ndarray,
+    in_sizes: tuple[int, ...]
+) -> np.ndarray:
+    spatial_out = grad_output.shape[2:]
+    spatial_in = in_sizes
+    grad_input = np.zeros(
+        grad_output.shape[:2] + spatial_in, dtype=grad_output.dtype)
+    
+    indices = tuple(
+        np.minimum((np.arange(o) * i // o).astype(np.int32), i - 1)
+        for o, i in zip(spatial_out, spatial_in))
+
+    if len(spatial_in) == 1:
+        for b in range(grad_output.shape[0]):
+            for c in range(grad_output.shape[1]):
+                np.add.at(grad_input[b, c], indices[0], grad_output[b, c])
+    elif len(spatial_in) == 2:
+        idx_h = indices[0][:, None]
+        idx_w = indices[1][None, :]
+        for b in range(grad_output.shape[0]):
+            for c in range(grad_output.shape[1]):
+                np.add.at(grad_input[b, c], (idx_h, idx_w), grad_output[b, c])
+    elif len(spatial_in) == 3:
+        idx_d = indices[0][:, None, None]
+        idx_h = indices[1][None, :, None]
+        idx_w = indices[2][None, None, :]
+        for b in range(grad_output.shape[0]):
+            for c in range(grad_output.shape[1]):
+                np.add.at(grad_input[b, c], 
+                          (idx_d, idx_h, idx_w), grad_output[b, c])
+    
+    return grad_input
+
+# LINEAR/BILINEAR/TRILINEAR
+
+def upsample_linear_nd(
+    input: np.ndarray,
+    out_sizes: tuple[int, ...],
+    align_corners: bool = False
+) -> np.ndarray:
+    n_spatial = len(out_sizes)
+    in_sizes = input.shape[2:]
+    output = np.zeros(input.shape[:2] + out_sizes, dtype=input.dtype)
+
+    lows, highs, wt_highs = [], [], []
+    for dim in range(n_spatial):
+        if align_corners:
+            in_float = (
+                np.arange(out_sizes[dim]) * (in_sizes[dim] - 1) 
+              / (out_sizes[dim] - 1)) if out_sizes[dim] > 1 else np.zeros(1)
+        else:
+            in_float = np.arange(
+                out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
+        low  = np.floor(in_float).astype(np.int32)
+        lows.append(low)
+        highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
+        wt_highs.append(in_float - low)
+
+    for corner in itertools.product(*[(0, 1)] * n_spatial):
+        weight = np.ones(out_sizes, dtype=input.dtype)
+        idx = []
+        for dim, is_high in enumerate(corner):
+            wt    = wt_highs[dim] if is_high else (1.0 - wt_highs[dim])
+            coord = highs[dim]    if is_high else lows[dim]
+            shape = [1] * n_spatial
+            shape[dim] = -1
+            weight = weight * wt.reshape(shape)
+            idx.append(coord.reshape(shape)*np.ones(out_sizes, dtype=np.int32))
+        idx = tuple(idx)
+
+        for b in range(input.shape[0]):
+            for c in range(input.shape[1]):
+                output[b, c] += weight * input[b, c][idx]
+
+    return output
+
+def upsample_linear(
+    input: np.ndarray,
+    out_size: int | tuple[int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 3, \
+        f'Upsample mode [linear] expects input to have ndim=3.'
+    if not isinstance(out_size, tuple): out_size = (out_size,)
+    return upsample_linear_nd(input, out_size, align_corners)
+
+def upsample_bilinear(
+    input: np.ndarray,
+    out_sizes: tuple[int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 4, \
+        f'Upsample mode [bilinear] expects input to have ndim=4.'
+    return upsample_linear_nd(input, out_sizes, align_corners)
+
+def upsample_trilinear(
+    input: np.ndarray,
+    out_sizes: tuple[int, int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 5, \
+        f'Upsample mode [trilinear] expects input to have ndim=35.'
+    return upsample_linear_nd(input, out_sizes, align_corners)
+
+def upsample_linear_backward_nd(
+    grad_output: np.ndarray,
+    in_sizes: tuple[int, ...],
+    align_corners: bool = False
+) -> np.ndarray:
+    n_spatial = len(in_sizes)
+    out_sizes = grad_output.shape[2:]
+    
+    grad_input = np.zeros(
+        grad_output.shape[:2] + in_sizes, dtype=grad_output.dtype)
+
+    lows, highs, wt_highs = [], [], []
+    for dim in range(n_spatial):
+        if align_corners:
+            in_float = (
+                np.arange(out_sizes[dim]) * (in_sizes[dim] - 1) 
+              / (out_sizes[dim] - 1)) if out_sizes[dim] > 1 else np.zeros(1)
+        else:
+            in_float = np.arange(
+                out_sizes[dim]) * (in_sizes[dim] / out_sizes[dim])
+        low  = np.floor(in_float).astype(np.int32)
+        lows.append(low)
+        highs.append(np.minimum(low + 1, in_sizes[dim] - 1))
+        wt_highs.append(in_float - low)
+
+    for corner in itertools.product(*[(0, 1)] * n_spatial):
+        weight = np.ones(out_sizes, dtype=grad_output.dtype)
+        idx = []
+        for dim, is_high in enumerate(corner):
+            wt = wt_highs[dim] if is_high else (1.0 - wt_highs[dim])
+            coord = highs[dim] if is_high else lows[dim]
+            
+            shape = [1] * n_spatial
+            shape[dim] = -1
+            weight = weight * wt.reshape(shape)
+            idx.append(coord.reshape(shape)*np.ones(out_sizes, dtype=np.int32))
+        
+        idx = tuple(idx)
+        
+        for b in range(grad_output.shape[0]):
+            for c in range(grad_output.shape[1]):
+                np.add.at(grad_input[b, c], idx, weight * grad_output[b, c])
+
+    return grad_input
+
+def upsample_linear_backward(
+    grad_output: np.ndarray,
+    in_size: int | tuple[int],
+    align_corners: bool = False
+) -> np.ndarray:
+    if not isinstance(in_size, tuple): in_size = (in_size,)
+    return upsample_linear_backward_nd(grad_output, in_size, align_corners)
+
+def upsample_bilinear_backward(
+    grad_output: np.ndarray,
+    in_sizes: tuple[int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    return upsample_linear_backward_nd(grad_output, in_sizes, align_corners)
+
+def upsample_trilinear_backward(
+    grad_output: np.ndarray,
+    in_sizes: tuple[int, int, int],
+    align_corners: bool = False
+) -> np.ndarray:
+    return upsample_linear_backward_nd(grad_output, in_sizes, align_corners)
+
+# BICUBIC
+
+def cubic_weight(t: np.ndarray, a: float = -0.75) -> np.ndarray:
+    t = np.abs(t)
+    w = np.where(t <= 1,
+        (a + 2) * t**3 - (a + 3) * t**2 + 1,
+        np.where(t < 2,
+            a * t**3 - 5*a * t**2 + 8*a * t - 4*a,
+            0.0))
+    return w
+
+def upsample_bicubic(
+    input: np.ndarray,
+    out_sizes: tuple,
+    a: float = -0.75,
+    align_corners: bool = False
+) -> np.ndarray:
+    assert input.ndim == 4, \
+        f'Upsample mode [bicubic] expects input to have ndim=4.'
+            
+    H_out, W_out = out_sizes
+    H_in, W_in = input.shape[2], input.shape[3]
+    output = np.zeros(input.shape[:2] + (H_out, W_out), dtype=input.dtype)
+
+    if align_corners:
+        h_in_float = np.arange(H_out) * (H_in - 1) \
+                   / (H_out - 1) if H_out > 1 else np.zeros(1)
+        w_in_float = np.arange(W_out) * (W_in - 1) \
+                   / (W_out - 1) if W_out > 1 else np.zeros(1)
+    else:
+        h_in_float = np.arange(H_out) * (H_in / H_out)
+        w_in_float = np.arange(W_out) * (W_in / W_out)
+        
+    h_base = np.floor(h_in_float).astype(np.int32)
+    w_base = np.floor(w_in_float).astype(np.int32)
+
+    for i in range(4):
+        h_idx = np.clip(h_base + i - 1, 0, H_in - 1)
+        wh = cubic_weight(h_in_float - (h_base + i - 1), a)
+        for j in range(4):
+            w_idx = np.clip(w_base + j - 1, 0, W_in - 1)
+            ww = cubic_weight(w_in_float - (w_base + j - 1), a)
+            weight = (wh[:, None] * ww[None, :])
+            for b in range(input.shape[0]):
+                for c in range(input.shape[1]):
+                    output[b, c] += weight * input[b, c][
+                        h_idx[:, None], w_idx[None, :]]
+
+    return output
+
+def upsample_bicubic_backward(
+    grad_output: np.ndarray,
+    in_sizes: tuple,
+    a: float = -0.75,
+    align_corners: bool = False
+) -> np.ndarray:
+    H_out, W_out = grad_output.shape[2], grad_output.shape[3]
+    H_in, W_in = in_sizes
+
+    grad_input = np.zeros(
+        grad_output.shape[:2] + (H_in, W_in), dtype=grad_output.dtype)
+
+    if align_corners:
+        h_in_float = np.arange(H_out) * (H_in - 1) \
+                   / (H_out - 1) if H_out > 1 else np.zeros(1)
+        w_in_float = np.arange(W_out) * (W_in - 1) \
+                   / (W_out - 1) if W_out > 1 else np.zeros(1)
+    else:
+        h_in_float = np.arange(H_out) * (H_in / H_out)
+        w_in_float = np.arange(W_out) * (W_in / W_out)
+
+    h_base = np.floor(h_in_float).astype(np.int32)
+    w_base = np.floor(w_in_float).astype(np.int32)
+
+    for b in range(grad_output.shape[0]):
+        for c in range(grad_output.shape[1]):
+            g = grad_output[b, c]
+
+            for i in range(4):
+                h_idx = np.clip(h_base + i - 1, 0, H_in - 1)
+                wh = cubic_weight(h_in_float - (h_base + i - 1), a)[:, None]
+
+                for j in range(4):
+                    w_idx = np.clip(w_base + j - 1, 0, W_in - 1)
+                    ww = cubic_weight(
+                        w_in_float - (w_base + j - 1), a)[None, :]
+
+                    h_grid = h_idx[:, None] * np.ones(W_out, dtype=np.int32)
+                    w_grid = np.ones(
+                        H_out, dtype=np.int32)[:, None]*w_idx[None, :]
+
+                    np.add.at(grad_input[b, c], (h_grid, w_grid), wh * ww * g)
+
+    return grad_input
+

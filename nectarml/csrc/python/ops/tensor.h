@@ -1,0 +1,16 @@
+#pragma once
+
+#include "python/ops/tensor/combination.h"
+#include "python/ops/tensor/conv.h"
+#include "python/ops/tensor/elementwise.h"
+#include "python/ops/tensor/im2col.h"
+#include "python/ops/tensor/indexing.h"
+#include "python/ops/tensor/inspection.h"
+#include "python/ops/tensor/interpolation.h"
+#include "python/ops/tensor/matmul.h"
+#include "python/ops/tensor/norm.h"
+#include "python/ops/tensor/padding.h"
+#include "python/ops/tensor/pooling.h"
+#include "python/ops/tensor/reductions.h"
+#include "python/ops/tensor/shapes.h"
+#include "python/ops/tensor/sorting.h"
